@@ -3,6 +3,7 @@ package com.frito.music.ui.theme
 import android.app.Application
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
+import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.Calendar
@@ -13,7 +14,7 @@ class ThemeViewModel(application: Application) : AndroidViewModel(application) {
 
     // Valores por defecto
     private val defaultThemeMode = "Oscuro"
-    private val defaultAccentColor = 0xFF1DB954 // Green
+    private val defaultAccentColor = 0xFF1DB954L // Green
 
     private val _themeMode = MutableStateFlow(prefs.getString("theme_mode", defaultThemeMode) ?: defaultThemeMode)
     val themeMode = _themeMode.asStateFlow()
@@ -23,6 +24,9 @@ class ThemeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _backgroundImageUri = MutableStateFlow<String?>(prefs.getString("background_image_uri", null))
     val backgroundImageUri = _backgroundImageUri.asStateFlow()
+
+    private val _backgroundBlur = MutableStateFlow(prefs.getFloat("background_blur", 0f))
+    val backgroundBlur = _backgroundBlur.asStateFlow()
 
     fun setThemeMode(mode: String) {
         _themeMode.value = mode
@@ -39,16 +43,29 @@ class ThemeViewModel(application: Application) : AndroidViewModel(application) {
         prefs.edit().putString("background_image_uri", uri).apply()
     }
 
+    fun setBackgroundBlur(blur: Float) {
+        _backgroundBlur.value = blur
+        prefs.edit().putFloat("background_blur", blur).apply()
+    }
+
     fun isDarkThemeActive(): Boolean {
         return when (_themeMode.value) {
             "Claro" -> false
             "Oscuro" -> true
             "Automático" -> {
                 val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-                currentHour >= 18 || currentHour < 6 // Dark from 6 PM to 6 AM
+                currentHour >= 18 || currentHour < 6 // Oscuro de 6 PM a 6 AM
             }
-            "Color predominante" -> false // Para color predominante, solemos usar texto oscuro (claro)
+            "Color predominante" -> {
+                // La oscuridad depende de la luminancia del color elegido.
+                // AppTheme.kt la calcula independientemente, pero aquí
+                // necesitamos un valor para pasar como `isDark` al FritoMusicTheme.
+                // Devolvemos false porque AppTheme.kt sobreescribirá todo
+                // con la lógica WCAG de luminancia.
+                false
+            }
             else -> true
         }
     }
 }
+

@@ -19,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -26,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.frito.music.ui.theme.ThemeViewModel
 import com.frito.music.ui.theme.LocalAppColors
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -35,6 +37,7 @@ fun AppearanceScreen(themeViewModel: ThemeViewModel, onBack: () -> Unit) {
     val themeMode by themeViewModel.themeMode.collectAsState()
     val currentAccentHex by themeViewModel.accentColor.collectAsState()
     val backgroundImageUri by themeViewModel.backgroundImageUri.collectAsState()
+    val backgroundBlur by themeViewModel.backgroundBlur.collectAsState()
 
     val currentAccentColor = Color(currentAccentHex)
 
@@ -207,6 +210,51 @@ fun AppearanceScreen(themeViewModel: ThemeViewModel, onBack: () -> Unit) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Quitar imagen de fondo", color = appColors.textPrimary)
                 }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Blur Slider
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.BlurOn,
+                                contentDescription = null,
+                                tint = appColors.accent,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Desenfoque",
+                                color = appColors.textPrimary,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        Text(
+                            text = if (backgroundBlur == 0f) "Sin blur" else "${backgroundBlur.roundToInt()}px",
+                            color = appColors.textSecondary,
+                            fontSize = 13.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Slider(
+                        value = backgroundBlur,
+                        onValueChange = { themeViewModel.setBackgroundBlur(it) },
+                        valueRange = 0f..40f,
+                        steps = 39,
+                        colors = SliderDefaults.colors(
+                            thumbColor = appColors.accent,
+                            activeTrackColor = appColors.accent,
+                            inactiveTrackColor = appColors.surface
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         }
 
@@ -215,39 +263,58 @@ fun AppearanceScreen(themeViewModel: ThemeViewModel, onBack: () -> Unit) {
         // Accent Color Section
         Column(modifier = Modifier.padding(horizontal = 16.dp)) {
             Text(
-                text = "Color de Acento",
+                text = if (themeMode == "Color predominante") "Color Predominante" else "Color de Acento",
                 color = appColors.textPrimary,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold
             )
+            if (themeMode == "Color predominante") {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Este color teñirá toda la app. El texto se ajustará automáticamente para máximo contraste.",
+                    color = appColors.textSecondary,
+                    fontSize = 13.sp
+                )
+            }
             Spacer(modifier = Modifier.height(16.dp))
 
-            val colors = listOf(
-                0xFF1DB954, // Green
-                0xFF2196F3, // Blue
-                0xFF9C27B0, // Purple
-                0xFFE91E63, // Pink
-                0xFFFF9800, // Orange
-                0xFFF44336  // Red
+            val gradientColors = listOf(
+                // 1) Verde bosque - degradado de 2 tonos
+                Pair(0xFF4B5D16L, 0xFF223300L),
+                // 2) Azul petróleo
+                Pair(0xFF003049L, 0xFF003049L),
+                // 3) Morado oscuro
+                Pair(0xFF42164BL, 0xFF42164BL),
+                // 4) Rojo granate
+                Pair(0xFF54162BL, 0xFF54162BL),
+                // 5) Naranja bronce
+                Pair(0xFFBC430DL, 0xFFBC430DL),
+                // 6) Rosa empolvado
+                Pair(0xFFE8BCB9L, 0xFFE8BCB9L)
             )
 
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                colors.forEach { colorHex ->
-                    ColorCircle(
-                        color = Color(colorHex),
-                        isSelected = currentAccentHex == colorHex,
-                        onClick = { themeViewModel.setAccentColor(colorHex) }
+                gradientColors.forEach { (topHex, bottomHex) ->
+                    GradientColorCircle(
+                        topColor = Color(topHex),
+                        bottomColor = Color(bottomHex),
+                        isSelected = currentAccentHex == topHex,
+                        onClick = { themeViewModel.setAccentColor(topHex) }
                     )
                 }
-                // Custom Color Palette Button
+                // Botón de color personalizado
                 Box(
                     modifier = Modifier
                         .size(56.dp)
                         .clip(CircleShape)
-                        .background(currentAccentColor)
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(currentAccentColor, currentAccentColor.copy(alpha = 0.7f))
+                            )
+                        )
                         .clickable { showHexDialog = true },
                     contentAlignment = Alignment.Center
                 ) {
@@ -374,6 +441,46 @@ fun ColorCircle(
             .size(56.dp)
             .clip(CircleShape)
             .background(color)
+            .border(
+                width = if (isSelected) 3.dp else 0.dp,
+                color = if (isSelected) Color.White else Color.Transparent,
+                shape = CircleShape
+            )
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        if (isSelected) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = "Selected Color",
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+    }
+}
+
+/**
+ * Círculo de color con efecto de degradado vertical.
+ * Muestra un gradiente de [topColor] a [bottomColor] como miniatura.
+ * Al seleccionarse, muestra un borde blanco + checkmark.
+ */
+@Composable
+fun GradientColorCircle(
+    topColor: Color,
+    bottomColor: Color,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(56.dp)
+            .clip(CircleShape)
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(topColor, bottomColor)
+                )
+            )
             .border(
                 width = if (isSelected) 3.dp else 0.dp,
                 color = if (isSelected) Color.White else Color.Transparent,

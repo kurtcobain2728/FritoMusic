@@ -25,7 +25,9 @@ import com.frito.music.ui.viewmodels.HomeViewModel
 import com.frito.music.ui.viewmodels.PlayerViewModel
 
 import androidx.compose.foundation.Image
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.frito.music.ui.theme.ThemeViewModel
 import com.frito.music.ui.theme.FritoMusicTheme
@@ -41,6 +43,7 @@ class MainActivity : ComponentActivity() {
             val themeMode by themeViewModel.themeMode.collectAsState()
             val accentColor by themeViewModel.accentColor.collectAsState()
             val backgroundImageUri by themeViewModel.backgroundImageUri.collectAsState()
+            val backgroundBlur by themeViewModel.backgroundBlur.collectAsState()
             val isDark = themeViewModel.isDarkThemeActive()
 
             FritoMusicTheme(
@@ -89,7 +92,13 @@ class MainActivity : ComponentActivity() {
                             model = backgroundImageUri,
                             contentDescription = "Background",
                             contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .then(
+                                    if (backgroundBlur > 0f)
+                                        Modifier.blur(radius = backgroundBlur.dp)
+                                    else Modifier
+                                )
                         )
                     }
 
