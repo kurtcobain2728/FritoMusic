@@ -23,13 +23,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.frito.music.ui.theme.LocalAppColors
 
 @Composable
 fun DonationsScreen(onBack: () -> Unit) {
+    val appColors = LocalAppColors.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121212))
+            .background(Color.Transparent)
     ) {
         // Top Bar
         Row(
@@ -41,7 +44,7 @@ fun DonationsScreen(onBack: () -> Unit) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
-                tint = Color.White,
+                tint = appColors.textPrimary,
                 modifier = Modifier
                     .size(28.dp)
                     .clickable { onBack() }
@@ -49,7 +52,7 @@ fun DonationsScreen(onBack: () -> Unit) {
             Spacer(modifier = Modifier.weight(1f))
             Text(
                 text = "Donaciones",
-                color = Color.White,
+                color = appColors.textPrimary,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(end = 28.dp)
@@ -68,20 +71,20 @@ fun DonationsScreen(onBack: () -> Unit) {
                 Icon(
                     imageVector = Icons.Default.Favorite,
                     contentDescription = "Heart",
-                    tint = Color(0xFF1DB954),
+                    tint = appColors.accent,
                     modifier = Modifier.size(48.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "¡Apoya Frito Music!",
-                    color = Color.White,
+                    color = appColors.textPrimary,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "Este proyecto es totalmente libre y de código abierto. Sin embargo, si te gusta nuestro trabajo y quieres apoyar el desarrollo continuo, puedes hacer una donación a través de los siguientes métodos.",
-                    color = Color.Gray,
+                    color = appColors.textSecondary,
                     fontSize = 14.sp,
                     textAlign = TextAlign.Center,
                     lineHeight = 20.sp
@@ -95,8 +98,9 @@ fun DonationsScreen(onBack: () -> Unit) {
                     minAmount = "Mínimo: \$0.01 USD",
                     description = "Envía USDT a través de la red BEP20 (Binance Smart Chain) a la siguiente dirección. Asegúrate de seleccionar la red BEP20 al enviar.",
                     icon = Icons.Default.AttachMoney,
-                    iconBgColor = Color(0xFF2A2210),
-                    iconTintColor = Color(0xFFFFC107)
+                    iconBgColor = appColors.background,
+                    iconTintColor = Color(0xFFFFC107),
+                    appColors = appColors
                 )
                 Spacer(modifier = Modifier.height(16.dp))
             }
@@ -107,8 +111,9 @@ fun DonationsScreen(onBack: () -> Unit) {
                     minAmount = "Mínimo: \$0.01 USD",
                     description = "Usa Bitget Pay para enviar una donación. Busca el siguiente ID de usuario dentro de la app de Bitget para transferir sin comisión.",
                     icon = Icons.Default.AccountBalanceWallet,
-                    iconBgColor = Color(0xFF102A20),
-                    iconTintColor = Color(0xFF1DB954)
+                    iconBgColor = appColors.background,
+                    iconTintColor = appColors.accent,
+                    appColors = appColors
                 )
                 Spacer(modifier = Modifier.height(16.dp))
             }
@@ -119,8 +124,9 @@ fun DonationsScreen(onBack: () -> Unit) {
                     minAmount = "Mínimo: \$1.00 USD",
                     description = "El método de donación por PayPal estará disponible próximamente. ¡Gracias por tu paciencia!",
                     icon = Icons.Default.CreditCard,
-                    iconBgColor = Color(0xFF101C2A),
-                    iconTintColor = Color(0xFF2196F3)
+                    iconBgColor = appColors.background,
+                    iconTintColor = Color(0xFF2196F3),
+                    appColors = appColors
                 )
                 Spacer(modifier = Modifier.height(32.dp))
             }
@@ -128,7 +134,7 @@ fun DonationsScreen(onBack: () -> Unit) {
             item {
                 Text(
                     text = "¡Gracias por tu apoyo! Cada donación nos ayuda a seguir mejorando la app.",
-                    color = Color.DarkGray,
+                    color = appColors.textSecondary,
                     fontSize = 12.sp,
                     textAlign = TextAlign.Center
                 )
@@ -145,13 +151,14 @@ fun DonationCard(
     description: String,
     icon: ImageVector,
     iconBgColor: Color,
-    iconTintColor: Color
+    iconTintColor: Color,
+    appColors: com.frito.music.ui.theme.AppColors
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFF1A1A1A))
+            .background(appColors.surface)
             .padding(20.dp)
     ) {
         Column {
@@ -174,13 +181,13 @@ fun DonationCard(
                 Column {
                     Text(
                         text = title,
-                        color = Color.White,
+                        color = appColors.textPrimary,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = minAmount,
-                        color = Color(0xFF1DB954),
+                        color = appColors.accent,
                         fontSize = 14.sp
                     )
                 }
@@ -188,14 +195,14 @@ fun DonationCard(
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = description,
-                color = Color.LightGray,
+                color = appColors.textSecondary,
                 fontSize = 14.sp,
                 lineHeight = 20.sp
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "CORREO / ID:",
-                color = Color.Gray,
+                color = appColors.textSecondary,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -204,20 +211,20 @@ fun DonationCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFF222222))
+                    .background(appColors.background)
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
                     text = "Próximamente",
-                    color = Color.White,
+                    color = appColors.textPrimary,
                     fontSize = 14.sp
                 )
                 Icon(
                     imageVector = Icons.Default.ContentCopy,
                     contentDescription = "Copy",
-                    tint = Color(0xFF1DB954),
+                    tint = appColors.accent,
                     modifier = Modifier
                         .size(20.dp)
                         .clickable { /* Copy to clipboard */ }

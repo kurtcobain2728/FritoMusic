@@ -24,6 +24,16 @@ class MusicService : MediaSessionService() {
             .build()
             
         mediaSession = MediaSession.Builder(this, player).build()
+
+        val eqManager = com.frito.music.audio.AudioEffectManagerProvider.getManager(this)
+        player.addListener(object : androidx.media3.common.Player.Listener {
+            override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                eqManager.attachAudioSession(audioSessionId)
+            }
+        })
+        if (player.audioSessionId != C.AUDIO_SESSION_ID_UNSET) {
+            eqManager.attachAudioSession(player.audioSessionId)
+        }
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession

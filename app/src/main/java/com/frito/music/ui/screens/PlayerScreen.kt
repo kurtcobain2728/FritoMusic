@@ -29,11 +29,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.draw.blur
 import coil.compose.AsyncImage
 import com.frito.music.ui.viewmodels.PlayerViewModel
 import androidx.media3.common.Player
+import com.frito.music.ui.theme.LocalAppColors
 
 fun formatDuration(ms: Long): String {
     val totalSeconds = ms / 1000
@@ -57,6 +58,8 @@ fun PlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit) {
     var showPlaylistSheet by remember { mutableStateOf(false) }
     var showCreateDialog by remember { mutableStateOf(false) }
     var newPlaylistName by remember { mutableStateOf("") }
+    
+    val appColors = LocalAppColors.current
 
     Box(
         modifier = Modifier
@@ -80,255 +83,238 @@ fun PlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit) {
                 )
             }
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF121212))
-        ) {
-        // Top Bar
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 48.dp, start = 16.dp, end = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.KeyboardArrowDown,
-                contentDescription = "Close",
-                tint = Color.White,
+        // Blur Background Layer
+        if (appColors.backgroundImageUri != null) {
+            AsyncImage(
+                model = appColors.backgroundImageUri,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .size(36.dp)
-                    .clickable { onClose() }
+                    .fillMaxSize()
+                    .blur(radius = 60.dp)
             )
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "REPRODUCIENDO DE",
-                    color = Color.Gray,
-                    fontSize = 10.sp,
-                    letterSpacing = 1.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = "Music",
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            Icon(
-                imageVector = Icons.Default.AddCircleOutline,
-                contentDescription = "Add",
-                tint = Color.White,
-                modifier = Modifier
-                    .size(28.dp)
-                    .clickable { showPlaylistSheet = true }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Album Art
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .aspectRatio(1f)
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFF1A1A1A)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.MusicNote,
-                contentDescription = "Album Art",
-                tint = Color(0xFF333333),
-                modifier = Modifier.size(120.dp)
-            )
-            if (currentAudio?.albumUri != null) {
-                AsyncImage(
-                    model = currentAudio?.albumUri,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Song Info
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = currentAudio?.title ?: "Sin reproducir",
-                    color = Color.White,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                )
-                Text(
-                    text = currentAudio?.artist ?: "",
-                    color = Color.Gray,
-                    fontSize = 16.sp,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                )
-            }
-            Icon(
-                imageVector = if (isCurrentFavorite) Icons.Filled.Favorite else Icons.Default.FavoriteBorder,
-                contentDescription = "Favorite",
-                tint = if (isCurrentFavorite) Color(0xFFFF6B6B) else Color.White,
-                modifier = Modifier
-                    .size(28.dp)
-                    .clickable { viewModel.toggleFavorite() }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Waveform Progress Bar
-        WaveformProgress(
-            progress = progress,
-            onProgressChange = { viewModel.seekTo(it) },
-            isPlaying = isPlaying,
-            modifier = Modifier.padding(horizontal = 24.dp)
-        )
-
-        // Timestamps
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(formatDuration(positionMs), color = Color.Gray, fontSize = 12.sp)
-            Text(formatDuration(durationMs), color = Color.Gray, fontSize = 12.sp)
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Audio Info
-        Text(
-            text = "44.1 kHz • 1054 kbps • FLAC",
-            color = Color.Gray,
-            fontSize = 12.sp,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        // Controls
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.Shuffle,
-                contentDescription = "Shuffle",
-                tint = if (shuffleModeEnabled) Color(0xFF4CAF50) else Color.White,
-                modifier = Modifier
-                    .size(24.dp)
-                    .clickable { viewModel.toggleShuffle() }
-            )
-            Icon(
-                imageVector = Icons.Default.SkipPrevious,
-                contentDescription = "Previous",
-                tint = Color.White,
-                modifier = Modifier.size(40.dp).clickable { viewModel.skipPrevious() }
-            )
+            // Overlay so UI remains visible
             Box(
                 modifier = Modifier
-                    .size(72.dp)
-                    .clip(CircleShape)
-                    .background(Color.White)
-                    .clickable { viewModel.playPause() },
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.4f))
+            )
+        } else {
+            // Solid Background
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(if(appColors.isDark) Color(0xFF121212) else Color(0xFFF5F5F5))
+            )
+        }
+
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // Top Bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 48.dp, start = 16.dp, end = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = "Close",
+                    tint = appColors.textPrimary,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clickable { onClose() }
+                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "REPRODUCIENDO DE",
+                        color = appColors.textSecondary,
+                        fontSize = 10.sp,
+                        letterSpacing = 1.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Music",
+                        color = appColors.textPrimary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Icon(
+                    imageVector = Icons.Default.AddCircleOutline,
+                    contentDescription = "Add",
+                    tint = appColors.textPrimary,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clickable { showPlaylistSheet = true }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Album Art
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(appColors.surface),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = "Play/Pause",
-                    tint = Color.Black,
-                    modifier = Modifier.size(40.dp)
+                    imageVector = Icons.Default.MusicNote,
+                    contentDescription = "Album Art",
+                    tint = appColors.textSecondary.copy(alpha = 0.5f),
+                    modifier = Modifier.size(120.dp)
                 )
+                if (currentAudio?.albumUri != null) {
+                    AsyncImage(
+                        model = currentAudio?.albumUri,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
             }
-            Icon(
-                imageVector = Icons.Default.SkipNext,
-                contentDescription = "Next",
-                tint = Color.White,
-                modifier = Modifier.size(40.dp).clickable { viewModel.skipNext() }
-            )
-            val repeatIcon = when (repeatMode) {
-                Player.REPEAT_MODE_ONE -> Icons.Default.RepeatOne
-                else -> Icons.Default.Repeat
-            }
-            val repeatTint = if (repeatMode != Player.REPEAT_MODE_OFF) Color(0xFF4CAF50) else Color.White
-            
-            Icon(
-                imageVector = repeatIcon,
-                contentDescription = "Repeat",
-                tint = repeatTint,
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Song Info
+            Row(
                 modifier = Modifier
-                    .size(24.dp)
-                    .clickable { viewModel.toggleRepeat() }
-            )
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        // Bottom Actions
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 24.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.Smartphone,
-                contentDescription = "Device",
-                tint = Color.Gray,
-                modifier = Modifier.size(24.dp)
-            )
-            Text(
-                text = "Aa",
-                color = Color.White,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Icon(
-                imageVector = Icons.Default.Share,
-                contentDescription = "Share",
-                tint = Color.Gray,
-                modifier = Modifier.size(24.dp)
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = currentAudio?.title ?: "Sin reproducir",
+                        color = appColors.textPrimary,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = currentAudio?.artist ?: "",
+                        color = appColors.textSecondary,
+                        fontSize = 16.sp,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                }
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.FormatListBulleted,
-                    contentDescription = "Queue",
-                    tint = Color.Gray,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = "3/20",
-                    color = Color.Gray,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium
+                    imageVector = if (isCurrentFavorite) Icons.Filled.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = "Favorite",
+                    tint = if (isCurrentFavorite) Color(0xFFFF6B6B) else appColors.textPrimary,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clickable { viewModel.toggleFavorite() }
                 )
             }
-        }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Waveform Progress Bar
+            WaveformProgress(
+                progress = progress,
+                onProgressChange = { viewModel.seekTo(it) },
+                isPlaying = isPlaying,
+                appColors = appColors,
+                modifier = Modifier.padding(horizontal = 24.dp)
+            )
+
+            // Timestamps
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(formatDuration(positionMs), color = appColors.textSecondary, fontSize = 12.sp)
+                Text(formatDuration(durationMs), color = appColors.textSecondary, fontSize = 12.sp)
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Audio Info
+            Text(
+                text = "44.1 kHz • 1054 kbps • FLAC",
+                color = appColors.textSecondary,
+                fontSize = 12.sp,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Controls
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Shuffle,
+                    contentDescription = "Shuffle",
+                    tint = if (shuffleModeEnabled) appColors.accent else appColors.textPrimary,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clickable { viewModel.toggleShuffle() }
+                )
+                Icon(
+                    imageVector = Icons.Default.SkipPrevious,
+                    contentDescription = "Previous",
+                    tint = appColors.textPrimary,
+                    modifier = Modifier.size(40.dp).clickable { viewModel.skipPrevious() }
+                )
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .clip(CircleShape)
+                        .background(appColors.textPrimary)
+                        .clickable { viewModel.playPause() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = "Play/Pause",
+                        tint = if(appColors.isDark) Color.Black else Color.White,
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
+                Icon(
+                    imageVector = Icons.Default.SkipNext,
+                    contentDescription = "Next",
+                    tint = appColors.textPrimary,
+                    modifier = Modifier.size(40.dp).clickable { viewModel.skipNext() }
+                )
+                val repeatIcon = when (repeatMode) {
+                    Player.REPEAT_MODE_ONE -> Icons.Default.RepeatOne
+                    else -> Icons.Default.Repeat
+                }
+                val repeatTint = if (repeatMode != Player.REPEAT_MODE_OFF) appColors.accent else appColors.textPrimary
+                
+                Icon(
+                    imageVector = repeatIcon,
+                    contentDescription = "Repeat",
+                    tint = repeatTint,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clickable { viewModel.toggleRepeat() }
+                )
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+
         }
         
         // Lyrics Overlay
@@ -340,16 +326,15 @@ fun PlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFF121212)),
+                    .background(appColors.surface),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Letra de la Canción (Próximamente)", color = Color.Gray, fontSize = 18.sp)
+                Text("Letra de la Canción (Próximamente)", color = appColors.textSecondary, fontSize = 18.sp)
                 
-                // Add a small down indicator
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowDown,
                     contentDescription = "Close Lyrics",
-                    tint = Color.White,
+                    tint = appColors.textPrimary,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .padding(top = 48.dp)
@@ -363,7 +348,7 @@ fun PlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit) {
             @OptIn(ExperimentalMaterial3Api::class)
             ModalBottomSheet(
                 onDismissRequest = { showPlaylistSheet = false },
-                containerColor = Color(0xFF1A1A1A),
+                containerColor = appColors.surface,
             ) {
                 Column(
                     modifier = Modifier
@@ -372,7 +357,7 @@ fun PlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit) {
                 ) {
                     Text(
                         text = "Añadir a la lista",
-                        color = Color.White,
+                        color = appColors.textPrimary,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(16.dp)
@@ -395,13 +380,13 @@ fun PlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit) {
                                 Box(
                                     modifier = Modifier
                                         .size(48.dp)
-                                        .background(Color(0xFF282828), RoundedCornerShape(8.dp)),
+                                        .background(appColors.background, RoundedCornerShape(8.dp)),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(Icons.Default.Add, contentDescription = "Crear", tint = Color.White)
+                                    Icon(Icons.Default.Add, contentDescription = "Crear", tint = appColors.textPrimary)
                                 }
                                 Spacer(modifier = Modifier.width(16.dp))
-                                Text("Crear lista de reproducción", color = Color.White, fontSize = 16.sp)
+                                Text("Crear lista de reproducción", color = appColors.textPrimary, fontSize = 16.sp)
                             }
                         }
                         items(playlists) { playlist ->
@@ -418,15 +403,15 @@ fun PlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit) {
                                 Box(
                                     modifier = Modifier
                                         .size(48.dp)
-                                        .background(Color(0xFF282828), RoundedCornerShape(8.dp)),
+                                        .background(appColors.background, RoundedCornerShape(8.dp)),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(Icons.AutoMirrored.Filled.QueueMusic, contentDescription = "Lista", tint = Color.Gray)
+                                    Icon(Icons.AutoMirrored.Filled.QueueMusic, contentDescription = "Lista", tint = appColors.textSecondary)
                                 }
                                 Spacer(modifier = Modifier.width(16.dp))
                                 Column {
-                                    Text(playlist.name, color = Color.White, fontSize = 16.sp)
-                                    Text("${playlist.audioPaths.size} canciones", color = Color.Gray, fontSize = 14.sp)
+                                    Text(playlist.name, color = appColors.textPrimary, fontSize = 16.sp)
+                                    Text("${playlist.audioPaths.size} canciones", color = appColors.textSecondary, fontSize = 14.sp)
                                 }
                             }
                         }
@@ -438,18 +423,18 @@ fun PlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit) {
         if (showCreateDialog) {
             AlertDialog(
                 onDismissRequest = { showCreateDialog = false },
-                title = { Text(text = "Nueva Lista de Reproducción", color = Color.White) },
+                title = { Text(text = "Nueva Lista de Reproducción", color = appColors.textPrimary) },
                 text = {
                     OutlinedTextField(
                         value = newPlaylistName,
                         onValueChange = { newPlaylistName = it },
-                        label = { Text("Nombre", color = Color.Gray) },
+                        label = { Text("Nombre", color = appColors.textSecondary) },
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedBorderColor = Color(0xFF1DB954),
-                            unfocusedBorderColor = Color.Gray
+                            focusedTextColor = appColors.textPrimary,
+                            unfocusedTextColor = appColors.textPrimary,
+                            focusedBorderColor = appColors.accent,
+                            unfocusedBorderColor = appColors.textSecondary
                         )
                     )
                 },
@@ -462,15 +447,15 @@ fun PlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit) {
                         showCreateDialog = false
                         newPlaylistName = ""
                     }) {
-                        Text("Guardar", color = Color(0xFF1DB954), fontWeight = FontWeight.Bold)
+                        Text("Guardar", color = appColors.accent, fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showCreateDialog = false }) {
-                        Text("Cancelar", color = Color.Gray)
+                        Text("Cancelar", color = appColors.textSecondary)
                     }
                 },
-                containerColor = Color(0xFF1A1A1A)
+                containerColor = appColors.surface
             )
         }
     }
@@ -481,10 +466,10 @@ fun WaveformProgress(
     progress: Float,
     onProgressChange: (Float) -> Unit,
     isPlaying: Boolean,
+    appColors: com.frito.music.ui.theme.AppColors,
     modifier: Modifier = Modifier
 ) {
     val numBars = 45
-    // Alturas estáticas base para cada barra
     val baseHeights = remember { List(numBars) { kotlin.random.Random.nextFloat() * 0.8f + 0.2f } }
     var dragProgress by remember { mutableStateOf<Float?>(null) }
     val displayProgress = dragProgress ?: progress
@@ -500,7 +485,6 @@ fun WaveformProgress(
         label = "phase"
     )
 
-    // Animación suave de transición entre reproduciendo/pausado
     val animationMultiplier by animateFloatAsState(
         targetValue = if (isPlaying) 1f else 0f,
         animationSpec = tween(500),
@@ -545,16 +529,13 @@ fun WaveformProgress(
                 val barProgress = i.toFloat() / numBars
                 val isPlayed = barProgress <= displayProgress
                 
-                // Efecto de onda sinusoidal usando la fase
                 val waveEffect = Math.sin((phase + i * 0.4).toDouble()).toFloat() * 0.4f
-                // Multiplicador final que combina la altura base con el efecto de onda animado
                 val finalMultiplier = 1f + (waveEffect * animationMultiplier)
-                // Limitamos la altura para que no desborde ni desaparezca
                 val barHeight = (height * baseHeights[i] * finalMultiplier).coerceIn(height * 0.1f, height)
                 
                 val yOffset = (height - barHeight) / 2
                 
-                val color = if (isPlayed) Color(0xFF1DB954) else Color(0xFF333333)
+                val color = if (isPlayed) appColors.accent else appColors.textSecondary.copy(alpha = 0.3f)
                 
                 drawLine(
                     color = color,
@@ -565,10 +546,9 @@ fun WaveformProgress(
                 )
             }
             
-            // Draw thumb at the edge of the progress
             val thumbX = progress * width
             drawCircle(
-                color = Color.White,
+                color = appColors.textPrimary,
                 radius = 8.dp.toPx(),
                 center = Offset(thumbX, height / 2)
             )
@@ -581,13 +561,14 @@ fun MiniPlayer(viewModel: PlayerViewModel, onClick: () -> Unit, onSwipeUp: () ->
     val currentAudio by viewModel.currentAudio.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
     var dragY = 0f
+    val appColors = LocalAppColors.current
 
     if (currentAudio == null) return
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFF1A1A1A))
+            .background(appColors.surface)
             .clickable { onClick() }
             .pointerInput(Unit) {
                 detectVerticalDragGestures(
@@ -609,10 +590,10 @@ fun MiniPlayer(viewModel: PlayerViewModel, onClick: () -> Unit, onSwipeUp: () ->
             modifier = Modifier
                 .size(48.dp)
                 .clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFF333333)),
+                .background(appColors.background),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.MusicNote, contentDescription = null, tint = Color.Gray)
+            Icon(Icons.Default.MusicNote, contentDescription = null, tint = appColors.textSecondary)
             if (currentAudio?.albumUri != null) {
                 AsyncImage(
                     model = currentAudio?.albumUri,
@@ -624,13 +605,13 @@ fun MiniPlayer(viewModel: PlayerViewModel, onClick: () -> Unit, onSwipeUp: () ->
         }
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(currentAudio?.title ?: "", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-            Text(currentAudio?.artist ?: "", color = Color.Gray, fontSize = 12.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            Text(currentAudio?.title ?: "", color = appColors.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            Text(currentAudio?.artist ?: "", color = appColors.textSecondary, fontSize = 12.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
         }
         Icon(
             imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
             contentDescription = "Play/Pause",
-            tint = Color.White,
+            tint = appColors.textPrimary,
             modifier = Modifier
                 .size(32.dp)
                 .clickable { viewModel.playPause() }

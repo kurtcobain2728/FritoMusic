@@ -24,14 +24,31 @@ import com.frito.music.ui.theme.FritoMusicTheme
 import com.frito.music.ui.viewmodels.HomeViewModel
 import com.frito.music.ui.viewmodels.PlayerViewModel
 
+import androidx.compose.foundation.Image
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
+import com.frito.music.ui.theme.ThemeViewModel
+import com.frito.music.ui.theme.FritoMusicTheme
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            FritoMusicTheme {
-                val homeViewModel: HomeViewModel = viewModel()
-                val playerViewModel: PlayerViewModel = viewModel()
-                
+            val themeViewModel: ThemeViewModel = viewModel()
+            val homeViewModel: HomeViewModel = viewModel()
+            val playerViewModel: PlayerViewModel = viewModel()
+
+            val themeMode by themeViewModel.themeMode.collectAsState()
+            val accentColor by themeViewModel.accentColor.collectAsState()
+            val backgroundImageUri by themeViewModel.backgroundImageUri.collectAsState()
+            val isDark = themeViewModel.isDarkThemeActive()
+
+            FritoMusicTheme(
+                themeMode = themeMode,
+                accentColorValue = accentColor,
+                backgroundImageUri = backgroundImageUri,
+                isDark = isDark
+            ) {
                 var currentTab by remember { mutableStateOf("inicio") }
                 var currentSubScreen by remember { mutableStateOf<String?>(null) }
                 var showPlayerScreen by remember { mutableStateOf(false) }
@@ -62,7 +79,20 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                // Colores del tema actual
+                val appColors = com.frito.music.ui.theme.LocalAppColors.current
+
                 Box(modifier = Modifier.fillMaxSize()) {
+                    // Pintar fondo global si existe
+                    if (backgroundImageUri != null) {
+                        AsyncImage(
+                            model = backgroundImageUri,
+                            contentDescription = "Background",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+
                     Scaffold(
                         bottomBar = {
                             Column {
@@ -80,11 +110,11 @@ class MainActivity : ComponentActivity() {
                             }
                         },
                         modifier = Modifier.fillMaxSize(),
-                        containerColor = MaterialTheme.colorScheme.background
+                        containerColor = appColors.background
                     ) { innerPadding ->
                         Surface(
                             modifier = Modifier.padding(innerPadding).fillMaxSize(),
-                            color = MaterialTheme.colorScheme.background
+                            color = Color.Transparent // Surface transparente para ver Scaffold bg
                         ) {
                             androidx.compose.animation.AnimatedContent(
                                 targetState = currentSubScreen,
@@ -127,8 +157,8 @@ class MainActivity : ComponentActivity() {
                                                 )
                                             }
                                         }
-                                        "ecualizador" -> EqualizerScreen(onBack = { currentSubScreen = null })
-                                        "apariencia" -> AppearanceScreen(onBack = { currentSubScreen = null })
+                                        "ecualizador" -> EqualizerScreen(playerViewModel = playerViewModel, onBack = { currentSubScreen = null })
+                                        "apariencia" -> AppearanceScreen(themeViewModel = themeViewModel, onBack = { currentSubScreen = null })
                                         "donaciones" -> DonationsScreen(onBack = { currentSubScreen = null })
                                         "descargar" -> DownloadScreen(onBack = { currentSubScreen = null })
                                         "extensiones" -> ExtensionsScreen(onBack = { currentSubScreen = null })

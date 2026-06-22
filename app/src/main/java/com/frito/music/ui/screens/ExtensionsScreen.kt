@@ -19,16 +19,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.frito.music.ui.theme.LocalAppColors
 
 @Composable
 fun ExtensionsScreen(onBack: () -> Unit) {
+    val appColors = LocalAppColors.current
+
     var registryUrl by remember { mutableStateOf("") }
     val extensions = emptyList<String>() // Empty list for now
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121212))
+            .background(Color.Transparent)
     ) {
         // Top Bar
         Row(
@@ -40,7 +43,7 @@ fun ExtensionsScreen(onBack: () -> Unit) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
-                tint = Color.White,
+                tint = appColors.textPrimary,
                 modifier = Modifier
                     .size(28.dp)
                     .clickable { onBack() }
@@ -48,7 +51,7 @@ fun ExtensionsScreen(onBack: () -> Unit) {
             Spacer(modifier = Modifier.weight(1f))
             Text(
                 text = "Extensiones",
-                color = Color.White,
+                color = appColors.textPrimary,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -56,7 +59,7 @@ fun ExtensionsScreen(onBack: () -> Unit) {
             Icon(
                 imageVector = Icons.Default.Refresh,
                 contentDescription = "Refresh",
-                tint = Color.White,
+                tint = appColors.textPrimary,
                 modifier = Modifier
                     .size(28.dp)
                     .clickable { /* Refresh logic */ }
@@ -75,20 +78,20 @@ fun ExtensionsScreen(onBack: () -> Unit) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFF1A1A1A))
+                        .background(appColors.surface)
                         .padding(20.dp)
                 ) {
                     Column {
                         Text(
                             text = "URL del Registro",
-                            color = Color.White,
+                            color = appColors.textPrimary,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Repositorio de extensiones (GitHub o URL directa a registry.json)",
-                            color = Color.Gray,
+                            color = appColors.textSecondary,
                             fontSize = 14.sp,
                             lineHeight = 20.sp
                         )
@@ -101,19 +104,19 @@ fun ExtensionsScreen(onBack: () -> Unit) {
                                 modifier = Modifier
                                     .weight(1f)
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(Color(0xFF121212))
+                                    .background(appColors.background)
                                     .padding(horizontal = 16.dp, vertical = 14.dp)
                             ) {
                                 Text(
                                     text = registryUrl.ifEmpty { "Pegar URL aquí" },
-                                    color = if (registryUrl.isEmpty()) Color.DarkGray else Color.White,
+                                    color = if (registryUrl.isEmpty()) appColors.textSecondary else appColors.textPrimary,
                                     fontSize = 14.sp
                                 )
                             }
                             Spacer(modifier = Modifier.width(12.dp))
                             Button(
                                 onClick = { /* Load registry */ },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1DB954)),
+                                colors = ButtonDefaults.buttonColors(containerColor = appColors.accent),
                                 shape = RoundedCornerShape(8.dp),
                                 modifier = Modifier.height(48.dp)
                             ) {
@@ -135,7 +138,7 @@ fun ExtensionsScreen(onBack: () -> Unit) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = "Extensiones Disponibles",
-                        color = Color.White,
+                        color = appColors.textPrimary,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -144,12 +147,12 @@ fun ExtensionsScreen(onBack: () -> Unit) {
                         modifier = Modifier
                             .size(24.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF222222)),
+                            .background(appColors.surface),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "${extensions.size}",
-                            color = Color.Gray,
+                            color = appColors.textSecondary,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -168,7 +171,7 @@ fun ExtensionsScreen(onBack: () -> Unit) {
                     ) {
                         Text(
                             text = "No hay extensiones disponibles.\nCarga un registro para empezar.",
-                            color = Color.Gray,
+                            color = appColors.textSecondary,
                             textAlign = TextAlign.Center,
                             fontSize = 14.sp
                         )

@@ -13,34 +13,31 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.frito.music.ui.theme.LocalAppColors
 
 @Composable
 fun StreamScreen() {
+    val appColors = LocalAppColors.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121212)),
+            .background(Color.Transparent),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(
             imageVector = Icons.Default.Stream,
             contentDescription = "Stream",
-            tint = Color.Gray,
+            tint = appColors.textSecondary,
             modifier = Modifier.size(64.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "Stream",
-            color = Color.White,
+            color = appColors.textPrimary,
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Próximamente disponible...",
-            color = Color.Gray,
-            fontSize = 16.sp
         )
     }
 }

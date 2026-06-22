@@ -12,15 +12,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.frito.music.ui.theme.LocalAppColors
 
 @Composable
 fun BottomNavBar(
     currentTab: String,
     onTabSelected: (String) -> Unit
 ) {
+    val appColors = LocalAppColors.current
+
     NavigationBar(
-        containerColor = Color.Black,
-        contentColor = Color.White,
+        containerColor = appColors.surface,
+        contentColor = appColors.textPrimary,
         tonalElevation = 0.dp
     ) {
         NavigationBarItem(
@@ -29,11 +32,11 @@ fun BottomNavBar(
             icon = { Icon(Icons.Default.Home, contentDescription = "Inicio") },
             label = { Text("Inicio") },
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = Color.White,
-                selectedTextColor = Color.White,
+                selectedIconColor = appColors.accent,
+                selectedTextColor = appColors.accent,
                 indicatorColor = Color.Transparent,
-                unselectedIconColor = Color.Gray,
-                unselectedTextColor = Color.Gray
+                unselectedIconColor = appColors.textSecondary,
+                unselectedTextColor = appColors.textSecondary
             )
         )
         NavigationBarItem(
@@ -42,11 +45,11 @@ fun BottomNavBar(
             icon = { Icon(Icons.Default.LibraryMusic, contentDescription = "Biblioteca") },
             label = { Text("Biblioteca") },
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = Color.White,
-                selectedTextColor = Color.White,
+                selectedIconColor = appColors.accent,
+                selectedTextColor = appColors.accent,
                 indicatorColor = Color.Transparent,
-                unselectedIconColor = Color.Gray,
-                unselectedTextColor = Color.Gray
+                unselectedIconColor = appColors.textSecondary,
+                unselectedTextColor = appColors.textSecondary
             )
         )
         NavigationBarItem(
@@ -55,11 +58,11 @@ fun BottomNavBar(
             icon = { Icon(Icons.Default.PlayArrow, contentDescription = "Stream") },
             label = { Text("Stream") },
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = Color.White,
-                selectedTextColor = Color.White,
+                selectedIconColor = appColors.accent,
+                selectedTextColor = appColors.accent,
                 indicatorColor = Color.Transparent,
-                unselectedIconColor = Color.Gray,
-                unselectedTextColor = Color.Gray
+                unselectedIconColor = appColors.textSecondary,
+                unselectedTextColor = appColors.textSecondary
             )
         )
         NavigationBarItem(
@@ -68,11 +71,11 @@ fun BottomNavBar(
             icon = { Icon(Icons.Default.Search, contentDescription = "Buscar") },
             label = { Text("Buscar") },
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = Color.White,
-                selectedTextColor = Color.White,
+                selectedIconColor = appColors.accent,
+                selectedTextColor = appColors.accent,
                 indicatorColor = Color.Transparent,
-                unselectedIconColor = Color.Gray,
-                unselectedTextColor = Color.Gray
+                unselectedIconColor = appColors.textSecondary,
+                unselectedTextColor = appColors.textSecondary
             )
         )
         NavigationBarItem(
@@ -81,11 +84,11 @@ fun BottomNavBar(
             icon = { Icon(Icons.Default.MoreHoriz, contentDescription = "Más") },
             label = { Text("Más") },
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = Color.White,
-                selectedTextColor = Color.White,
+                selectedIconColor = appColors.accent,
+                selectedTextColor = appColors.accent,
                 indicatorColor = Color.Transparent,
-                unselectedIconColor = Color.Gray,
-                unselectedTextColor = Color.Gray
+                unselectedIconColor = appColors.textSecondary,
+                unselectedTextColor = appColors.textSecondary
             )
         )
     }

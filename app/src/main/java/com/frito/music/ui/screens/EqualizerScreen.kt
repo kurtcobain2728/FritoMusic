@@ -11,20 +11,39 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.frito.music.ui.viewmodels.PlayerViewModel
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import com.frito.music.ui.theme.LocalAppColors
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun EqualizerScreen(onBack: () -> Unit) {
-    var isEqEnabled by remember { mutableStateOf(false) }
+fun EqualizerScreen(playerViewModel: PlayerViewModel, onBack: () -> Unit) {
+    val context = LocalContext.current
+    val eqManager = playerViewModel.equalizerManager
+    val appColors = LocalAppColors.current
+
+    val isEqEnabled by eqManager.isEnabled.collectAsState()
+    val bands by eqManager.bands.collectAsState()
+    val presets by eqManager.presets.collectAsState()
+    val selectedPreset by eqManager.selectedPreset.collectAsState()
+    val scrollState = rememberScrollState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121212))
+            .background(Color.Transparent)
+            .verticalScroll(scrollState)
+            .padding(bottom = 120.dp) // Padding for MiniPlayer
     ) {
         // Top Bar
         Row(
@@ -37,25 +56,25 @@ fun EqualizerScreen(onBack: () -> Unit) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
-                tint = Color.White,
+                tint = appColors.textPrimary,
                 modifier = Modifier
                     .size(28.dp)
                     .clickable { onBack() }
             )
             Text(
                 text = "Ecualizador",
-                color = Color.White,
+                color = appColors.textPrimary,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
             Switch(
                 checked = isEqEnabled,
-                onCheckedChange = { isEqEnabled = it },
+                onCheckedChange = { eqManager.setEnabled(it) },
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = Color.White,
-                    checkedTrackColor = Color(0xFF1DB954),
+                    checkedTrackColor = appColors.accent,
                     uncheckedThumbColor = Color.Gray,
-                    uncheckedTrackColor = Color(0xFF2A2A2A)
+                    uncheckedTrackColor = appColors.surface
                 )
             )
         }
@@ -67,29 +86,41 @@ fun EqualizerScreen(onBack: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            VerticalEQBand(value = 0.65f, topLabel = "+3", bottomLabel = "60")
-            VerticalEQBand(value = 0.5f, topLabel = "0", bottomLabel = "230")
-            VerticalEQBand(value = 0.5f, topLabel = "0", bottomLabel = "910")
-            VerticalEQBand(value = 0.5f, topLabel = "0", bottomLabel = "3.6k")
-            VerticalEQBand(value = 0.65f, topLabel = "+3", bottomLabel = "14k")
+            bands.forEach { band ->
+                val range = (band.maxLevel - band.minLevel).toFloat()
+                // Normalize current level to 0f..1f for the UI height
+                val normalizedValue = if (range == 0f) 0.5f else (band.currentLevel - band.minLevel) / range
+                
+                // Convert min/max level to dB for display
+                val currentDb = (band.currentLevel / 100).toString() + "dB"
+                val freqLabel = if (band.centerFreqHz >= 1000) {
+                    "${band.centerFreqHz / 1000}k"
+                } else {
+                    "${band.centerFreqHz}"
+                }
+
+                VerticalEQBand(
+                    value = normalizedValue,
+                    topLabel = currentDb,
+                    bottomLabel = freqLabel,
+                    appColors = appColors,
+                    onValueChange = { newValue ->
+                        val newLevel = (band.minLevel + newValue * range).toInt().toShort()
+                        eqManager.setBandLevel(band.index, newLevel)
+                    }
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.height(40.dp))
+        Spacer(modifier = Modifier.height(30.dp))
 
         // Presets Section
-        val presets = listOf(
-            "Plano", "Bass Booster", "Rock", "Pop",
-            "Jazz", "Clásica", "Electrónica", "Hip-Hop",
-            "Vocal", "Hi-Fi"
-        )
-        var selectedPreset by remember { mutableStateOf("Plano") }
-
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
             Text(
                 text = "Presets",
-                color = Color.White,
+                color = appColors.textPrimary,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -99,17 +130,17 @@ fun EqualizerScreen(onBack: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 presets.forEach { preset ->
-                    val isSelected = preset == selectedPreset
+                    val isSelected = preset.index == selectedPreset
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(16.dp))
-                            .background(if (isSelected) Color(0xFF1DB954) else Color(0xFF1A1A1A))
-                            .clickable { selectedPreset = preset }
+                            .background(if (isSelected) appColors.accent else appColors.surface)
+                            .clickable { eqManager.usePreset(preset.index) }
                             .padding(horizontal = 16.dp, vertical = 10.dp)
                     ) {
                         Text(
-                            text = preset,
-                            color = if (isSelected) Color.Black else Color.LightGray,
+                            text = preset.name,
+                            color = if (isSelected) Color.White else appColors.textSecondary,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             fontSize = 14.sp
                         )
@@ -124,41 +155,68 @@ fun EqualizerScreen(onBack: () -> Unit) {
 fun VerticalEQBand(
     value: Float,
     topLabel: String,
-    bottomLabel: String
+    bottomLabel: String,
+    appColors: com.frito.music.ui.theme.AppColors,
+    onValueChange: (Float) -> Unit
 ) {
+    var currentDragValue by remember { mutableStateOf<Float?>(null) }
+    val displayValue = currentDragValue ?: value
+
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = topLabel, color = Color.Gray, fontSize = 12.sp)
+        Text(text = topLabel, color = appColors.textSecondary, fontSize = 12.sp)
         Spacer(modifier = Modifier.height(12.dp))
+        
         Box(
             modifier = Modifier
                 .width(44.dp)
                 .height(200.dp)
                 .clip(RoundedCornerShape(22.dp))
-                .background(Color(0xFF222222)),
-            contentAlignment = Alignment.BottomCenter
+                .background(appColors.surface)
+                .pointerInput(Unit) {
+                    detectVerticalDragGestures(
+                        onDragStart = { offset ->
+                            val newValue = 1f - (offset.y / size.height).coerceIn(0f, 1f)
+                            currentDragValue = newValue
+                        },
+                        onVerticalDrag = { change, _ ->
+                            val newValue = 1f - (change.position.y / size.height).coerceIn(0f, 1f)
+                            currentDragValue = newValue
+                        },
+                        onDragEnd = {
+                            currentDragValue?.let { onValueChange(it) }
+                            currentDragValue = null
+                        },
+                        onDragCancel = {
+                            currentDragValue = null
+                        }
+                    )
+                }
+                .pointerInput(Unit) {
+                    detectTapGestures { offset ->
+                        val newValue = 1f - (offset.y / size.height).coerceIn(0f, 1f)
+                        onValueChange(newValue)
+                    }
+                }
         ) {
+            // Fill
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(value)
-                    .background(Color(0xFF888888))
+                    .fillMaxHeight(displayValue)
+                    .align(Alignment.BottomCenter)
+                    .background(appColors.accent)
             )
-            // Thumb indicator line
+            // Thumb
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(value)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(3.dp)
-                        .background(Color(0xFFAAAAAA))
-                        .align(Alignment.TopCenter)
-                )
-            }
+                    .height(44.dp) // Circular thumb
+                    .align(Alignment.BottomCenter)
+                    .offset(y = -( (200.dp - 44.dp) * displayValue ))
+                    .background(Color.White, RoundedCornerShape(22.dp))
+            )
         }
         Spacer(modifier = Modifier.height(12.dp))
-        Text(text = bottomLabel, color = Color.Gray, fontSize = 12.sp)
+        Text(text = bottomLabel, color = appColors.textSecondary, fontSize = 12.sp)
     }
 }

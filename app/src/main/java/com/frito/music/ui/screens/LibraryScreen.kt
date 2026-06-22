@@ -29,6 +29,7 @@ import com.frito.music.data.models.AudioFile
 import com.frito.music.ui.viewmodels.HomeViewModel
 import com.frito.music.ui.viewmodels.PlayerViewModel
 import java.util.concurrent.TimeUnit
+import com.frito.music.ui.theme.LocalAppColors
 
 enum class SortOption { TITLE, ARTIST, ALBUM, RECENT }
 
@@ -37,6 +38,7 @@ fun LibraryScreen(homeViewModel: HomeViewModel, playerViewModel: PlayerViewModel
     val allSongs = remember { homeViewModel.getAllAudios() }
     val favorites by playerViewModel.favorites.collectAsState()
     var selectedFilter by remember { mutableStateOf(SortOption.TITLE) }
+    val appColors = LocalAppColors.current
 
     val sortedSongs = remember(selectedFilter, allSongs) {
         when (selectedFilter) {
@@ -54,7 +56,7 @@ fun LibraryScreen(homeViewModel: HomeViewModel, playerViewModel: PlayerViewModel
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121212))
+            .background(Color.Transparent)
     ) {
         LazyColumn(
             contentPadding = PaddingValues(bottom = 100.dp, top = 32.dp),
@@ -64,13 +66,13 @@ fun LibraryScreen(homeViewModel: HomeViewModel, playerViewModel: PlayerViewModel
                 Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                     Text(
                         text = "Tu Biblioteca",
-                        color = Color.White,
+                        color = appColors.textPrimary,
                         fontSize = 34.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = "${allSongs.size} canciones • $hours horas $minutes min",
-                        color = Color.Gray,
+                        color = appColors.textSecondary,
                         fontSize = 14.sp,
                         modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
                     )
@@ -80,10 +82,10 @@ fun LibraryScreen(homeViewModel: HomeViewModel, playerViewModel: PlayerViewModel
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.padding(bottom = 16.dp)
                     ) {
-                        item { FilterChipUI("Título", selectedFilter == SortOption.TITLE) { selectedFilter = SortOption.TITLE } }
-                        item { FilterChipUI("Artista", selectedFilter == SortOption.ARTIST) { selectedFilter = SortOption.ARTIST } }
-                        item { FilterChipUI("Álbum", selectedFilter == SortOption.ALBUM) { selectedFilter = SortOption.ALBUM } }
-                        item { FilterChipUI("Reciente", selectedFilter == SortOption.RECENT) { selectedFilter = SortOption.RECENT } }
+                        item { FilterChipUI("Título", selectedFilter == SortOption.TITLE, appColors) { selectedFilter = SortOption.TITLE } }
+                        item { FilterChipUI("Artista", selectedFilter == SortOption.ARTIST, appColors) { selectedFilter = SortOption.ARTIST } }
+                        item { FilterChipUI("Álbum", selectedFilter == SortOption.ALBUM, appColors) { selectedFilter = SortOption.ALBUM } }
+                        item { FilterChipUI("Reciente", selectedFilter == SortOption.RECENT, appColors) { selectedFilter = SortOption.RECENT } }
                     }
 
                     // Action Buttons
@@ -95,7 +97,7 @@ fun LibraryScreen(homeViewModel: HomeViewModel, playerViewModel: PlayerViewModel
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF2A2A2A))
+                                .background(appColors.surface)
                                 .clickable {
                                     if (sortedSongs.isNotEmpty()) {
                                         if (!playerViewModel.shuffleModeEnabled.value) {
@@ -107,14 +109,14 @@ fun LibraryScreen(homeViewModel: HomeViewModel, playerViewModel: PlayerViewModel
                                 },
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.Shuffle, contentDescription = "Shuffle", tint = Color.White, modifier = Modifier.size(24.dp))
+                            Icon(Icons.Default.Shuffle, contentDescription = "Shuffle", tint = appColors.textPrimary, modifier = Modifier.size(24.dp))
                         }
                         Spacer(modifier = Modifier.width(16.dp))
                         Box(
                             modifier = Modifier
                                 .size(56.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF1DB954))
+                                .background(appColors.accent)
                                 .clickable {
                                     if (sortedSongs.isNotEmpty()) {
                                         playerViewModel.playAudios(sortedSongs, 0)
@@ -122,7 +124,7 @@ fun LibraryScreen(homeViewModel: HomeViewModel, playerViewModel: PlayerViewModel
                                 },
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = Color.Black, modifier = Modifier.size(32.dp))
+                            Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = Color.White, modifier = Modifier.size(32.dp))
                         }
                     }
                 }
@@ -130,7 +132,7 @@ fun LibraryScreen(homeViewModel: HomeViewModel, playerViewModel: PlayerViewModel
 
             items(sortedSongs) { song ->
                 val isFavorite = favorites.contains(song.path)
-                AudioFileRowUI(song = song, isFavorite = isFavorite) {
+                AudioFileRowUI(song = song, isFavorite = isFavorite, appColors = appColors) {
                     val index = sortedSongs.indexOf(song)
                     playerViewModel.playAudios(sortedSongs, if (index >= 0) index else 0)
                 }
@@ -140,17 +142,17 @@ fun LibraryScreen(homeViewModel: HomeViewModel, playerViewModel: PlayerViewModel
 }
 
 @Composable
-fun FilterChipUI(text: String, isSelected: Boolean, onClick: () -> Unit) {
+fun FilterChipUI(text: String, isSelected: Boolean, appColors: com.frito.music.ui.theme.AppColors, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
-            .background(if (isSelected) Color(0xFF1DB954) else Color(0xFF2A2A2A))
+            .background(if (isSelected) appColors.accent else appColors.surface)
             .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         Text(
             text = text,
-            color = if (isSelected) Color.Black else Color.White,
+            color = if (isSelected) Color.White else appColors.textPrimary,
             fontSize = 14.sp,
             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
         )
@@ -158,7 +160,7 @@ fun FilterChipUI(text: String, isSelected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-fun AudioFileRowUI(song: AudioFile, isFavorite: Boolean, onClick: () -> Unit) {
+fun AudioFileRowUI(song: AudioFile, isFavorite: Boolean, appColors: com.frito.music.ui.theme.AppColors, onClick: () -> Unit) {
     val durationText = String.format("%02d:%02d", 
         TimeUnit.MILLISECONDS.toMinutes(song.durationMs),
         TimeUnit.MILLISECONDS.toSeconds(song.durationMs) - 
@@ -186,7 +188,7 @@ fun AudioFileRowUI(song: AudioFile, isFavorite: Boolean, onClick: () -> Unit) {
                 modifier = Modifier
                     .size(56.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Color.DarkGray)
+                    .background(appColors.surface)
             )
         }
         
@@ -195,7 +197,7 @@ fun AudioFileRowUI(song: AudioFile, isFavorite: Boolean, onClick: () -> Unit) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = song.title,
-                color = Color.White,
+                color = appColors.textPrimary,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -203,7 +205,7 @@ fun AudioFileRowUI(song: AudioFile, isFavorite: Boolean, onClick: () -> Unit) {
             )
             Text(
                 text = song.artist,
-                color = Color.Gray,
+                color = appColors.textSecondary,
                 fontSize = 14.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -215,13 +217,13 @@ fun AudioFileRowUI(song: AudioFile, isFavorite: Boolean, onClick: () -> Unit) {
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(4.dp))
-                .background(Color(0xFF2A2A2A))
+                .background(appColors.surface)
                 .padding(horizontal = 4.dp, vertical = 2.dp)
         ) {
             val extension = song.path.substringAfterLast('.', "N/A").uppercase()
             Text(
                 text = extension,
-                color = Color.LightGray,
+                color = appColors.textSecondary,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -232,7 +234,7 @@ fun AudioFileRowUI(song: AudioFile, isFavorite: Boolean, onClick: () -> Unit) {
         Icon(
             imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
             contentDescription = "Like",
-            tint = if (isFavorite) Color(0xFFFF6B6B) else Color.Gray,
+            tint = if (isFavorite) Color(0xFFFF6B6B) else appColors.textSecondary,
             modifier = Modifier.size(20.dp)
         )
         
@@ -240,7 +242,7 @@ fun AudioFileRowUI(song: AudioFile, isFavorite: Boolean, onClick: () -> Unit) {
         
         Text(
             text = durationText,
-            color = Color.Gray,
+            color = appColors.textSecondary,
             fontSize = 14.sp
         )
     }

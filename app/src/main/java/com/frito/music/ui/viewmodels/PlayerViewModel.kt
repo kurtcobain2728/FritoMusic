@@ -57,6 +57,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val playlistRepository = PlaylistRepository(application)
     val playlists = playlistRepository.playlists
     
+    val equalizerManager = com.frito.music.audio.AudioEffectManagerProvider.getManager(application)
+    
     val isCurrentFavorite = combine(currentAudio, favoritesRepository.favorites) { audio, favs ->
         audio?.path?.let { favs.contains(it) } ?: false
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), false)

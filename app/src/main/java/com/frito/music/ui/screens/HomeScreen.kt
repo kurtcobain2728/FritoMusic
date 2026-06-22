@@ -21,7 +21,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -31,12 +30,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.frito.music.data.models.AudioFile
 import com.frito.music.ui.viewmodels.HomeViewModel
 import com.frito.music.ui.viewmodels.PlayerViewModel
+import com.frito.music.ui.theme.LocalAppColors
 
 @Composable
 fun HomeScreen(homeViewModel: HomeViewModel = viewModel(), playerViewModel: PlayerViewModel = viewModel()) {
     val context = LocalContext.current
     val currentNode by homeViewModel.currentNode.collectAsState()
     val isLoading by homeViewModel.isLoading.collectAsState()
+    val appColors = LocalAppColors.current
     
     val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         Manifest.permission.READ_MEDIA_AUDIO
@@ -70,7 +71,7 @@ fun HomeScreen(homeViewModel: HomeViewModel = viewModel(), playerViewModel: Play
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121212))
+            .background(Color.Transparent)
             .padding(horizontal = 16.dp)
     ) {
         Spacer(modifier = Modifier.height(32.dp))
@@ -87,13 +88,13 @@ fun HomeScreen(homeViewModel: HomeViewModel = viewModel(), playerViewModel: Play
         if (currentNode?.path == "/" || currentNode == null) {
             Text(
                 text = greeting,
-                color = Color.White,
+                color = appColors.textPrimary,
                 fontSize = 34.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 text = "Explorador de archivos",
-                color = Color.Gray,
+                color = appColors.textSecondary,
                 fontSize = 16.sp,
                 modifier = Modifier.padding(top = 4.dp, bottom = 24.dp)
             )
@@ -102,7 +103,7 @@ fun HomeScreen(homeViewModel: HomeViewModel = viewModel(), playerViewModel: Play
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Volver",
-                    tint = Color.White,
+                    tint = appColors.textPrimary,
                     modifier = Modifier
                         .size(28.dp)
                         .clickable { homeViewModel.navigateUp() }
@@ -110,7 +111,7 @@ fun HomeScreen(homeViewModel: HomeViewModel = viewModel(), playerViewModel: Play
                 Spacer(modifier = Modifier.width(16.dp))
                 Text(
                     text = currentNode?.name ?: "",
-                    color = Color.White,
+                    color = appColors.textPrimary,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -119,7 +120,7 @@ fun HomeScreen(homeViewModel: HomeViewModel = viewModel(), playerViewModel: Play
 
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Color(0xFF1DB954))
+                CircularProgressIndicator(color = appColors.accent)
             }
         } else {
             LazyColumn(
@@ -131,15 +132,20 @@ fun HomeScreen(homeViewModel: HomeViewModel = viewModel(), playerViewModel: Play
                     FolderCard(
                         folderName = folder.name,
                         songCount = folder.getTotalAudioCount(),
-                        onClick = { homeViewModel.navigateToFolder(folder.name) }
+                        onClick = { homeViewModel.navigateToFolder(folder.name) },
+                        appColors = appColors
                     )
                 }
 
                 val audios = currentNode?.audios?.sortedBy { it.title } ?: emptyList()
                 itemsIndexed(audios) { index, audio ->
-                    AudioFileRow(audio = audio, onClick = {
-                        playerViewModel.playAudios(audios, index)
-                    })
+                    AudioFileRow(
+                        audio = audio,
+                        appColors = appColors,
+                        onClick = {
+                            playerViewModel.playAudios(audios, index)
+                        }
+                    )
                 }
             }
         }
@@ -147,9 +153,9 @@ fun HomeScreen(homeViewModel: HomeViewModel = viewModel(), playerViewModel: Play
 }
 
 @Composable
-fun FolderCard(folderName: String, songCount: Int, onClick: () -> Unit) {
+fun FolderCard(folderName: String, songCount: Int, appColors: com.frito.music.ui.theme.AppColors, onClick: () -> Unit) {
     Surface(
-        color = Color(0xFF1A1A1A),
+        color = appColors.surface,
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -167,13 +173,13 @@ fun FolderCard(folderName: String, songCount: Int, onClick: () -> Unit) {
                         .size(48.dp)
                         .align(Alignment.BottomStart)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFF333333)),
+                        .background(appColors.background),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Folder,
                         contentDescription = "Folder",
-                        tint = Color.White,
+                        tint = appColors.textPrimary,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -184,7 +190,7 @@ fun FolderCard(folderName: String, songCount: Int, onClick: () -> Unit) {
                             .align(Alignment.TopEnd)
                             .size(20.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF555555)),
+                            .background(appColors.accent),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -203,13 +209,13 @@ fun FolderCard(folderName: String, songCount: Int, onClick: () -> Unit) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = folderName,
-                    color = Color.White,
+                    color = appColors.textPrimary,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
                     text = "$songCount canción${if (songCount != 1) "es" else ""}",
-                    color = Color.Gray,
+                    color = appColors.textSecondary,
                     fontSize = 14.sp
                 )
             }
@@ -217,14 +223,14 @@ fun FolderCard(folderName: String, songCount: Int, onClick: () -> Unit) {
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = "Go",
-                tint = Color.Gray
+                tint = appColors.textSecondary
             )
         }
     }
 }
 
 @Composable
-fun AudioFileRow(audio: AudioFile, onClick: () -> Unit) {
+fun AudioFileRow(audio: AudioFile, appColors: com.frito.music.ui.theme.AppColors, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -236,10 +242,10 @@ fun AudioFileRow(audio: AudioFile, onClick: () -> Unit) {
             modifier = Modifier
                 .size(48.dp)
                 .clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFF333333)),
+                .background(appColors.surface),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.MusicNote, contentDescription = null, tint = Color.White)
+            Icon(Icons.Default.MusicNote, contentDescription = null, tint = appColors.textSecondary)
             if (audio.albumUri != null) {
                 coil.compose.AsyncImage(
                     model = audio.albumUri,
@@ -253,7 +259,7 @@ fun AudioFileRow(audio: AudioFile, onClick: () -> Unit) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = audio.title,
-                color = Color.White,
+                color = appColors.textPrimary,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -261,7 +267,7 @@ fun AudioFileRow(audio: AudioFile, onClick: () -> Unit) {
             )
             Text(
                 text = audio.artist,
-                color = Color.Gray,
+                color = appColors.textSecondary,
                 fontSize = 14.sp,
                 maxLines = 1,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
@@ -271,7 +277,7 @@ fun AudioFileRow(audio: AudioFile, onClick: () -> Unit) {
         Icon(
             imageVector = Icons.Default.MoreVert,
             contentDescription = "Opciones",
-            tint = Color.Gray
+            tint = appColors.textSecondary
         )
     }
 }

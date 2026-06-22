@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.frito.music.ui.theme.LocalAppColors
 
 data class MenuItem(
     val title: String,
@@ -40,20 +41,21 @@ fun MoreScreen(
     favoritesCount: Int,
     playlistsCount: Int
 ) {
+    val appColors = LocalAppColors.current
     val menuItems = listOf(
         MenuItem("Favoritos", "$favoritesCount canciones", Icons.Default.Favorite, Color(0xFFFF6B6B)) { onNavigateToFavorites() },
-        MenuItem("Listas de Reproducción", "$playlistsCount listas", Icons.AutoMirrored.Filled.FormatListBulleted, Color(0xFF4CAF50)) { onNavigateToPlaylists() },
+        MenuItem("Listas de Reproducción", "$playlistsCount listas", Icons.AutoMirrored.Filled.FormatListBulleted, appColors.accent) { onNavigateToPlaylists() },
         MenuItem("Ecualizador", "Ajusta el sonido", Icons.Default.Tune, Color(0xFF00BCD4)) { onNavigateToEqualizer() },
         MenuItem("Apariencia", "Temas, colores y estilo", Icons.Default.Palette, Color(0xFF9C27B0)) { onNavigateToAppearance() },
         MenuItem("Donaciones", "Apoya el proyecto", Icons.Default.CardGiftcard, Color(0xFFFFC107)) { onNavigateToDonations() },
-        MenuItem("Descargar Música", "Busca y descarga desde Spotify, Deezer, Tidal...", Icons.Default.CloudDownload, Color(0xFF4CAF50)) { onNavigateToDownload() },
+        MenuItem("Descargar Música", "Busca y descarga desde Spotify, Deezer, Tidal...", Icons.Default.CloudDownload, appColors.accent) { onNavigateToDownload() },
         MenuItem("Extensiones", "Gestiona proveedores de música y metadatos", Icons.Default.Extension, Color(0xFFFF9800)) { onNavigateToExtensions() }
     )
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121212))
+            .background(Color.Transparent)
     ) {
         LazyColumn(
             contentPadding = PaddingValues(bottom = 100.dp, top = 32.dp),
@@ -63,13 +65,13 @@ fun MoreScreen(
                 Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                     Text(
                         text = "Más",
-                        color = Color.White,
+                        color = appColors.textPrimary,
                         fontSize = 34.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = "Tu colección personal",
-                        color = Color.Gray,
+                        color = appColors.textSecondary,
                         fontSize = 16.sp,
                         modifier = Modifier.padding(top = 4.dp, bottom = 24.dp)
                     )
@@ -77,20 +79,20 @@ fun MoreScreen(
             }
 
             items(menuItems) { item ->
-                MenuItemRow(item)
+                MenuItemRow(item, appColors)
             }
         }
     }
 }
 
 @Composable
-fun MenuItemRow(item: MenuItem) {
+fun MenuItemRow(item: MenuItem, appColors: com.frito.music.ui.theme.AppColors) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF1A1A1A)) // Dark grey card background
+            .background(appColors.surface) // Dark grey card background
             .clickable { item.onClick() }
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -116,14 +118,14 @@ fun MenuItemRow(item: MenuItem) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = item.title,
-                color = Color.White,
+                color = appColors.textPrimary,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = item.subtitle,
-                color = Color.Gray,
+                color = appColors.textSecondary,
                 fontSize = 14.sp
             )
         }
@@ -133,7 +135,7 @@ fun MenuItemRow(item: MenuItem) {
         Icon(
             imageVector = Icons.Default.ChevronRight,
             contentDescription = "Go",
-            tint = Color.Gray,
+            tint = appColors.textSecondary,
             modifier = Modifier.size(24.dp)
         )
     }

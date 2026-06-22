@@ -28,6 +28,7 @@ import com.frito.music.data.models.Playlist
 import com.frito.music.ui.viewmodels.HomeViewModel
 import com.frito.music.ui.viewmodels.PlayerViewModel
 import java.util.concurrent.TimeUnit
+import com.frito.music.ui.theme.LocalAppColors
 
 @Composable
 fun PlaylistDetailScreen(
@@ -39,6 +40,7 @@ fun PlaylistDetailScreen(
     val allAudios = homeViewModel.getAllAudios()
     val favorites by playerViewModel.favorites.collectAsState()
     val playlistSongs = allAudios.filter { playlist.audioPaths.contains(it.path) }
+    val appColors = LocalAppColors.current
     
     val totalDurationMs = playlistSongs.sumOf { it.durationMs }
     val hours = TimeUnit.MILLISECONDS.toHours(totalDurationMs)
@@ -47,7 +49,7 @@ fun PlaylistDetailScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121212))
+            .background(Color.Transparent)
             .padding(top = 32.dp)
     ) {
         // App Bar
@@ -60,7 +62,7 @@ fun PlaylistDetailScreen(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Volver",
-                tint = Color.White,
+                tint = appColors.textPrimary,
                 modifier = Modifier
                     .size(28.dp)
                     .clickable { onBack() }
@@ -77,27 +79,27 @@ fun PlaylistDetailScreen(
                 modifier = Modifier
                     .size(120.dp)
                     .clip(RoundedCornerShape(24.dp))
-                    .background(Color(0xFF282828)),
+                    .background(appColors.surface),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.QueueMusic,
                     contentDescription = "Playlist Cover",
-                    tint = Color.White,
+                    tint = appColors.accent,
                     modifier = Modifier.size(64.dp)
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = playlist.name,
-                color = Color.White,
+                color = appColors.textPrimary,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "${playlistSongs.size} canciones • $hours h $minutes min",
-                color = Color.Gray,
+                color = appColors.textSecondary,
                 fontSize = 16.sp
             )
 
@@ -110,7 +112,7 @@ fun PlaylistDetailScreen(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF2A2A2A))
+                        .background(appColors.surface)
                         .clickable {
                             if (playlistSongs.isNotEmpty()) {
                                 if (!playerViewModel.shuffleModeEnabled.value) {
@@ -122,14 +124,14 @@ fun PlaylistDetailScreen(
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Shuffle, contentDescription = "Shuffle", tint = Color.White, modifier = Modifier.size(24.dp))
+                    Icon(Icons.Default.Shuffle, contentDescription = "Shuffle", tint = appColors.textPrimary, modifier = Modifier.size(24.dp))
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Box(
                     modifier = Modifier
                         .size(56.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF1DB954))
+                        .background(appColors.accent)
                         .clickable {
                             if (playlistSongs.isNotEmpty()) {
                                 playerViewModel.playAudios(playlistSongs, 0)
@@ -137,7 +139,7 @@ fun PlaylistDetailScreen(
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = Color.Black, modifier = Modifier.size(32.dp))
+                    Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = Color.White, modifier = Modifier.size(32.dp))
                 }
             }
         }
@@ -147,7 +149,7 @@ fun PlaylistDetailScreen(
             Box(modifier = Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) {
                 Text(
                     text = "No hay canciones en esta lista.",
-                    color = Color.Gray,
+                    color = appColors.textSecondary,
                     fontSize = 16.sp
                 )
             }
@@ -158,7 +160,7 @@ fun PlaylistDetailScreen(
             ) {
                 itemsIndexed(playlistSongs) { index, song ->
                     val isFavorite = favorites.contains(song.path)
-                    AudioFileRowUI(song = song, isFavorite = isFavorite, onClick = {
+                    AudioFileRowUI(song = song, isFavorite = isFavorite, appColors = appColors, onClick = {
                         playerViewModel.playAudios(playlistSongs, index)
                     })
                 }

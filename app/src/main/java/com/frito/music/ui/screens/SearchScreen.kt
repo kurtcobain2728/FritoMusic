@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import com.frito.music.ui.viewmodels.HomeViewModel
 import com.frito.music.ui.viewmodels.PlayerViewModel
 import java.util.Random
+import com.frito.music.ui.theme.LocalAppColors
 
 @Composable
 fun SearchScreen(
@@ -31,6 +32,7 @@ fun SearchScreen(
     var query by remember { mutableStateOf("") }
     val allAudios = homeViewModel.getAllAudios()
     val favorites by playerViewModel.favorites.collectAsState(initial = emptySet())
+    val appColors = LocalAppColors.current
 
     // Generar sugerencias estables por 12 horas (seed = epoch en bloques de 12 horas)
     val suggestedSongs = remember(allAudios) {
@@ -61,7 +63,7 @@ fun SearchScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121212))
+            .background(Color.Transparent)
     ) {
         LazyColumn(
             contentPadding = PaddingValues(bottom = 100.dp, top = 32.dp),
@@ -71,7 +73,7 @@ fun SearchScreen(
                 Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                     Text(
                         text = "Buscar",
-                        color = Color.White,
+                        color = appColors.textPrimary,
                         fontSize = 34.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(bottom = 24.dp)
@@ -83,7 +85,7 @@ fun SearchScreen(
                             .fillMaxWidth()
                             .height(56.dp)
                             .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFF2A2A2A))
+                            .background(appColors.surface)
                             .padding(horizontal = 16.dp),
                         contentAlignment = Alignment.CenterStart
                     ) {
@@ -91,7 +93,7 @@ fun SearchScreen(
                             Icon(
                                 imageVector = Icons.Default.Search,
                                 contentDescription = "Search Icon",
-                                tint = Color.Gray,
+                                tint = appColors.textSecondary,
                                 modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(12.dp))
@@ -99,16 +101,16 @@ fun SearchScreen(
                                 if (query.isEmpty()) {
                                     Text(
                                         text = "Canciones, artistas o álbumes",
-                                        color = Color.Gray,
+                                        color = appColors.textSecondary,
                                         fontSize = 16.sp
                                     )
                                 }
                                 BasicTextField(
                                     value = query,
                                     onValueChange = { query = it },
-                                    textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
+                                    textStyle = TextStyle(color = appColors.textPrimary, fontSize = 16.sp),
                                     singleLine = true,
-                                    cursorBrush = SolidColor(Color.White),
+                                    cursorBrush = SolidColor(appColors.accent),
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             }
@@ -118,7 +120,7 @@ fun SearchScreen(
                     if (query.isEmpty()) {
                         Text(
                             text = "Sugerencias para ti",
-                            color = Color.White,
+                            color = appColors.textPrimary,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(top = 32.dp, bottom = 16.dp)
@@ -126,7 +128,7 @@ fun SearchScreen(
                     } else {
                         Text(
                             text = "Resultados (${searchResults.size})",
-                            color = Color.White,
+                            color = appColors.textPrimary,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(top = 32.dp, bottom = 16.dp)
@@ -141,6 +143,7 @@ fun SearchScreen(
                     AudioFileRowUI(
                         song = song,
                         isFavorite = isFavorite,
+                        appColors = appColors,
                         onClick = {
                             playerViewModel.playAudios(displayList, index)
                         }
@@ -156,7 +159,7 @@ fun SearchScreen(
                     ) {
                         Text(
                             text = "No se encontraron resultados para \"$query\"",
-                            color = Color.Gray,
+                            color = appColors.textSecondary,
                             fontSize = 16.sp
                         )
                     }

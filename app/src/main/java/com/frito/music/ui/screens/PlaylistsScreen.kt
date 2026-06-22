@@ -24,28 +24,30 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.frito.music.ui.viewmodels.PlayerViewModel
+import com.frito.music.ui.theme.LocalAppColors
 
 @Composable
 fun PlaylistsScreen(playerViewModel: PlayerViewModel, onBack: () -> Unit, onPlaylistClick: (com.frito.music.data.models.Playlist) -> Unit) {
     val playlists by playerViewModel.playlists.collectAsState()
     var showCreateDialog by remember { mutableStateOf(false) }
     var newPlaylistName by remember { mutableStateOf("") }
+    val appColors = LocalAppColors.current
 
     if (showCreateDialog) {
         AlertDialog(
             onDismissRequest = { showCreateDialog = false },
-            title = { Text(text = "Nueva Lista de Reproducción", color = Color.White) },
+            title = { Text(text = "Nueva Lista de Reproducción", color = appColors.textPrimary) },
             text = {
                 OutlinedTextField(
                     value = newPlaylistName,
                     onValueChange = { newPlaylistName = it },
-                    label = { Text("Nombre", color = Color.Gray) },
+                    label = { Text("Nombre", color = appColors.textSecondary) },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color(0xFF1DB954),
-                        unfocusedBorderColor = Color.Gray
+                        focusedTextColor = appColors.textPrimary,
+                        unfocusedTextColor = appColors.textPrimary,
+                        focusedBorderColor = appColors.accent,
+                        unfocusedBorderColor = appColors.textSecondary
                     )
                 )
             },
@@ -57,15 +59,15 @@ fun PlaylistsScreen(playerViewModel: PlayerViewModel, onBack: () -> Unit, onPlay
                     showCreateDialog = false
                     newPlaylistName = ""
                 }) {
-                    Text("Guardar", color = Color(0xFF1DB954), fontWeight = FontWeight.Bold)
+                    Text("Guardar", color = appColors.accent, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showCreateDialog = false }) {
-                    Text("Cancelar", color = Color.Gray)
+                    Text("Cancelar", color = appColors.textSecondary)
                 }
             },
-            containerColor = Color(0xFF1A1A1A)
+            containerColor = appColors.surface
         )
     }
 
@@ -74,7 +76,11 @@ fun PlaylistsScreen(playerViewModel: PlayerViewModel, onBack: () -> Unit, onPlay
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color(0xFF1B3B22), Color(0xFF121212)),
+                    colors = if (appColors.backgroundImageUri != null) {
+                        listOf(appColors.accent.copy(alpha = 0.3f), Color.Transparent)
+                    } else {
+                        listOf(appColors.accent.copy(alpha = 0.15f), appColors.background)
+                    },
                     startY = 0f,
                     endY = 800f
                 )
@@ -90,14 +96,14 @@ fun PlaylistsScreen(playerViewModel: PlayerViewModel, onBack: () -> Unit, onPlay
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF1A2A1A).copy(alpha = 0.5f))
+                    .background(appColors.surface)
                     .clickable { onBack() },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    tint = Color.White
+                    tint = appColors.textPrimary
                 )
             }
         }
@@ -112,7 +118,7 @@ fun PlaylistsScreen(playerViewModel: PlayerViewModel, onBack: () -> Unit, onPlay
                 modifier = Modifier
                     .size(120.dp)
                     .clip(RoundedCornerShape(24.dp))
-                    .background(Color(0xFF1DB954)), // Spotify Green
+                    .background(appColors.accent),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -125,14 +131,14 @@ fun PlaylistsScreen(playerViewModel: PlayerViewModel, onBack: () -> Unit, onPlay
             Spacer(modifier = Modifier.height(24.dp))
             Text(
                 text = "Listas de Reproducción",
-                color = Color.White,
+                color = appColors.textPrimary,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "${playlists.size} listas",
-                color = Color.Gray,
+                color = appColors.textSecondary,
                 fontSize = 16.sp
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -141,7 +147,7 @@ fun PlaylistsScreen(playerViewModel: PlayerViewModel, onBack: () -> Unit, onPlay
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(24.dp))
-                    .background(Color(0xFF1DB954))
+                    .background(appColors.accent)
                     .clickable { showCreateDialog = true }
                     .padding(horizontal = 24.dp, vertical = 12.dp)
             ) {
@@ -149,13 +155,13 @@ fun PlaylistsScreen(playerViewModel: PlayerViewModel, onBack: () -> Unit, onPlay
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = "Add",
-                        tint = Color.Black,
+                        tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Crear lista",
-                        color = Color.Black,
+                        color = Color.White,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 16.sp
                     )
@@ -175,20 +181,20 @@ fun PlaylistsScreen(playerViewModel: PlayerViewModel, onBack: () -> Unit, onPlay
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.FormatListBulleted,
                     contentDescription = "Empty Playlists",
-                    tint = Color.Gray,
+                    tint = appColors.textSecondary,
                     modifier = Modifier.size(64.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "Sin listas",
-                    color = Color.White,
+                    color = appColors.textPrimary,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "Crea tu primera lista de reproducción",
-                    color = Color.Gray,
+                    color = appColors.textSecondary,
                     fontSize = 16.sp,
                     textAlign = TextAlign.Center
                 )
@@ -205,7 +211,7 @@ fun PlaylistsScreen(playerViewModel: PlayerViewModel, onBack: () -> Unit, onPlay
                             .fillMaxWidth()
                             .padding(vertical = 8.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF1A1A1A))
+                            .background(appColors.surface)
                             .clickable { onPlaylistClick(playlist) }
                             .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -214,13 +220,13 @@ fun PlaylistsScreen(playerViewModel: PlayerViewModel, onBack: () -> Unit, onPlay
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFF282828)),
+                                .background(appColors.accent.copy(alpha = 0.15f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.QueueMusic,
                                 contentDescription = "Playlist",
-                                tint = Color.Gray,
+                                tint = appColors.accent,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -228,14 +234,14 @@ fun PlaylistsScreen(playerViewModel: PlayerViewModel, onBack: () -> Unit, onPlay
                         Column {
                             Text(
                                 text = playlist.name,
-                                color = Color.White,
+                                color = appColors.textPrimary,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = "${playlist.audioPaths.size} canciones",
-                                color = Color.Gray,
+                                color = appColors.textSecondary,
                                 fontSize = 14.sp
                             )
                         }
