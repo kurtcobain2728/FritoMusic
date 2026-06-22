@@ -36,11 +36,13 @@ fun MoreScreen(
     onNavigateToAppearance: () -> Unit = {},
     onNavigateToDonations: () -> Unit = {},
     onNavigateToDownload: () -> Unit = {},
-    onNavigateToExtensions: () -> Unit = {}
+    onNavigateToExtensions: () -> Unit = {},
+    favoritesCount: Int,
+    playlistsCount: Int
 ) {
     val menuItems = listOf(
-        MenuItem("Favoritos", "0 canciones", Icons.Default.Favorite, Color(0xFFFF6B6B)) { onNavigateToFavorites() },
-        MenuItem("Listas de Reproducción", "0 listas", Icons.AutoMirrored.Filled.FormatListBulleted, Color(0xFF4CAF50)) { onNavigateToPlaylists() },
+        MenuItem("Favoritos", "$favoritesCount canciones", Icons.Default.Favorite, Color(0xFFFF6B6B)) { onNavigateToFavorites() },
+        MenuItem("Listas de Reproducción", "$playlistsCount listas", Icons.AutoMirrored.Filled.FormatListBulleted, Color(0xFF4CAF50)) { onNavigateToPlaylists() },
         MenuItem("Ecualizador", "Ajusta el sonido", Icons.Default.Tune, Color(0xFF00BCD4)) { onNavigateToEqualizer() },
         MenuItem("Apariencia", "Temas, colores y estilo", Icons.Default.Palette, Color(0xFF9C27B0)) { onNavigateToAppearance() },
         MenuItem("Donaciones", "Apoya el proyecto", Icons.Default.CardGiftcard, Color(0xFFFFC107)) { onNavigateToDonations() },

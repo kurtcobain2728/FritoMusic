@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.sp
 import com.frito.music.ui.viewmodels.PlayerViewModel
 
 @Composable
-fun PlaylistsScreen(playerViewModel: PlayerViewModel, onBack: () -> Unit) {
+fun PlaylistsScreen(playerViewModel: PlayerViewModel, onBack: () -> Unit, onPlaylistClick: (com.frito.music.data.models.Playlist) -> Unit) {
     val playlists by playerViewModel.playlists.collectAsState()
     var showCreateDialog by remember { mutableStateOf(false) }
     var newPlaylistName by remember { mutableStateOf("") }
@@ -206,7 +206,7 @@ fun PlaylistsScreen(playerViewModel: PlayerViewModel, onBack: () -> Unit) {
                             .padding(vertical = 8.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .background(Color(0xFF1A1A1A))
-                            .clickable { /* TODO: Navigate to playlist detail */ }
+                            .clickable { onPlaylistClick(playlist) }
                             .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {

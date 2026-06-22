@@ -22,7 +22,9 @@ class MediaScanner(private val context: Context) {
             MediaStore.Audio.Media.DATA,
             MediaStore.Audio.Media.DURATION,
             MediaStore.Audio.Media.SIZE,
-            MediaStore.Audio.Media.ALBUM_ID
+            MediaStore.Audio.Media.ALBUM_ID,
+            MediaStore.Audio.Media.ALBUM,
+            MediaStore.Audio.Media.DATE_ADDED
         )
         
         // Excluimos tonos de llamada, alarmas, etc si es posible, y excluimos la carpeta Android
@@ -36,6 +38,8 @@ class MediaScanner(private val context: Context) {
             val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
             val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
             val albumIdColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
+            val albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
+            val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
 
             while (cursor.moveToNext()) {
                 val path = cursor.getString(dataColumn)
@@ -51,7 +55,9 @@ class MediaScanner(private val context: Context) {
                     path = path,
                     durationMs = cursor.getLong(durationColumn),
                     sizeBytes = cursor.getLong(sizeColumn),
-                    albumUri = albumUri
+                    albumUri = albumUri,
+                    album = cursor.getString(albumColumn) ?: "Álbum Desconocido",
+                    dateAdded = cursor.getLong(dateAddedColumn)
                 )
                 
                 val file = File(path)

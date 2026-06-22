@@ -3,24 +3,60 @@ package com.frito.music.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.frito.music.ui.viewmodels.HomeViewModel
+import com.frito.music.ui.viewmodels.PlayerViewModel
+import java.util.Random
 
 @Composable
-fun SearchScreen() {
-    val suggestedSongs = emptyList<SongItem>()
+fun SearchScreen(
+    homeViewModel: HomeViewModel,
+    playerViewModel: PlayerViewModel
+) {
+    var query by remember { mutableStateOf("") }
+    val allAudios = homeViewModel.getAllAudios()
+    val favorites by playerViewModel.favorites.collectAsState(initial = emptySet())
+
+    // Generar sugerencias estables por 12 horas (seed = epoch en bloques de 12 horas)
+    val suggestedSongs = remember(allAudios) {
+        if (allAudios.isEmpty()) emptyList()
+        else {
+            val seed = System.currentTimeMillis() / (12 * 60 * 60 * 1000)
+            val random = Random(seed)
+            val count = minOf(15, allAudios.size)
+            allAudios.shuffled(random).take(count)
+        }
+    }
+
+    // Filtrar canciones según la búsqueda
+    val searchResults = remember(query, allAudios) {
+        if (query.isEmpty()) {
+            emptyList()
+        } else {
+            allAudios.filter {
+                it.title.contains(query, ignoreCase = true) ||
+                it.artist.contains(query, ignoreCase = true) ||
+                it.album?.contains(query, ignoreCase = true) == true
+            }
+        }
+    }
+
+    val displayList = if (query.isEmpty()) suggestedSongs else searchResults
 
     Column(
         modifier = Modifier
@@ -41,7 +77,7 @@ fun SearchScreen() {
                         modifier = Modifier.padding(bottom = 24.dp)
                     )
 
-                    // Search Bar Placeholder
+                    // Search Bar
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -59,89 +95,73 @@ fun SearchScreen() {
                                 modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = "Canciones, artistas o álbumes",
-                                color = Color.Gray,
-                                fontSize = 16.sp
-                            )
+                            Box(modifier = Modifier.weight(1f)) {
+                                if (query.isEmpty()) {
+                                    Text(
+                                        text = "Canciones, artistas o álbumes",
+                                        color = Color.Gray,
+                                        fontSize = 16.sp
+                                    )
+                                }
+                                BasicTextField(
+                                    value = query,
+                                    onValueChange = { query = it },
+                                    textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
+                                    singleLine = true,
+                                    cursorBrush = SolidColor(Color.White),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
                         }
                     }
 
-                    Text(
-                        text = "Sugerencias para ti",
-                        color = Color.White,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 32.dp, bottom = 16.dp)
-                    )
+                    if (query.isEmpty()) {
+                        Text(
+                            text = "Sugerencias para ti",
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(top = 32.dp, bottom = 16.dp)
+                        )
+                    } else {
+                        Text(
+                            text = "Resultados (${searchResults.size})",
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(top = 32.dp, bottom = 16.dp)
+                        )
+                    }
                 }
             }
 
-            items(suggestedSongs) { song ->
-                SearchSongRow(song)
+            itemsIndexed(displayList) { index, song ->
+                val isFavorite = favorites.contains(song.path)
+                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    AudioFileRowUI(
+                        song = song,
+                        isFavorite = isFavorite,
+                        onClick = {
+                            playerViewModel.playAudios(displayList, index)
+                        }
+                    )
+                }
+            }
+            
+            if (query.isNotEmpty() && searchResults.isEmpty()) {
+                item {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(top = 48.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "No se encontraron resultados para \"$query\"",
+                            color = Color.Gray,
+                            fontSize = 16.sp
+                        )
+                    }
+                }
             }
         }
-    }
-}
-
-@Composable
-fun SearchSongRow(song: SongItem) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Image Placeholder
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .background(Color.DarkGray)
-        )
-        
-        Spacer(modifier = Modifier.width(12.dp))
-        
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = song.title,
-                color = Color.White,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = song.artist,
-                color = Color.Gray,
-                fontSize = 14.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-        
-        Spacer(modifier = Modifier.width(8.dp))
-        
-        // Format Badge (MP3)
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(4.dp))
-                .background(Color(0xFF2A2A2A))
-                .padding(horizontal = 4.dp, vertical = 2.dp)
-        ) {
-            Text(
-                text = song.format,
-                color = Color.LightGray,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-        
-        Spacer(modifier = Modifier.width(16.dp))
-        
-        Text(
-            text = song.duration,
-            color = Color.Gray,
-            fontSize = 14.sp
-        )
     }
 }

@@ -75,9 +75,18 @@ fun HomeScreen(homeViewModel: HomeViewModel = viewModel(), playerViewModel: Play
     ) {
         Spacer(modifier = Modifier.height(32.dp))
         
+        val calendar = java.util.Calendar.getInstance()
+        val hour = calendar.get(java.util.Calendar.HOUR_OF_DAY)
+        val greeting = when {
+            hour in 2..5 -> "Deberías dormir"
+            hour in 6..11 -> "Buenos días"
+            hour in 12..18 -> "Buenas tardes"
+            else -> "Buenas noches"
+        }
+
         if (currentNode?.path == "/" || currentNode == null) {
             Text(
-                text = "Buenas tardes",
+                text = greeting,
                 color = Color.White,
                 fontSize = 34.sp,
                 fontWeight = FontWeight.Bold
