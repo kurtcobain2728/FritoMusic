@@ -23,30 +23,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.frito.music.extensions.ExtensionState
+import com.frito.music.extensions.ExtensionUIModel
 import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.ui.theme.AppColors
-
-data class ExtensionMock(
-    val name: String,
-    val description: String,
-    val tags: List<String>,
-    val version: String,
-    val installedVersion: String? = null,
-    val isInstalled: Boolean = false,
-    val updateAvailable: Boolean = false
-)
-
-val mockExtensions = listOf(
-    ExtensionMock("Spotify Web", "Fetch Spotify metadata via web API. Supports personalized playlists like Daily Mix, Discover Weekly...", listOf("spotify", "web", "streaming"), "v1.9.12"),
-    ExtensionMock("Amazon Music", "Amazon Music metadata & download provider for SpotiFLAC. Browse tracks, albums, artists, playlists fr...", listOf("amazon", "download", "lossless"), "v2.1.4"),
-    ExtensionMock("Apple Music", "Apple Music metadata and lyrics provider for SpotiFLAC Mobile. Fetches ISRC, label, copyright, genr...", listOf("apple", "metadata", "lyrics"), "v1.3.3"),
-    ExtensionMock("SoundCloud", "SoundCloud metadata and download provider. Search tracks, albums, playlists, artists. Downloads via direct...", listOf("soundcloud", "download", "metadata"), "v1.0.5"),
-    ExtensionMock("YouTube Music", "YouTube Music metadata & download provider for SpotiFLAC Mobile. Search tracks, albums, playlists on...", listOf("youtube", "ymusic", "metadata"), "v2.3.6"),
-    ExtensionMock("Deezer", "Deezer metadata and download provider for SpotiFLAC Mobile.", listOf("deezer", "download", "lossless"), "v1.1.5"),
-    ExtensionMock("Pandora", "Pandora metadata and download provider for SpotiFLAC Mobile. Handles Pandora track and album ...", listOf("pandora", "download", "metadata"), "v1.0.8"),
-    ExtensionMock("Qobuz", "Qobuz metadata and download provider for SpotiFLAC Mobile.", listOf("qobuz", "download", "lossless"), "v1.3.7", "v1.3.0", true, true),
-    ExtensionMock("Tidal", "TIDAL metadata and search provider for SpotiFLAC Mobile using TIDAL public web endpoints.", listOf("tidal", "download", "lossless"), "v1.3.9", "v1.3.4", true, true)
-)
+import com.frito.music.ui.viewmodels.ExtensionsViewModel
 
 val GreenColor = Color(0xFF1DB954)
 val OrangeColor = Color(0xFFFFA726)
@@ -56,9 +38,23 @@ val TagBackground = Color(0xFF2A2A2A)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExtensionsScreen(onBack: () -> Unit) {
+fun ExtensionsScreen(
+    onBack: () -> Unit,
+    viewModel: ExtensionsViewModel = viewModel()
+) {
     val appColors = LocalAppColors.current
-    var registryUrl by remember { mutableStateOf("LAC-Extension/main/registry.json") }
+    var registryUrl by remember { mutableStateOf("https://raw.githubusercontent.com/spotiflacapp/SpotiFLAC-Extension/main/registry.json") }
+
+    val extensions by viewModel.extensions.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
+
+    // Cargar automáticamente si no se ha cargado (opcional)
+    LaunchedEffect(Unit) {
+        if (extensions.isEmpty()) {
+            viewModel.loadRegistry(registryUrl)
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -92,7 +88,9 @@ fun ExtensionsScreen(onBack: () -> Unit) {
                 imageVector = Icons.Default.Refresh,
                 contentDescription = "Refresh",
                 tint = appColors.textPrimary,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier
+                    .size(24.dp)
+                    .clickable { viewModel.loadRegistry(registryUrl) }
             )
         }
 
@@ -139,13 +137,27 @@ fun ExtensionsScreen(onBack: () -> Unit) {
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Button(
-                            onClick = { /* TODO */ },
+                            onClick = { viewModel.loadRegistry(registryUrl) },
                             colors = ButtonDefaults.buttonColors(containerColor = GreenColor),
                             shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.height(52.dp)
+                            modifier = Modifier.height(52.dp),
+                            enabled = !isLoading
                         ) {
-                            Text("Cargar", color = Color.White, fontWeight = FontWeight.Bold)
+                            if (isLoading) {
+                                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                            } else {
+                                Text("Cargar", color = Color.White, fontWeight = FontWeight.Bold)
+                            }
                         }
+                    }
+                    
+                    if (errorMessage != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = errorMessage ?: "",
+                            color = RedColor,
+                            fontSize = 14.sp
+                        )
                     }
                 }
             }
@@ -169,7 +181,7 @@ fun ExtensionsScreen(onBack: () -> Unit) {
                             .padding(horizontal = 8.dp, vertical = 2.dp)
                     ) {
                         Text(
-                            text = mockExtensions.size.toString(),
+                            text = extensions.size.toString(),
                             color = appColors.textSecondary,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
@@ -179,15 +191,21 @@ fun ExtensionsScreen(onBack: () -> Unit) {
             }
 
             // Extension List
-            items(mockExtensions) { ext ->
-                ExtensionCard(ext, appColors)
+            items(extensions) { ext ->
+                ExtensionCard(ext, appColors, viewModel)
             }
         }
     }
 }
 
 @Composable
-fun ExtensionCard(ext: ExtensionMock, appColors: AppColors) {
+fun ExtensionCard(ext: ExtensionUIModel, appColors: AppColors, viewModel: ExtensionsViewModel) {
+    val info = ext.info
+    val isInstalled = ext.state == ExtensionState.INSTALLED || ext.state == ExtensionState.UPDATE_AVAILABLE
+    val updateAvailable = ext.state == ExtensionState.UPDATE_AVAILABLE
+    val isDownloading = ext.state == ExtensionState.DOWNLOADING
+    val isError = ext.state == ExtensionState.ERROR
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -200,7 +218,7 @@ fun ExtensionCard(ext: ExtensionMock, appColors: AppColors) {
                 .clip(RoundedCornerShape(12.dp))
                 .background(CardBackground)
         ) {
-            if (ext.updateAvailable) {
+            if (updateAvailable) {
                 Box(
                     modifier = Modifier
                         .width(4.dp)
@@ -214,7 +232,7 @@ fun ExtensionCard(ext: ExtensionMock, appColors: AppColors) {
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
-                if (ext.updateAvailable) {
+                if (updateAvailable) {
                     Box(
                         modifier = Modifier
                             .background(OrangeColor, RoundedCornerShape(4.dp))
@@ -232,12 +250,12 @@ fun ExtensionCard(ext: ExtensionMock, appColors: AppColors) {
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = ext.name,
+                        text = info.displayName,
                         color = appColors.textPrimary,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    if (ext.isInstalled) {
+                    if (isInstalled) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
@@ -257,7 +275,7 @@ fun ExtensionCard(ext: ExtensionMock, appColors: AppColors) {
                 Spacer(modifier = Modifier.height(4.dp))
                 
                 Text(
-                    text = ext.description,
+                    text = info.description,
                     color = appColors.textSecondary,
                     fontSize = 12.sp,
                     lineHeight = 16.sp,
@@ -272,7 +290,7 @@ fun ExtensionCard(ext: ExtensionMock, appColors: AppColors) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        ext.tags.forEach { tag ->
+                        info.tags.forEach { tag ->
                             Text(
                                 text = tag,
                                 color = appColors.textSecondary,
@@ -284,7 +302,7 @@ fun ExtensionCard(ext: ExtensionMock, appColors: AppColors) {
                         }
                     }
                     Text(
-                        text = if (ext.installedVersion != null) "${ext.version} (instalada ${ext.installedVersion})" else ext.version,
+                        text = info.version,
                         color = appColors.textSecondary,
                         fontSize = 10.sp
                     )
@@ -294,11 +312,24 @@ fun ExtensionCard(ext: ExtensionMock, appColors: AppColors) {
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (ext.updateAvailable) {
+                    if (isError) {
+                        Text("Error al descargar", color = RedColor, fontSize = 12.sp, modifier = Modifier.padding(end = 8.dp))
+                    }
+
+                    if (isDownloading) {
+                        CircularProgressIndicator(
+                            progress = { ext.progress },
+                            modifier = Modifier.size(24.dp),
+                            color = GreenColor,
+                            strokeWidth = 2.dp,
+                            trackColor = TagBackground
+                        )
+                    } else if (updateAvailable) {
                         Button(
-                            onClick = { /* TODO */ },
+                            onClick = { viewModel.downloadExtension(info.id) },
                             colors = ButtonDefaults.buttonColors(containerColor = OrangeColor),
                             shape = RoundedCornerShape(20.dp),
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
@@ -310,7 +341,7 @@ fun ExtensionCard(ext: ExtensionMock, appColors: AppColors) {
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Button(
-                            onClick = { /* TODO */ },
+                            onClick = { viewModel.deleteExtension(info.id, info.name) },
                             colors = ButtonDefaults.buttonColors(containerColor = TagBackground),
                             shape = RoundedCornerShape(20.dp),
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
@@ -320,9 +351,9 @@ fun ExtensionCard(ext: ExtensionMock, appColors: AppColors) {
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Quitar", color = RedColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
-                    } else if (ext.isInstalled) {
+                    } else if (isInstalled) {
                         Button(
-                            onClick = { /* TODO */ },
+                            onClick = { viewModel.deleteExtension(info.id, info.name) },
                             colors = ButtonDefaults.buttonColors(containerColor = TagBackground),
                             shape = RoundedCornerShape(20.dp),
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
@@ -334,7 +365,7 @@ fun ExtensionCard(ext: ExtensionMock, appColors: AppColors) {
                         }
                     } else {
                         OutlinedButton(
-                            onClick = { /* TODO */ },
+                            onClick = { viewModel.downloadExtension(info.id) },
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = GreenColor),
                             border = BorderStroke(1.dp, GreenColor),
                             shape = RoundedCornerShape(20.dp),
