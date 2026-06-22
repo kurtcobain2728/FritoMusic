@@ -3,6 +3,12 @@ package com.frito.music.ui.screens
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -181,7 +187,11 @@ fun AppearanceScreen(themeViewModel: ThemeViewModel, onBack: () -> Unit) {
         Spacer(modifier = Modifier.height(32.dp))
 
         // Fondo de pantalla section
-        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
+                .animateContentSize(tween(300, easing = FastOutSlowInEasing))
+        ) {
             Text(
                 text = "Fondo de Pantalla",
                 color = appColors.textPrimary,
@@ -390,6 +400,13 @@ fun ThemeOptionItem(
     onClick: () -> Unit,
     appColors: com.frito.music.ui.theme.AppColors
 ) {
+    // Animación suave del borde de selección
+    val borderWidth by animateDpAsState(
+        targetValue = if (isSelected) 2.dp else 0.dp,
+        animationSpec = tween(200, easing = FastOutSlowInEasing),
+        label = "borderWidth"
+    )
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -397,7 +414,7 @@ fun ThemeOptionItem(
             .clip(RoundedCornerShape(12.dp))
             .background(appColors.surface)
             .border(
-                width = if (isSelected) 2.dp else 0.dp,
+                width = borderWidth,
                 color = if (isSelected) appColors.accent else Color.Transparent,
                 shape = RoundedCornerShape(12.dp)
             )

@@ -30,7 +30,8 @@ fun SearchScreen(
     playerViewModel: PlayerViewModel
 ) {
     var query by remember { mutableStateOf("") }
-    val allAudios = homeViewModel.getAllAudios()
+    // Envuelto en remember para evitar recomputación en cada recomposición
+    val allAudios = remember(homeViewModel) { homeViewModel.getAllAudios() }
     val favorites by playerViewModel.favorites.collectAsState(initial = emptySet())
     val appColors = LocalAppColors.current
 
@@ -53,7 +54,7 @@ fun SearchScreen(
             allAudios.filter {
                 it.title.contains(query, ignoreCase = true) ||
                 it.artist.contains(query, ignoreCase = true) ||
-                it.album?.contains(query, ignoreCase = true) == true
+                it.album.contains(query, ignoreCase = true)
             }
         }
     }

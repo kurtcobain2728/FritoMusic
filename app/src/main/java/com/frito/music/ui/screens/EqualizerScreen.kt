@@ -12,12 +12,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.frito.music.ui.viewmodels.PlayerViewModel
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -28,7 +33,6 @@ import com.frito.music.ui.theme.LocalAppColors
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun EqualizerScreen(playerViewModel: PlayerViewModel, onBack: () -> Unit) {
-    val context = LocalContext.current
     val eqManager = playerViewModel.equalizerManager
     val appColors = LocalAppColors.current
 
@@ -37,7 +41,6 @@ fun EqualizerScreen(playerViewModel: PlayerViewModel, onBack: () -> Unit) {
     val presets by eqManager.presets.collectAsState()
     val selectedPreset by eqManager.selectedPreset.collectAsState()
     val scrollState = rememberScrollState()
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -131,8 +134,18 @@ fun EqualizerScreen(playerViewModel: PlayerViewModel, onBack: () -> Unit) {
             ) {
                 presets.forEach { preset ->
                     val isSelected = preset.index == selectedPreset
+                    // Escala animada con spring para feedback visual al seleccionar
+                    val presetScale by animateFloatAsState(
+                        targetValue = if (isSelected) 1.08f else 1f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        ),
+                        label = "presetScale_${preset.index}"
+                    )
                     Box(
                         modifier = Modifier
+                            .scale(presetScale)
                             .clip(RoundedCornerShape(16.dp))
                             .background(if (isSelected) appColors.accent else appColors.surface)
                             .clickable { eqManager.usePreset(preset.index) }

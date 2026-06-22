@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -20,11 +21,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.frito.music.data.models.AudioFile
 import com.frito.music.ui.viewmodels.HomeViewModel
 import com.frito.music.ui.viewmodels.PlayerViewModel
@@ -35,7 +38,8 @@ enum class SortOption { TITLE, ARTIST, ALBUM, RECENT }
 
 @Composable
 fun LibraryScreen(homeViewModel: HomeViewModel, playerViewModel: PlayerViewModel) {
-    val allSongs = remember { homeViewModel.getAllAudios() }
+    // Envuelto en remember para evitar recomputación en cada recomposición
+    val allSongs = remember(homeViewModel) { homeViewModel.getAllAudios() }
     val favorites by playerViewModel.favorites.collectAsState()
     var selectedFilter by remember { mutableStateOf(SortOption.TITLE) }
     val appColors = LocalAppColors.current
@@ -130,11 +134,13 @@ fun LibraryScreen(homeViewModel: HomeViewModel, playerViewModel: PlayerViewModel
                 }
             }
 
-            items(sortedSongs) { song ->
+            itemsIndexed(
+                sortedSongs,
+                key = { _, song -> song.path }
+            ) { index, song ->
                 val isFavorite = favorites.contains(song.path)
                 AudioFileRowUI(song = song, isFavorite = isFavorite, appColors = appColors) {
-                    val index = sortedSongs.indexOf(song)
-                    playerViewModel.playAudios(sortedSongs, if (index >= 0) index else 0)
+                    playerViewModel.playAudios(sortedSongs, index)
                 }
             }
         }
@@ -175,8 +181,12 @@ fun AudioFileRowUI(song: AudioFile, isFavorite: Boolean, appColors: com.frito.mu
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (song.albumUri != null) {
+            val context = LocalContext.current
             AsyncImage(
-                model = song.albumUri,
+                model = ImageRequest.Builder(context)
+                    .data(song.albumUri)
+                    .crossfade(300)
+                    .build(),
                 contentDescription = "Album Art",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier

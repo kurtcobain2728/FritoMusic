@@ -3,6 +3,21 @@ package com.frito.music
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,22 +30,20 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.frito.music.data.models.Playlist
 import com.frito.music.ui.components.BottomNavBar
 import com.frito.music.ui.screens.*
 import com.frito.music.ui.theme.FritoMusicTheme
 import com.frito.music.ui.viewmodels.HomeViewModel
 import com.frito.music.ui.viewmodels.PlayerViewModel
-
-import androidx.compose.foundation.Image
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import com.frito.music.ui.theme.ThemeViewModel
-import com.frito.music.ui.theme.FritoMusicTheme
+import com.frito.music.ui.theme.LocalAppColors
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -59,6 +72,7 @@ class MainActivity : ComponentActivity() {
 
                 val favorites by playerViewModel.favorites.collectAsState(initial = emptySet())
                 val playlists by playerViewModel.playlists.collectAsState(initial = emptyList())
+                val currentAudio by playerViewModel.currentAudio.collectAsState()
 
                 val context = androidx.compose.ui.platform.LocalContext.current
                 var backPressedTime by remember { mutableStateOf(0L) }
@@ -82,8 +96,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // Colores del tema actual
-                val appColors = com.frito.music.ui.theme.LocalAppColors.current
+                val appColors = LocalAppColors.current
 
                 Box(modifier = Modifier.fillMaxSize()) {
                     // Pintar fondo global si existe
@@ -105,16 +118,31 @@ class MainActivity : ComponentActivity() {
                     Scaffold(
                         bottomBar = {
                             Column {
-                                com.frito.music.ui.screens.MiniPlayer(
-                                    viewModel = playerViewModel,
-                                    onClick = { showPlayerScreen = true },
-                                    onSwipeUp = { showPlayerScreen = true }
-                                )
-                                if (currentSubScreen == null) {
-                                    BottomNavBar(
-                                        currentTab = currentTab,
-                                        onTabSelected = { currentTab = it }
+                                // MiniPlayer con animación suave de aparición/desaparición
+                                AnimatedVisibility(
+                                    visible = currentAudio != null,
+                                    enter = fadeIn(tween(250, easing = FastOutSlowInEasing)) +
+                                            expandVertically(tween(300, easing = FastOutSlowInEasing)),
+                                    exit = fadeOut(tween(200, easing = FastOutSlowInEasing)) +
+                                            shrinkVertically(tween(250, easing = FastOutSlowInEasing))
+                                ) {
+                                    MiniPlayer(
+                                        viewModel = playerViewModel,
+                                        onClick = { showPlayerScreen = true },
+                                        onSwipeUp = { showPlayerScreen = true }
                                     )
+                                }
+                                if (currentSubScreen == null) {
+                                    AnimatedVisibility(
+                                        visible = true,
+                                        enter = fadeIn(tween(200)),
+                                        exit = fadeOut(tween(150))
+                                    ) {
+                                        BottomNavBar(
+                                            currentTab = currentTab,
+                                            onTabSelected = { currentTab = it }
+                                        )
+                                    }
                                 }
                             }
                         },
@@ -123,17 +151,36 @@ class MainActivity : ComponentActivity() {
                     ) { innerPadding ->
                         Surface(
                             modifier = Modifier.padding(innerPadding).fillMaxSize(),
-                            color = Color.Transparent // Surface transparente para ver Scaffold bg
+                            color = Color.Transparent
                         ) {
-                            androidx.compose.animation.AnimatedContent(
+                            // Animación de subpantallas (Más → Favoritos, Ecualizador, etc.)
+                            AnimatedContent(
                                 targetState = currentSubScreen,
                                 transitionSpec = {
                                     if (targetState != null) {
-                                        slideIntoContainer(towards = androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = androidx.compose.animation.core.tween(300)).togetherWith(
-                                        slideOutOfContainer(towards = androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = androidx.compose.animation.core.tween(300)))
+                                        // Entrando a una subpantalla: slide desde la derecha + fade in
+                                        (slideInHorizontally(
+                                            initialOffsetX = { fullWidth -> (fullWidth * 0.35f).toInt() },
+                                            animationSpec = tween(300, easing = FastOutSlowInEasing)
+                                        ) + fadeIn(tween(250, easing = FastOutSlowInEasing)))
+                                            .togetherWith(
+                                                slideOutHorizontally(
+                                                    targetOffsetX = { fullWidth -> -(fullWidth * 0.15f).toInt() },
+                                                    animationSpec = tween(300, easing = FastOutSlowInEasing)
+                                                ) + fadeOut(tween(200, easing = FastOutSlowInEasing))
+                                            )
                                     } else {
-                                        slideIntoContainer(towards = androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = androidx.compose.animation.core.tween(300)).togetherWith(
-                                        slideOutOfContainer(towards = androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = androidx.compose.animation.core.tween(300)))
+                                        // Volviendo a tabs: slide desde la izquierda + fade in
+                                        (slideInHorizontally(
+                                            initialOffsetX = { fullWidth -> -(fullWidth * 0.35f).toInt() },
+                                            animationSpec = tween(300, easing = FastOutSlowInEasing)
+                                        ) + fadeIn(tween(250, easing = FastOutSlowInEasing)))
+                                            .togetherWith(
+                                                slideOutHorizontally(
+                                                    targetOffsetX = { fullWidth -> (fullWidth * 0.15f).toInt() },
+                                                    animationSpec = tween(300, easing = FastOutSlowInEasing)
+                                                ) + fadeOut(tween(200, easing = FastOutSlowInEasing))
+                                            )
                                     }
                                 },
                                 label = "SubScreenAnimation"
@@ -159,7 +206,7 @@ class MainActivity : ComponentActivity() {
                                                     playlist = playlist,
                                                     homeViewModel = homeViewModel,
                                                     playerViewModel = playerViewModel,
-                                                    onBack = { 
+                                                    onBack = {
                                                         currentSubScreen = "listas"
                                                         selectedPlaylist = null
                                                     }
@@ -178,9 +225,13 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
                                 } else {
-                                    androidx.compose.animation.Crossfade(
+                                    // Animación entre tabs principales con fade suave
+                                    AnimatedContent(
                                         targetState = currentTab,
-                                        animationSpec = androidx.compose.animation.core.tween(durationMillis = 350),
+                                        transitionSpec = {
+                                            fadeIn(tween(220, easing = FastOutSlowInEasing))
+                                                .togetherWith(fadeOut(tween(150, easing = FastOutSlowInEasing)))
+                                        },
                                         label = "TabAnimation"
                                     ) { tab ->
                                         when (tab) {
@@ -210,11 +261,20 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    // Player Overlay
-                    androidx.compose.animation.AnimatedVisibility(
+                    // Player Overlay — spring + fade para sensación física
+                    AnimatedVisibility(
                         visible = showPlayerScreen,
-                        enter = androidx.compose.animation.slideInVertically(initialOffsetY = { it }, animationSpec = androidx.compose.animation.core.tween(400)),
-                        exit = androidx.compose.animation.slideOutVertically(targetOffsetY = { it }, animationSpec = androidx.compose.animation.core.tween(400))
+                        enter = slideInVertically(
+                            initialOffsetY = { fullHeight -> fullHeight },
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            )
+                        ) + fadeIn(tween(250, easing = FastOutSlowInEasing)),
+                        exit = slideOutVertically(
+                            targetOffsetY = { fullHeight -> fullHeight },
+                            animationSpec = tween(360, easing = FastOutSlowInEasing)
+                        ) + fadeOut(tween(250, easing = FastOutSlowInEasing))
                     ) {
                         PlayerScreen(
                             viewModel = playerViewModel,

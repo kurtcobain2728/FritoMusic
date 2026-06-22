@@ -1,0 +1,19 @@
+<lint-module
+    format="1"
+    dir="/home/koda/Documentos/frito-music-definitive/Frito-Music/app"
+    name=":app"
+    type="APP"
+    maven="Frito-Music:app:"
+    agpVersion="8.2.0"
+    buildFolder="build"
+    bootClassPath="/home/koda/Android/Sdk/platforms/android-34/android.jar:/home/koda/Android/Sdk/build-tools/34.0.0/core-lambda-stubs.jar"
+    javaSourceLevel="1.8"
+    compileTarget="android-34"
+    neverShrinking="true">
+  <lintOptions
+      abortOnError="true"
+      absolutePaths="true"
+      checkReleaseBuilds="true"
+      explainIssues="true"/>
+  <variant name="debug"/>
+</lint-module>

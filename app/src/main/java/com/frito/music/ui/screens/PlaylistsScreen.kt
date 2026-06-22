@@ -1,5 +1,6 @@
 package com.frito.music.ui.screens
 
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -200,54 +201,56 @@ fun PlaylistsScreen(playerViewModel: PlayerViewModel, onBack: () -> Unit, onPlay
                 )
             }
         } else {
-            // Playlists List
             LazyColumn(
-                contentPadding = PaddingValues(bottom = 100.dp, start = 16.dp, end = 16.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(playlists) { playlist ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(appColors.surface)
-                            .clickable { onPlaylistClick(playlist) }
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
+                    contentPadding = PaddingValues(bottom = 100.dp, start = 16.dp, end = 16.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(
+                        playlists,
+                        key = { it.id }
+                    ) { playlist ->
+                        Row(
                             modifier = Modifier
-                                .size(48.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(appColors.accent.copy(alpha = 0.15f)),
-                            contentAlignment = Alignment.Center
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(appColors.surface)
+                                .clickable { onPlaylistClick(playlist) }
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.QueueMusic,
-                                contentDescription = "Playlist",
-                                tint = appColors.accent,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column {
-                            Text(
-                                text = playlist.name,
-                                color = appColors.textPrimary,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "${playlist.audioPaths.size} canciones",
-                                color = appColors.textSecondary,
-                                fontSize = 14.sp
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(appColors.accent.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.QueueMusic,
+                                    contentDescription = "Playlist",
+                                    tint = appColors.accent,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column {
+                                Text(
+                                    text = playlist.name,
+                                    color = appColors.textPrimary,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "${playlist.audioPaths.size} canciones",
+                                    color = appColors.textSecondary,
+                                    fontSize = 14.sp
+                                )
+                            }
                         }
                     }
                 }
-            }
         }
     }
 }

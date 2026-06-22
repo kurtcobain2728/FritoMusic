@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,11 +39,14 @@ fun FavoritesScreen(
     playerViewModel: PlayerViewModel,
     onBack: () -> Unit
 ) {
-    val allAudios = homeViewModel.getAllAudios()
+    val allAudios = remember(homeViewModel) { homeViewModel.getAllAudios() }
     val favorites by playerViewModel.favorites.collectAsState(initial = emptySet())
     val appColors = LocalAppColors.current
 
-    val favoriteAudios = allAudios.filter { favorites.contains(it.path) }.sortedBy { it.title }
+    // Cachear el filtrado para evitar recalcular en cada recomposición
+    val favoriteAudios = remember(allAudios, favorites) {
+        allAudios.filter { favorites.contains(it.path) }.sortedBy { it.title }
+    }
 
     Column(
         modifier = Modifier
@@ -184,7 +189,11 @@ fun FavoritesScreen(
                 contentPadding = PaddingValues(start = 16.dp, top = 0.dp, end = 16.dp, bottom = 100.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                itemsIndexed(favoriteAudios) { index, audio ->
+                items(
+                    items = favoriteAudios,
+                    key = { it.path }
+                ) { audio ->
+                    val index = favoriteAudios.indexOf(audio)
                     AudioFileRowUI(song = audio, isFavorite = true, appColors = appColors, onClick = {
                         playerViewModel.playAudios(favoriteAudios, index)
                     })

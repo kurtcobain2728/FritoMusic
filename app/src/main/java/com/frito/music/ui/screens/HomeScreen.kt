@@ -22,11 +22,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.frito.music.data.models.AudioFile
 import com.frito.music.ui.viewmodels.HomeViewModel
 import com.frito.music.ui.viewmodels.PlayerViewModel
@@ -128,7 +131,10 @@ fun HomeScreen(homeViewModel: HomeViewModel = viewModel(), playerViewModel: Play
                 contentPadding = PaddingValues(bottom = 100.dp)
             ) {
                 val subfolders = currentNode?.subfolders?.values?.toList()?.sortedBy { it.name } ?: emptyList()
-                items(subfolders) { folder ->
+                items(
+                    subfolders,
+                    key = { it.path }
+                ) { folder ->
                     FolderCard(
                         folderName = folder.name,
                         songCount = folder.getTotalAudioCount(),
@@ -138,7 +144,10 @@ fun HomeScreen(homeViewModel: HomeViewModel = viewModel(), playerViewModel: Play
                 }
 
                 val audios = currentNode?.audios?.sortedBy { it.title } ?: emptyList()
-                itemsIndexed(audios) { index, audio ->
+                itemsIndexed(
+                    audios,
+                    key = { _, audio -> audio.path }
+                ) { index, audio ->
                     AudioFileRow(
                         audio = audio,
                         appColors = appColors,
@@ -247,11 +256,15 @@ fun AudioFileRow(audio: AudioFile, appColors: com.frito.music.ui.theme.AppColors
         ) {
             Icon(Icons.Default.MusicNote, contentDescription = null, tint = appColors.textSecondary)
             if (audio.albumUri != null) {
-                coil.compose.AsyncImage(
-                    model = audio.albumUri,
+                val context = LocalContext.current
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(audio.albumUri)
+                        .crossfade(300)
+                        .build(),
                     contentDescription = "Album Art",
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                    contentScale = ContentScale.Crop
                 )
             }
         }

@@ -5,6 +5,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -32,6 +35,8 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.draw.blur
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
 import com.frito.music.ui.viewmodels.PlayerViewModel
 import androidx.media3.common.Player
 import com.frito.music.ui.theme.LocalAppColors
@@ -77,7 +82,7 @@ fun PlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit) {
                             showLyrics = true
                         }
                     },
-                    onVerticalDrag = { change, dragAmount ->
+                    onVerticalDrag = { _, dragAmount ->
                         dragY += dragAmount
                     }
                 )
@@ -156,12 +161,19 @@ fun PlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit) {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Album Art
+            // Album Art con crossfade y scale animado
+            val albumArtScale by animateFloatAsState(
+                targetValue = if (isPlaying) 1f else 0.95f,
+                animationSpec = tween(400, easing = FastOutSlowInEasing),
+                label = "albumArtScale"
+            )
+            val context = LocalContext.current
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp)
                     .aspectRatio(1f)
+                    .scale(albumArtScale)
                     .clip(RoundedCornerShape(12.dp))
                     .background(appColors.surface),
                 contentAlignment = Alignment.Center
@@ -174,7 +186,10 @@ fun PlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit) {
                 )
                 if (currentAudio?.albumUri != null) {
                     AsyncImage(
-                        model = currentAudio?.albumUri,
+                        model = ImageRequest.Builder(context)
+                            .data(currentAudio?.albumUri)
+                            .crossfade(400)
+                            .build(),
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
@@ -275,12 +290,26 @@ fun PlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit) {
                     tint = appColors.textPrimary,
                     modifier = Modifier.size(40.dp).clickable { viewModel.skipPrevious() }
                 )
+                val playInteractionSource = remember { MutableInteractionSource() }
+                val isPlayPressed by playInteractionSource.collectIsPressedAsState()
+                val playButtonScale by animateFloatAsState(
+                    targetValue = if (isPlayPressed) 0.92f else 1f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessHigh
+                    ),
+                    label = "playScale"
+                )
                 Box(
                     modifier = Modifier
                         .size(72.dp)
+                        .scale(playButtonScale)
                         .clip(CircleShape)
                         .background(appColors.textPrimary)
-                        .clickable { viewModel.playPause() },
+                        .clickable(
+                            interactionSource = playInteractionSource,
+                            indication = null
+                        ) { viewModel.playPause() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -474,6 +503,7 @@ fun WaveformProgress(
     var dragProgress by remember { mutableStateOf<Float?>(null) }
     val displayProgress = dragProgress ?: progress
     
+    // Solo animamos la fase cuando está reproduciendo para ahorrar GPU
     val infiniteTransition = rememberInfiniteTransition(label = "waveform")
     val phase by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -487,9 +517,11 @@ fun WaveformProgress(
 
     val animationMultiplier by animateFloatAsState(
         targetValue = if (isPlaying) 1f else 0f,
-        animationSpec = tween(500),
+        animationSpec = tween(600, easing = FastOutSlowInEasing),
         label = "multiplier"
     )
+    // Evita redraws del Canvas cuando está pausado (ahorra GPU)
+    val shouldAnimate = animationMultiplier > 0.01f
 
     Box(modifier = modifier
         .fillMaxWidth()
@@ -523,20 +555,22 @@ fun WaveformProgress(
             val gap = 3.dp.toPx()
             val totalGaps = (numBars - 1) * gap
             val actualBarWidth = (width - totalGaps) / numBars
-            
+
             for (i in 0 until numBars) {
                 val x = i * (actualBarWidth + gap)
                 val barProgress = i.toFloat() / numBars
                 val isPlayed = barProgress <= displayProgress
-                
-                val waveEffect = Math.sin((phase + i * 0.4).toDouble()).toFloat() * 0.4f
+
+                // Cuando no está reproduciendo, usamos la fase fija para evitar redraws innecesarios
+                val effectivePhase = if (shouldAnimate) phase else 0f
+                val waveEffect = Math.sin((effectivePhase + i * 0.4).toDouble()).toFloat() * 0.4f
                 val finalMultiplier = 1f + (waveEffect * animationMultiplier)
                 val barHeight = (height * baseHeights[i] * finalMultiplier).coerceIn(height * 0.1f, height)
-                
+
                 val yOffset = (height - barHeight) / 2
-                
+
                 val color = if (isPlayed) appColors.accent else appColors.textSecondary.copy(alpha = 0.3f)
-                
+
                 drawLine(
                     color = color,
                     start = Offset(x + actualBarWidth / 2, yOffset),
@@ -578,7 +612,7 @@ fun MiniPlayer(viewModel: PlayerViewModel, onClick: () -> Unit, onSwipeUp: () ->
                             onSwipeUp()
                         }
                     },
-                    onVerticalDrag = { change, dragAmount ->
+                    onVerticalDrag = { _, dragAmount ->
                         dragY += dragAmount
                     }
                 )
@@ -595,8 +629,12 @@ fun MiniPlayer(viewModel: PlayerViewModel, onClick: () -> Unit, onSwipeUp: () ->
         ) {
             Icon(Icons.Default.MusicNote, contentDescription = null, tint = appColors.textSecondary)
             if (currentAudio?.albumUri != null) {
+                val miniCtx = androidx.compose.ui.platform.LocalContext.current
                 AsyncImage(
-                    model = currentAudio?.albumUri,
+                    model = ImageRequest.Builder(miniCtx)
+                        .data(currentAudio?.albumUri)
+                        .crossfade(300)
+                        .build(),
                     contentDescription = "Album Art",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop

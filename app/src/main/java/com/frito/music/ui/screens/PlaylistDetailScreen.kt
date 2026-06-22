@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,12 +39,15 @@ fun PlaylistDetailScreen(
     playerViewModel: PlayerViewModel,
     onBack: () -> Unit
 ) {
-    val allAudios = homeViewModel.getAllAudios()
+    val allAudios = remember(homeViewModel) { homeViewModel.getAllAudios() }
     val favorites by playerViewModel.favorites.collectAsState()
-    val playlistSongs = allAudios.filter { playlist.audioPaths.contains(it.path) }
+    // Cachear el filtrado para evitar recalcular en cada recomposición
+    val playlistSongs = remember(allAudios, playlist.audioPaths) {
+        allAudios.filter { playlist.audioPaths.contains(it.path) }
+    }
     val appColors = LocalAppColors.current
-    
-    val totalDurationMs = playlistSongs.sumOf { it.durationMs }
+
+    val totalDurationMs = remember(playlistSongs) { playlistSongs.sumOf { it.durationMs } }
     val hours = TimeUnit.MILLISECONDS.toHours(totalDurationMs)
     val minutes = TimeUnit.MILLISECONDS.toMinutes(totalDurationMs) % 60
 
@@ -158,7 +163,11 @@ fun PlaylistDetailScreen(
                 contentPadding = PaddingValues(start = 16.dp, top = 0.dp, end = 16.dp, bottom = 100.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                itemsIndexed(playlistSongs) { index, song ->
+                items(
+                    items = playlistSongs,
+                    key = { it.path }
+                ) { song ->
+                    val index = playlistSongs.indexOf(song)
                     val isFavorite = favorites.contains(song.path)
                     AudioFileRowUI(song = song, isFavorite = isFavorite, appColors = appColors, onClick = {
                         playerViewModel.playAudios(playlistSongs, index)
