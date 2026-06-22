@@ -1,4 +1,4 @@
-#Mon Jun 22 08:39:00 VET 2026
+#Mon Jun 22 14:30:45 VET 2026
 path.4=3/classes.dex
 path.3=14/classes.dex
 path.2=1/classes.dex
@@ -9,6 +9,7 @@ path.8=9/classes.dex
 path.7=8/classes.dex
 path.6=7/classes.dex
 path.5=5/classes.dex
+renamed.11=classes12.dex
 renamed.10=classes11.dex
 path.0=classes.dex
 base.4=/home/koda/Documentos/frito-music-definitive/Frito-Music/app/build/intermediates/dex/debug/mergeProjectDexDebug/3/classes.dex
@@ -23,6 +24,7 @@ path.10=classes3.dex
 renamed.0=classes.dex
 base.9=/home/koda/Documentos/frito-music-definitive/Frito-Music/app/build/intermediates/dex/debug/mergeExtDexDebug/classes2.dex
 path.9=classes2.dex
+path.11=4/classes.dex
 renamed.7=classes8.dex
 base.8=/home/koda/Documentos/frito-music-definitive/Frito-Music/app/build/intermediates/dex/debug/mergeProjectDexDebug/9/classes.dex
 renamed.6=classes7.dex
@@ -31,4 +33,5 @@ renamed.5=classes6.dex
 base.6=/home/koda/Documentos/frito-music-definitive/Frito-Music/app/build/intermediates/dex/debug/mergeProjectDexDebug/7/classes.dex
 renamed.4=classes5.dex
 base.5=/home/koda/Documentos/frito-music-definitive/Frito-Music/app/build/intermediates/dex/debug/mergeProjectDexDebug/5/classes.dex
+base.11=/home/koda/Documentos/frito-music-definitive/Frito-Music/app/build/intermediates/dex/debug/mergeProjectDexDebug/4/classes.dex
 base.10=/home/koda/Documentos/frito-music-definitive/Frito-Music/app/build/intermediates/dex/debug/mergeExtDexDebug/classes3.dex

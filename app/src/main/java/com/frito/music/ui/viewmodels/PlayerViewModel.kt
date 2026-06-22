@@ -68,6 +68,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         startProgressUpdater()
     }
 
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
     private fun initializeController() {
         val sessionToken = SessionToken(
             getApplication(),

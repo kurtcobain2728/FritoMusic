@@ -6,6 +6,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 
+@androidx.media3.common.util.UnstableApi
 class MusicService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
 

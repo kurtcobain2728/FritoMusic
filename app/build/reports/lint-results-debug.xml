@@ -155,7 +155,7 @@
         errorLine2="                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="/home/koda/Documentos/frito-music-definitive/Frito-Music/app/build.gradle.kts"
-            line="73"
+            line="77"
             column="32"/>
     </issue>
 
@@ -171,104 +171,8 @@
         errorLine2="                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="/home/koda/Documentos/frito-music-definitive/Frito-Music/app/build.gradle.kts"
-            line="74"
+            line="78"
             column="32"/>
-    </issue>
-
-    <issue
-        id="UnsafeOptInUsageError"
-        severity="Error"
-        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
-        category="Correctness"
-        priority="4"
-        summary="Unsafe opt-in usage intended to be error-level severity"
-        explanation="This API has been flagged as opt-in with error-level severity.&#xA;&#xA;Any declaration annotated with this marker is considered part of an unstable or&#xA;otherwise non-standard API surface and its call sites should accept the opt-in&#xA;aspect of it by using the `@OptIn` annotation, using the marker annotation --&#xA;effectively causing further propagation of the opt-in aspect -- or configuring&#xA;the `UnsafeOptInUsageError` check&apos;s options for project-wide opt-in.&#xA;&#xA;To configure project-wide opt-in, specify the `opt-in` option value in `lint.xml`&#xA;as a comma-delimited list of opted-in annotations:&#xA;&#xA;```&#xA;&lt;lint>&#xA;    &lt;issue id=&quot;UnsafeOptInUsageError&quot;>&#xA;        &lt;option name=&quot;opt-in&quot; value=&quot;com.foo.ExperimentalBarAnnotation&quot; />&#xA;    &lt;/issue>&#xA;&lt;/lint>&#xA;```"
-        errorLine1="            .setSeekParameters(androidx.media3.exoplayer.SeekParameters.EXACT) // Búsqueda exacta para evitar tartamudeo al soltar la barra"
-        errorLine2="             ~~~~~~~~~~~~~~~~~">
-        <location
-            file="/home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/java/com/frito/music/service/MusicService.kt"
-            line="23"
-            column="14"/>
-    </issue>
-
-    <issue
-        id="UnsafeOptInUsageError"
-        severity="Error"
-        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
-        category="Correctness"
-        priority="4"
-        summary="Unsafe opt-in usage intended to be error-level severity"
-        explanation="This API has been flagged as opt-in with error-level severity.&#xA;&#xA;Any declaration annotated with this marker is considered part of an unstable or&#xA;otherwise non-standard API surface and its call sites should accept the opt-in&#xA;aspect of it by using the `@OptIn` annotation, using the marker annotation --&#xA;effectively causing further propagation of the opt-in aspect -- or configuring&#xA;the `UnsafeOptInUsageError` check&apos;s options for project-wide opt-in.&#xA;&#xA;To configure project-wide opt-in, specify the `opt-in` option value in `lint.xml`&#xA;as a comma-delimited list of opted-in annotations:&#xA;&#xA;```&#xA;&lt;lint>&#xA;    &lt;issue id=&quot;UnsafeOptInUsageError&quot;>&#xA;        &lt;option name=&quot;opt-in&quot; value=&quot;com.foo.ExperimentalBarAnnotation&quot; />&#xA;    &lt;/issue>&#xA;&lt;/lint>&#xA;```"
-        errorLine1="            .setSeekParameters(androidx.media3.exoplayer.SeekParameters.EXACT) // Búsqueda exacta para evitar tartamudeo al soltar la barra"
-        errorLine2="                                                                        ~~~~~">
-        <location
-            file="/home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/java/com/frito/music/service/MusicService.kt"
-            line="23"
-            column="73"/>
-    </issue>
-
-    <issue
-        id="UnsafeOptInUsageError"
-        severity="Error"
-        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
-        category="Correctness"
-        priority="4"
-        summary="Unsafe opt-in usage intended to be error-level severity"
-        explanation="This API has been flagged as opt-in with error-level severity.&#xA;&#xA;Any declaration annotated with this marker is considered part of an unstable or&#xA;otherwise non-standard API surface and its call sites should accept the opt-in&#xA;aspect of it by using the `@OptIn` annotation, using the marker annotation --&#xA;effectively causing further propagation of the opt-in aspect -- or configuring&#xA;the `UnsafeOptInUsageError` check&apos;s options for project-wide opt-in.&#xA;&#xA;To configure project-wide opt-in, specify the `opt-in` option value in `lint.xml`&#xA;as a comma-delimited list of opted-in annotations:&#xA;&#xA;```&#xA;&lt;lint>&#xA;    &lt;issue id=&quot;UnsafeOptInUsageError&quot;>&#xA;        &lt;option name=&quot;opt-in&quot; value=&quot;com.foo.ExperimentalBarAnnotation&quot; />&#xA;    &lt;/issue>&#xA;&lt;/lint>&#xA;```"
-        errorLine1="            override fun onAudioSessionIdChanged(audioSessionId: Int) {"
-        errorLine2="                         ~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="/home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/java/com/frito/music/service/MusicService.kt"
-            line="30"
-            column="26"/>
-    </issue>
-
-    <issue
-        id="UnsafeOptInUsageError"
-        severity="Error"
-        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
-        category="Correctness"
-        priority="4"
-        summary="Unsafe opt-in usage intended to be error-level severity"
-        explanation="This API has been flagged as opt-in with error-level severity.&#xA;&#xA;Any declaration annotated with this marker is considered part of an unstable or&#xA;otherwise non-standard API surface and its call sites should accept the opt-in&#xA;aspect of it by using the `@OptIn` annotation, using the marker annotation --&#xA;effectively causing further propagation of the opt-in aspect -- or configuring&#xA;the `UnsafeOptInUsageError` check&apos;s options for project-wide opt-in.&#xA;&#xA;To configure project-wide opt-in, specify the `opt-in` option value in `lint.xml`&#xA;as a comma-delimited list of opted-in annotations:&#xA;&#xA;```&#xA;&lt;lint>&#xA;    &lt;issue id=&quot;UnsafeOptInUsageError&quot;>&#xA;        &lt;option name=&quot;opt-in&quot; value=&quot;com.foo.ExperimentalBarAnnotation&quot; />&#xA;    &lt;/issue>&#xA;&lt;/lint>&#xA;```"
-        errorLine1="        if (player.audioSessionId != C.AUDIO_SESSION_ID_UNSET) {"
-        errorLine2="                   ~~~~~~~~~~~~~~">
-        <location
-            file="/home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/java/com/frito/music/service/MusicService.kt"
-            line="34"
-            column="20"/>
-    </issue>
-
-    <issue
-        id="UnsafeOptInUsageError"
-        severity="Error"
-        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
-        category="Correctness"
-        priority="4"
-        summary="Unsafe opt-in usage intended to be error-level severity"
-        explanation="This API has been flagged as opt-in with error-level severity.&#xA;&#xA;Any declaration annotated with this marker is considered part of an unstable or&#xA;otherwise non-standard API surface and its call sites should accept the opt-in&#xA;aspect of it by using the `@OptIn` annotation, using the marker annotation --&#xA;effectively causing further propagation of the opt-in aspect -- or configuring&#xA;the `UnsafeOptInUsageError` check&apos;s options for project-wide opt-in.&#xA;&#xA;To configure project-wide opt-in, specify the `opt-in` option value in `lint.xml`&#xA;as a comma-delimited list of opted-in annotations:&#xA;&#xA;```&#xA;&lt;lint>&#xA;    &lt;issue id=&quot;UnsafeOptInUsageError&quot;>&#xA;        &lt;option name=&quot;opt-in&quot; value=&quot;com.foo.ExperimentalBarAnnotation&quot; />&#xA;    &lt;/issue>&#xA;&lt;/lint>&#xA;```"
-        errorLine1="        if (player.audioSessionId != C.AUDIO_SESSION_ID_UNSET) {"
-        errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="/home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/java/com/frito/music/service/MusicService.kt"
-            line="34"
-            column="40"/>
-    </issue>
-
-    <issue
-        id="UnsafeOptInUsageError"
-        severity="Error"
-        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`"
-        category="Correctness"
-        priority="4"
-        summary="Unsafe opt-in usage intended to be error-level severity"
-        explanation="This API has been flagged as opt-in with error-level severity.&#xA;&#xA;Any declaration annotated with this marker is considered part of an unstable or&#xA;otherwise non-standard API surface and its call sites should accept the opt-in&#xA;aspect of it by using the `@OptIn` annotation, using the marker annotation --&#xA;effectively causing further propagation of the opt-in aspect -- or configuring&#xA;the `UnsafeOptInUsageError` check&apos;s options for project-wide opt-in.&#xA;&#xA;To configure project-wide opt-in, specify the `opt-in` option value in `lint.xml`&#xA;as a comma-delimited list of opted-in annotations:&#xA;&#xA;```&#xA;&lt;lint>&#xA;    &lt;issue id=&quot;UnsafeOptInUsageError&quot;>&#xA;        &lt;option name=&quot;opt-in&quot; value=&quot;com.foo.ExperimentalBarAnnotation&quot; />&#xA;    &lt;/issue>&#xA;&lt;/lint>&#xA;```"
-        errorLine1="            eqManager.attachAudioSession(player.audioSessionId)"
-        errorLine2="                                                ~~~~~~~~~~~~~~">
-        <location
-            file="/home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/java/com/frito/music/service/MusicService.kt"
-            line="35"
-            column="49"/>
     </issue>
 
     <issue
@@ -299,22 +203,6 @@
         explanation="This check flags version checks that are not necessary, because the `minSdkVersion` (or surrounding known API level) is already at least as high as the version checked for.&#xA;&#xA;Similarly, it also looks for resources in `-vNN` folders, such as `values-v14` where the version qualifier is less than or equal to the `minSdkVersion`, where the contents should be merged into the best folder.">
         <location
             file="/home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/res/mipmap-anydpi-v26"/>
-    </issue>
-
-    <issue
-        id="StaticFieldLeak"
-        severity="Warning"
-        message="Do not place Android context classes in static fields (static reference to `EqualizerManager` which has field `context` pointing to `Context`); this is a memory leak"
-        category="Performance"
-        priority="6"
-        summary="Static Field Leaks"
-        explanation="A static field will leak contexts.&#xA;&#xA;Non-static inner classes have an implicit reference to their outer class. If that outer class is for example a `Fragment` or `Activity`, then this reference means that the long-running handler/loader/task will hold a reference to the activity which prevents it from getting garbage collected.&#xA;&#xA;Similarly, direct field references to activities and fragments from these longer running instances can cause leaks.&#xA;&#xA;ViewModel classes should never point to Views or non-application Contexts."
-        errorLine1="    private var equalizerManager: EqualizerManager? = null"
-        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="/home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/java/com/frito/music/audio/AudioEffectManagerProvider.kt"
-            line="6"
-            column="5"/>
     </issue>
 
     <issue

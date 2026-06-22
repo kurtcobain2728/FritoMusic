@@ -705,6 +705,23 @@
       externalAnnotations="annotations.zip"
       proguardRules="proguard.txt"/>
   <library
+      name="com.faendir.rhino:rhino-android:1.6.0@aar"
+      jars="/home/koda/.gradle/caches/transforms-4/1b4c57b563a1fbfcb8a2f970fdfb9985/transformed/jetified-rhino-android-1.6.0/jars/classes.jar"
+      resolved="com.faendir.rhino:rhino-android:1.6.0"
+      folder="/home/koda/.gradle/caches/transforms-4/1b4c57b563a1fbfcb8a2f970fdfb9985/transformed/jetified-rhino-android-1.6.0"
+      manifest="AndroidManifest.xml"
+      resFolder="res"
+      assetsFolder="assets"
+      lintJar="lint.jar"
+      publicResources="public.txt"
+      symbolFile="R.txt"
+      externalAnnotations="annotations.zip"
+      proguardRules="proguard.txt"/>
+  <library
+      name="org.mozilla:rhino-runtime:1.7.13@jar"
+      jars="/home/koda/.gradle/caches/modules-2/files-2.1/org.mozilla/rhino-runtime/1.7.13/cadd6b116a9ee33f22fa36bc90fee371718dc3be/rhino-runtime-1.7.13.jar"
+      resolved="org.mozilla:rhino-runtime:1.7.13"/>
+  <library
       name="com.google.accompanist:accompanist-drawablepainter:0.32.0@aar"
       jars="/home/koda/.gradle/caches/transforms-4/ad5c58f83efd8c5e15182985253949b4/transformed/jetified-accompanist-drawablepainter-0.32.0/jars/classes.jar"
       resolved="com.google.accompanist:accompanist-drawablepainter:0.32.0"
@@ -946,4 +963,8 @@
       name="androidx.concurrent:concurrent-futures:1.1.0@jar"
       jars="/home/koda/.gradle/caches/modules-2/files-2.1/androidx.concurrent/concurrent-futures/1.1.0/50b7fb98350d5f42a4e49704b03278542293ba48/concurrent-futures-1.1.0.jar"
       resolved="androidx.concurrent:concurrent-futures:1.1.0"/>
+  <library
+      name="com.jakewharton.android.repackaged:dalvik-dx:11.0.0_r3@jar"
+      jars="/home/koda/.gradle/caches/modules-2/files-2.1/com.jakewharton.android.repackaged/dalvik-dx/11.0.0_r3/cf0d893347c53711d997fdbb73d3c2684e23ce7/dalvik-dx-11.0.0_r3.jar"
+      resolved="com.jakewharton.android.repackaged:dalvik-dx:11.0.0_r3"/>
 </libraries>

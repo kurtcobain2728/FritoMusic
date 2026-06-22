@@ -39,224 +39,6 @@
     </incident>
 
     <incident
-        id="StaticFieldLeak"
-        severity="warning"
-        message="Do not place Android context classes in static fields (static reference to `EqualizerManager` which has field `context` pointing to `Context`); this is a memory leak">
-        <location
-            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/frito/music/audio/AudioEffectManagerProvider.kt"
-            line="6"
-            column="5"
-            startOffset="103"
-            endLine="6"
-            endColumn="59"
-            endOffset="157"/>
-    </incident>
-
-    <incident
-        id="UnsafeOptInUsageError"
-        severity="error"
-        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`">
-        <fix-alternatives>
-            <annotate
-                description="Add &apos;@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)&apos; annotation to &apos;onCreate&apos;"
-                source="@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)"
-                replace="true">
-                <range
-                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/frito/music/service/MusicService.kt"
-                    startOffset="351"
-                    endOffset="1541"/>
-            </annotate>
-            <annotate
-                description="Add &apos;@androidx.media3.common.util.UnstableApi&apos; annotation to &apos;onCreate&apos;"
-                source="@androidx.media3.common.util.UnstableApi"
-                replace="true">
-                <range
-                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/frito/music/service/MusicService.kt"
-                    startOffset="351"
-                    endOffset="1541"/>
-            </annotate>
-        </fix-alternatives>
-        <location
-            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/frito/music/service/MusicService.kt"
-            line="30"
-            column="26"
-            startOffset="1264"
-            endLine="30"
-            endColumn="49"
-            endOffset="1287"/>
-    </incident>
-
-    <incident
-        id="UnsafeOptInUsageError"
-        severity="error"
-        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`">
-        <fix-alternatives>
-            <annotate
-                description="Add &apos;@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)&apos; annotation to &apos;onCreate&apos;"
-                source="@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)"
-                replace="true">
-                <range
-                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/frito/music/service/MusicService.kt"
-                    startOffset="351"
-                    endOffset="1541"/>
-            </annotate>
-            <annotate
-                description="Add &apos;@androidx.media3.common.util.UnstableApi&apos; annotation to &apos;onCreate&apos;"
-                source="@androidx.media3.common.util.UnstableApi"
-                replace="true">
-                <range
-                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/frito/music/service/MusicService.kt"
-                    startOffset="351"
-                    endOffset="1541"/>
-            </annotate>
-        </fix-alternatives>
-        <location
-            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/frito/music/service/MusicService.kt"
-            line="23"
-            column="14"
-            startOffset="844"
-            endLine="23"
-            endColumn="31"
-            endOffset="861"/>
-    </incident>
-
-    <incident
-        id="UnsafeOptInUsageError"
-        severity="error"
-        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`">
-        <fix-alternatives>
-            <annotate
-                description="Add &apos;@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)&apos; annotation to &apos;onCreate&apos;"
-                source="@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)"
-                replace="true">
-                <range
-                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/frito/music/service/MusicService.kt"
-                    startOffset="351"
-                    endOffset="1541"/>
-            </annotate>
-            <annotate
-                description="Add &apos;@androidx.media3.common.util.UnstableApi&apos; annotation to &apos;onCreate&apos;"
-                source="@androidx.media3.common.util.UnstableApi"
-                replace="true">
-                <range
-                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/frito/music/service/MusicService.kt"
-                    startOffset="351"
-                    endOffset="1541"/>
-            </annotate>
-        </fix-alternatives>
-        <location
-            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/frito/music/service/MusicService.kt"
-            line="23"
-            column="73"
-            startOffset="903"
-            endLine="23"
-            endColumn="78"
-            endOffset="908"/>
-    </incident>
-
-    <incident
-        id="UnsafeOptInUsageError"
-        severity="error"
-        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`">
-        <fix-alternatives>
-            <annotate
-                description="Add &apos;@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)&apos; annotation to &apos;onCreate&apos;"
-                source="@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)"
-                replace="true">
-                <range
-                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/frito/music/service/MusicService.kt"
-                    startOffset="351"
-                    endOffset="1541"/>
-            </annotate>
-            <annotate
-                description="Add &apos;@androidx.media3.common.util.UnstableApi&apos; annotation to &apos;onCreate&apos;"
-                source="@androidx.media3.common.util.UnstableApi"
-                replace="true">
-                <range
-                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/frito/music/service/MusicService.kt"
-                    startOffset="351"
-                    endOffset="1541"/>
-            </annotate>
-        </fix-alternatives>
-        <location
-            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/frito/music/service/MusicService.kt"
-            line="34"
-            column="20"
-            startOffset="1416"
-            endLine="34"
-            endColumn="34"
-            endOffset="1430"/>
-    </incident>
-
-    <incident
-        id="UnsafeOptInUsageError"
-        severity="error"
-        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`">
-        <fix-alternatives>
-            <annotate
-                description="Add &apos;@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)&apos; annotation to &apos;onCreate&apos;"
-                source="@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)"
-                replace="true">
-                <range
-                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/frito/music/service/MusicService.kt"
-                    startOffset="351"
-                    endOffset="1541"/>
-            </annotate>
-            <annotate
-                description="Add &apos;@androidx.media3.common.util.UnstableApi&apos; annotation to &apos;onCreate&apos;"
-                source="@androidx.media3.common.util.UnstableApi"
-                replace="true">
-                <range
-                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/frito/music/service/MusicService.kt"
-                    startOffset="351"
-                    endOffset="1541"/>
-            </annotate>
-        </fix-alternatives>
-        <location
-            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/frito/music/service/MusicService.kt"
-            line="34"
-            column="40"
-            startOffset="1436"
-            endLine="34"
-            endColumn="62"
-            endOffset="1458"/>
-    </incident>
-
-    <incident
-        id="UnsafeOptInUsageError"
-        severity="error"
-        message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`">
-        <fix-alternatives>
-            <annotate
-                description="Add &apos;@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)&apos; annotation to &apos;onCreate&apos;"
-                source="@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)"
-                replace="true">
-                <range
-                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/frito/music/service/MusicService.kt"
-                    startOffset="351"
-                    endOffset="1541"/>
-            </annotate>
-            <annotate
-                description="Add &apos;@androidx.media3.common.util.UnstableApi&apos; annotation to &apos;onCreate&apos;"
-                source="@androidx.media3.common.util.UnstableApi"
-                replace="true">
-                <range
-                    file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/frito/music/service/MusicService.kt"
-                    startOffset="351"
-                    endOffset="1541"/>
-            </annotate>
-        </fix-alternatives>
-        <location
-            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/frito/music/service/MusicService.kt"
-            line="35"
-            column="49"
-            startOffset="1510"
-            endLine="35"
-            endColumn="63"
-            endOffset="1524"/>
-    </incident>
-
-    <incident
         id="OldTargetApi"
         severity="warning"
         message="Not targeting the latest versions of Android; compatibility modes apply. Consider testing and updating this version. Consult the android.os.Build.VERSION_CODES javadoc for details.">
@@ -418,12 +200,12 @@
             replacement="1.3.0"/>
         <location
             file="${:app*projectDir}/build.gradle.kts"
-            line="73"
+            line="77"
             column="32"
-            startOffset="2118"
-            endLine="73"
+            startOffset="2226"
+            endLine="77"
             endColumn="61"
-            endOffset="2147"/>
+            endOffset="2255"/>
     </incident>
 
     <incident
@@ -437,12 +219,12 @@
             replacement="3.7.0"/>
         <location
             file="${:app*projectDir}/build.gradle.kts"
-            line="74"
+            line="78"
             column="32"
-            startOffset="2181"
-            endLine="74"
+            startOffset="2289"
+            endLine="78"
             endColumn="74"
-            endOffset="2223"/>
+            endOffset="2331"/>
     </incident>
 
 </incidents>

@@ -63,6 +63,7 @@ MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0] /home/koda/.g
 MERGED from [androidx.lifecycle:lifecycle-runtime-ktx:2.7.0] /home/koda/.gradle/caches/transforms-4/e6c1b9d74b6a41a14fee3929e9b8674e/transformed/jetified-lifecycle-runtime-ktx-2.7.0/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.compose.runtime:runtime-saveable-android:1.6.1] /home/koda/.gradle/caches/transforms-4/86ed55760079f2d22f629c5759fd9d82/transformed/jetified-runtime-saveable-release/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.compose.runtime:runtime-android:1.6.1] /home/koda/.gradle/caches/transforms-4/df192417af8e16f510c8f04e4a1f8d5c/transformed/jetified-runtime-release/AndroidManifest.xml:2:1-7:12
+MERGED from [com.faendir.rhino:rhino-android:1.6.0] /home/koda/.gradle/caches/transforms-4/1b4c57b563a1fbfcb8a2f970fdfb9985/transformed/jetified-rhino-android-1.6.0/AndroidManifest.xml:2:1-10:12
 MERGED from [androidx.annotation:annotation-experimental:1.4.0] /home/koda/.gradle/caches/transforms-4/a68049f476bdec881b024da18b68410f/transformed/jetified-annotation-experimental-1.4.0/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /home/koda/.gradle/caches/transforms-4/e29bab75a5b3794c3e2b8d5bb74d5702/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:17:1-27:12
 MERGED from [androidx.exifinterface:exifinterface:1.3.6] /home/koda/.gradle/caches/transforms-4/a9dca2be8f2bc36501f9c84a494635fb/transformed/exifinterface-1.3.6/AndroidManifest.xml:17:1-24:12
@@ -294,6 +295,8 @@ MERGED from [androidx.compose.runtime:runtime-saveable-android:1.6.1] /home/koda
 MERGED from [androidx.compose.runtime:runtime-saveable-android:1.6.1] /home/koda/.gradle/caches/transforms-4/86ed55760079f2d22f629c5759fd9d82/transformed/jetified-runtime-saveable-release/AndroidManifest.xml:5:5-44
 MERGED from [androidx.compose.runtime:runtime-android:1.6.1] /home/koda/.gradle/caches/transforms-4/df192417af8e16f510c8f04e4a1f8d5c/transformed/jetified-runtime-release/AndroidManifest.xml:5:5-44
 MERGED from [androidx.compose.runtime:runtime-android:1.6.1] /home/koda/.gradle/caches/transforms-4/df192417af8e16f510c8f04e4a1f8d5c/transformed/jetified-runtime-release/AndroidManifest.xml:5:5-44
+MERGED from [com.faendir.rhino:rhino-android:1.6.0] /home/koda/.gradle/caches/transforms-4/1b4c57b563a1fbfcb8a2f970fdfb9985/transformed/jetified-rhino-android-1.6.0/AndroidManifest.xml:6:5-8:41
+MERGED from [com.faendir.rhino:rhino-android:1.6.0] /home/koda/.gradle/caches/transforms-4/1b4c57b563a1fbfcb8a2f970fdfb9985/transformed/jetified-rhino-android-1.6.0/AndroidManifest.xml:6:5-8:41
 MERGED from [androidx.annotation:annotation-experimental:1.4.0] /home/koda/.gradle/caches/transforms-4/a68049f476bdec881b024da18b68410f/transformed/jetified-annotation-experimental-1.4.0/AndroidManifest.xml:5:5-44
 MERGED from [androidx.annotation:annotation-experimental:1.4.0] /home/koda/.gradle/caches/transforms-4/a68049f476bdec881b024da18b68410f/transformed/jetified-annotation-experimental-1.4.0/AndroidManifest.xml:5:5-44
 MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /home/koda/.gradle/caches/transforms-4/e29bab75a5b3794c3e2b8d5bb74d5702/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:20:5-22:41

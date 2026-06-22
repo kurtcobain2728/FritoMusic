@@ -69,6 +69,10 @@ dependencies {
     // Coil para imágenes
     implementation("io.coil-kt:coil-compose:2.5.0")
 
+    // JS Engine for Extensions
+    implementation("com.faendir.rhino:rhino-android:1.6.0")
+
+    // Testing
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
