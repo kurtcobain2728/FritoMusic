@@ -227,6 +227,17 @@ class ExtensionEngine(private val context: Context, private val extensionName: S
         return result
     }
 
+    fun fetchAlbum(albumId: String): String {
+        val hasMethod = evalBool("typeof __extension.getAlbum === 'function'")
+        if (!hasMethod) {
+            return ""
+        }
+        val result = evalStr("JSON.stringify(__extension.getAlbum('$albumId'))")
+            ?: throw Exception("getAlbum returned null")
+
+        return result
+    }
+
     fun destroy() {
         runCatching { org.mozilla.javascript.Context.exit() }
         rhinoContext = null

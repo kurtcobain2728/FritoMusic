@@ -55,6 +55,8 @@ val ChipBgColor = Color(0xFF1A1A1A)
 @Composable
 fun DownloadScreen(
     onBack: () -> Unit,
+    onNavigateToArtist: (String) -> Unit = {},
+    onNavigateToAlbum: (String) -> Unit = {},
     viewModel: DownloadViewModel = viewModel()
 ) {
     val appColors = LocalAppColors.current
@@ -333,12 +335,16 @@ fun DownloadScreen(
                             }
                             SearchTab.ALBUMES -> {
                                 items(results.albums) { album ->
-                                    AlbumItem(album)
+                                    AlbumItem(album) {
+                                        onNavigateToAlbum(album.id)
+                                    }
                                 }
                             }
                             SearchTab.ARTISTAS -> {
                                 items(results.artists) { artist ->
-                                    ArtistItem(artist)
+                                    ArtistItem(artist) {
+                                        onNavigateToArtist(artist.id)
+                                    }
                                 }
                             }
                         }
@@ -418,12 +424,12 @@ fun TrackItem(track: TrackResult) {
 }
 
 @Composable
-fun AlbumItem(album: AlbumResult) {
+fun AlbumItem(album: AlbumResult, onClick: () -> Unit) {
     val appColors = LocalAppColors.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { /* TODO: Navigate to AlbumScreen */ }
+            .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -477,12 +483,12 @@ fun AlbumItem(album: AlbumResult) {
 }
 
 @Composable
-fun ArtistItem(artist: ArtistResult) {
+fun ArtistItem(artist: ArtistResult, onClick: () -> Unit) {
     val appColors = LocalAppColors.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { /* TODO: Navigate to ArtistScreen */ }
+            .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

@@ -42,6 +42,7 @@ import com.frito.music.ui.screens.*
 import com.frito.music.ui.theme.FritoMusicTheme
 import com.frito.music.ui.viewmodels.HomeViewModel
 import com.frito.music.ui.viewmodels.PlayerViewModel
+import com.frito.music.ui.viewmodels.DownloadViewModel
 import com.frito.music.ui.theme.ThemeViewModel
 import com.frito.music.ui.theme.LocalAppColors
 
@@ -52,6 +53,7 @@ class MainActivity : ComponentActivity() {
             val themeViewModel: ThemeViewModel = viewModel()
             val homeViewModel: HomeViewModel = viewModel()
             val playerViewModel: PlayerViewModel = viewModel()
+            val downloadViewModel: DownloadViewModel = viewModel()
 
             val themeMode by themeViewModel.themeMode.collectAsState()
             val accentColor by themeViewModel.accentColor.collectAsState()
@@ -69,6 +71,8 @@ class MainActivity : ComponentActivity() {
                 var currentSubScreen by remember { mutableStateOf<String?>(null) }
                 var showPlayerScreen by remember { mutableStateOf(false) }
                 var selectedPlaylist by remember { mutableStateOf<Playlist?>(null) }
+                var selectedArtistId by remember { mutableStateOf<String?>(null) }
+                var selectedAlbumId by remember { mutableStateOf<String?>(null) }
 
                 val favorites by playerViewModel.favorites.collectAsState(initial = emptySet())
                 val playlists by playerViewModel.playlists.collectAsState(initial = emptyList())
@@ -83,6 +87,10 @@ class MainActivity : ComponentActivity() {
                     } else if (currentSubScreen == "playlist_detail") {
                         currentSubScreen = "listas"
                         selectedPlaylist = null
+                    } else if (currentSubScreen == "artist_detail" || currentSubScreen == "album_detail") {
+                        currentSubScreen = "descargar"
+                        selectedArtistId = null
+                        selectedAlbumId = null
                     } else if (currentSubScreen != null) {
                         currentSubScreen = null
                     } else {
@@ -216,7 +224,36 @@ class MainActivity : ComponentActivity() {
                                         "ecualizador" -> EqualizerScreen(playerViewModel = playerViewModel, onBack = { currentSubScreen = null })
                                         "apariencia" -> AppearanceScreen(themeViewModel = themeViewModel, onBack = { currentSubScreen = null })
                                         "donaciones" -> DonationsScreen(onBack = { currentSubScreen = null })
-                                        "descargar" -> DownloadScreen(onBack = { currentSubScreen = null })
+                                        "descargar" -> DownloadScreen(
+                                            onBack = { currentSubScreen = null },
+                                            onNavigateToArtist = { id ->
+                                                selectedArtistId = id
+                                                currentSubScreen = "artist_detail"
+                                            },
+                                            onNavigateToAlbum = { id ->
+                                                selectedAlbumId = id
+                                                currentSubScreen = "album_detail"
+                                            },
+                                            viewModel = downloadViewModel
+                                        )
+                                        "artist_detail" -> {
+                                            selectedArtistId?.let { id ->
+                                                ArtistDetailScreen(
+                                                    artistId = id,
+                                                    viewModel = downloadViewModel,
+                                                    onBack = { currentSubScreen = "descargar" }
+                                                )
+                                            }
+                                        }
+                                        "album_detail" -> {
+                                            selectedAlbumId?.let { id ->
+                                                AlbumScreen(
+                                                    albumId = id,
+                                                    viewModel = downloadViewModel,
+                                                    onBack = { currentSubScreen = "descargar" }
+                                                )
+                                            }
+                                        }
                                         "extensiones" -> ExtensionsScreen(onBack = { currentSubScreen = null })
                                         else -> {
                                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
