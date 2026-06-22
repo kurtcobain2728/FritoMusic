@@ -24,17 +24,41 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 
 @Composable
 fun PlayerScreen(onClose: () -> Unit) {
     var isPlaying by remember { mutableStateOf(true) }
     var progress by remember { mutableStateOf(0.3f) }
+    var showLyrics by remember { mutableStateOf(false) }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121212))
+            .pointerInput(Unit) {
+                var dragY = 0f
+                detectVerticalDragGestures(
+                    onDragStart = { dragY = 0f },
+                    onDragEnd = {
+                        if (dragY > 50 && !showLyrics) {
+                            onClose()
+                        } else if (dragY > 50 && showLyrics) {
+                            showLyrics = false
+                        } else if (dragY < -50 && !showLyrics) {
+                            showLyrics = true
+                        }
+                    },
+                    onVerticalDrag = { change, dragAmount ->
+                        dragY += dragAmount
+                    }
+                )
+            }
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF121212))
+        ) {
         // Top Bar
         Row(
             modifier = Modifier
@@ -253,6 +277,35 @@ fun PlayerScreen(onClose: () -> Unit) {
                 )
             }
         }
+        }
+        
+        // Lyrics Overlay
+        androidx.compose.animation.AnimatedVisibility(
+            visible = showLyrics,
+            enter = androidx.compose.animation.slideInVertically(initialOffsetY = { it }, animationSpec = androidx.compose.animation.core.tween(300)),
+            exit = androidx.compose.animation.slideOutVertically(targetOffsetY = { it }, animationSpec = androidx.compose.animation.core.tween(300))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF121212)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Letra de la Canción (Próximamente)", color = Color.Gray, fontSize = 18.sp)
+                
+                // Add a small down indicator
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = "Close Lyrics",
+                    tint = Color.White,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 48.dp)
+                        .size(36.dp)
+                        .clickable { showLyrics = false }
+                )
+            }
+        }
     }
 }
 
@@ -337,12 +390,26 @@ fun WaveformProgress(
 }
 
 @Composable
-fun MiniPlayer(onClick: () -> Unit) {
+fun MiniPlayer(onClick: () -> Unit, onSwipeUp: () -> Unit) {
+    var dragY = 0f
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color(0xFF1A1A1A))
             .clickable { onClick() }
+            .pointerInput(Unit) {
+                detectVerticalDragGestures(
+                    onDragStart = { dragY = 0f },
+                    onDragEnd = {
+                        if (dragY < -30) {
+                            onSwipeUp()
+                        }
+                    },
+                    onVerticalDrag = { change, dragAmount ->
+                        dragY += dragAmount
+                    }
+                )
+            }
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
