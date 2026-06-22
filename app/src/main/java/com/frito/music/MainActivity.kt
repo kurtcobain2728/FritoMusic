@@ -15,16 +15,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.animation.togetherWith
 import com.frito.music.ui.components.BottomNavBar
 import com.frito.music.ui.screens.HomeScreen
+import com.frito.music.ui.screens.FavoritesScreen
 import com.frito.music.ui.screens.LibraryScreen
 import com.frito.music.ui.screens.MoreScreen
 import com.frito.music.ui.screens.SearchScreen
 import com.frito.music.ui.theme.FritoMusicTheme
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.frito.music.ui.viewmodels.HomeViewModel
+import com.frito.music.ui.viewmodels.PlayerViewModel
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.Text
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             FritoMusicTheme {
+                val homeViewModel: HomeViewModel = viewModel()
+                val playerViewModel: PlayerViewModel = viewModel()
+                
                 var currentTab by remember { mutableStateOf("inicio") }
                 var currentSubScreen by remember { mutableStateOf<String?>(null) }
                 var showPlayerScreen by remember { mutableStateOf(false) }
@@ -62,55 +72,69 @@ class MainActivity : ComponentActivity() {
                         },
                         label = "SubScreenAnimation"
                     ) { subScreen ->
-                        when (subScreen) {
-                            "favoritos" -> com.frito.music.ui.screens.FavoritesScreen(onBack = { currentSubScreen = null })
-                            "listas" -> com.frito.music.ui.screens.PlaylistsScreen(onBack = { currentSubScreen = null })
-                            "ecualizador" -> com.frito.music.ui.screens.EqualizerScreen(onBack = { currentSubScreen = null })
-                            "apariencia" -> com.frito.music.ui.screens.AppearanceScreen(onBack = { currentSubScreen = null })
-                            "donaciones" -> com.frito.music.ui.screens.DonationsScreen(onBack = { currentSubScreen = null })
-                            "descargar" -> com.frito.music.ui.screens.DownloadScreen(onBack = { currentSubScreen = null })
-                            "extensiones" -> com.frito.music.ui.screens.ExtensionsScreen(onBack = { currentSubScreen = null })
-                            else -> {
-                                Scaffold(
-                                    bottomBar = { 
-                                        Column {
-                                            com.frito.music.ui.screens.MiniPlayer(
-                                                onClick = { showPlayerScreen = true },
-                                                onSwipeUp = { showPlayerScreen = true }
+                        if (subScreen != null) {
+                            when (subScreen) {
+                                "favoritos" -> FavoritesScreen(
+                                    homeViewModel = homeViewModel,
+                                    playerViewModel = playerViewModel,
+                                    onBack = { currentSubScreen = null }
+                                )
+                                "listas" -> com.frito.music.ui.screens.PlaylistsScreen(
+                                    playerViewModel = playerViewModel,
+                                    onBack = { currentSubScreen = null }
+                                )
+                                "ecualizador" -> com.frito.music.ui.screens.EqualizerScreen(onBack = { currentSubScreen = null })
+                                "apariencia" -> com.frito.music.ui.screens.AppearanceScreen(onBack = { currentSubScreen = null })
+                                "donaciones" -> com.frito.music.ui.screens.DonationsScreen(onBack = { currentSubScreen = null })
+                                "descargar" -> com.frito.music.ui.screens.DownloadScreen(onBack = { currentSubScreen = null })
+                                "extensiones" -> com.frito.music.ui.screens.ExtensionsScreen(onBack = { currentSubScreen = null })
+                                else -> {
+                                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                        Text("Pantalla en construcción", color = Color.White)
+                                    }
+                                }
+                            }
+                        } else {
+                            Scaffold(
+                                bottomBar = { 
+                                    Column {
+                                        com.frito.music.ui.screens.MiniPlayer(
+                                            viewModel = playerViewModel,
+                                            onClick = { showPlayerScreen = true },
+                                            onSwipeUp = { showPlayerScreen = true }
+                                        )
+                                        BottomNavBar(
+                                            currentTab = currentTab,
+                                            onTabSelected = { currentTab = it }
+                                        ) 
+                                    }
+                                },
+                                modifier = Modifier.fillMaxSize(),
+                                containerColor = MaterialTheme.colorScheme.background
+                            ) { innerPadding ->
+                                Surface(
+                                    modifier = Modifier.padding(innerPadding).fillMaxSize(),
+                                    color = MaterialTheme.colorScheme.background
+                                ) {
+                                    androidx.compose.animation.Crossfade(
+                                        targetState = currentTab,
+                                        animationSpec = androidx.compose.animation.core.tween(durationMillis = 350),
+                                        label = "TabAnimation"
+                                    ) { tab ->
+                                        when (tab) {
+                                            "inicio" -> HomeScreen(homeViewModel = homeViewModel, playerViewModel = playerViewModel)
+                                            "biblioteca" -> LibraryScreen()
+                                            "buscar" -> SearchScreen()
+                                            "mas" -> MoreScreen(
+                                                onNavigateToFavorites = { currentSubScreen = "favoritos" },
+                                                onNavigateToPlaylists = { currentSubScreen = "listas" },
+                                                onNavigateToEqualizer = { currentSubScreen = "ecualizador" },
+                                                onNavigateToAppearance = { currentSubScreen = "apariencia" },
+                                                onNavigateToDonations = { currentSubScreen = "donaciones" },
+                                                onNavigateToDownload = { currentSubScreen = "descargar" },
+                                                onNavigateToExtensions = { currentSubScreen = "extensiones" }
                                             )
-                                            BottomNavBar(
-                                                currentTab = currentTab,
-                                                onTabSelected = { currentTab = it }
-                                            ) 
-                                        }
-                                    },
-                                    modifier = Modifier.fillMaxSize(),
-                                    containerColor = MaterialTheme.colorScheme.background
-                                ) { innerPadding ->
-                                    Surface(
-                                        modifier = Modifier.padding(innerPadding).fillMaxSize(),
-                                        color = MaterialTheme.colorScheme.background
-                                    ) {
-                                        androidx.compose.animation.Crossfade(
-                                            targetState = currentTab,
-                                            animationSpec = androidx.compose.animation.core.tween(durationMillis = 350),
-                                            label = "TabAnimation"
-                                        ) { tab ->
-                                            when (tab) {
-                                                "inicio" -> HomeScreen()
-                                                "biblioteca" -> LibraryScreen()
-                                                "buscar" -> SearchScreen()
-                                                "mas" -> MoreScreen(
-                                                    onNavigateToFavorites = { currentSubScreen = "favoritos" },
-                                                    onNavigateToPlaylists = { currentSubScreen = "listas" },
-                                                    onNavigateToEqualizer = { currentSubScreen = "ecualizador" },
-                                                    onNavigateToAppearance = { currentSubScreen = "apariencia" },
-                                                    onNavigateToDonations = { currentSubScreen = "donaciones" },
-                                                    onNavigateToDownload = { currentSubScreen = "descargar" },
-                                                    onNavigateToExtensions = { currentSubScreen = "extensiones" }
-                                                )
-                                                else -> HomeScreen()
-                                            }
+                                            else -> HomeScreen(homeViewModel = homeViewModel, playerViewModel = playerViewModel)
                                         }
                                     }
                                 }
@@ -124,7 +148,10 @@ class MainActivity : ComponentActivity() {
                         enter = androidx.compose.animation.slideInVertically(initialOffsetY = { it }, animationSpec = androidx.compose.animation.core.tween(400)),
                         exit = androidx.compose.animation.slideOutVertically(targetOffsetY = { it }, animationSpec = androidx.compose.animation.core.tween(400))
                     ) {
-                        com.frito.music.ui.screens.PlayerScreen(onClose = { showPlayerScreen = false })
+                        com.frito.music.ui.screens.PlayerScreen(
+                            viewModel = playerViewModel,
+                            onClose = { showPlayerScreen = false }
+                        )
                     }
                 }
             }

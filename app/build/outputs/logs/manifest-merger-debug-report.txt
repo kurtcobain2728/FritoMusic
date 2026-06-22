@@ -1,9 +1,9 @@
 -- Merging decision tree log ---
 manifest
-ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:2:1-27:12
-INJECTED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:2:1-27:12
-INJECTED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:2:1-27:12
-INJECTED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:2:1-27:12
+ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:2:1-40:12
+INJECTED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:2:1-40:12
+INJECTED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:2:1-40:12
+INJECTED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:2:1-40:12
 MERGED from [io.coil-kt:coil-compose:2.5.0] /home/koda/.gradle/caches/transforms-4/691bd85df47c287c01f0ba20bdb0f714/transformed/jetified-coil-compose-2.5.0/AndroidManifest.xml:2:1-7:12
 MERGED from [io.coil-kt:coil-compose-base:2.5.0] /home/koda/.gradle/caches/transforms-4/982683f7f5ee28a5f87dbbf5da021d39/transformed/jetified-coil-compose-base-2.5.0/AndroidManifest.xml:2:1-7:12
 MERGED from [io.coil-kt:coil:2.5.0] /home/koda/.gradle/caches/transforms-4/04a012dea421514cdecefa7a09edcfcd/transformed/jetified-coil-2.5.0/AndroidManifest.xml:2:1-7:12
@@ -30,6 +30,14 @@ MERGED from [androidx.compose.ui:ui-test-manifest:1.6.1] /home/koda/.gradle/cach
 MERGED from [androidx.activity:activity:1.8.2] /home/koda/.gradle/caches/transforms-4/aa1574ff68116482343102bdfa2618f7/transformed/jetified-activity-1.8.2/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.activity:activity-compose:1.8.2] /home/koda/.gradle/caches/transforms-4/7451a0a4eeb6a026baeb59dbe12c8b7e/transformed/jetified-activity-compose-1.8.2/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.activity:activity-ktx:1.8.2] /home/koda/.gradle/caches/transforms-4/9e7993719c7c9a005fc6a0bbf7377a98/transformed/jetified-activity-ktx-1.8.2/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.emoji2:emoji2:1.3.0] /home/koda/.gradle/caches/transforms-4/11f1c8cc4199395c97ff019f192afb91/transformed/jetified-emoji2-1.3.0/AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] /home/koda/.gradle/caches/transforms-4/055a716155e49742603f7ab467e6766f/transformed/jetified-lifecycle-process-2.7.0/AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.7.0] /home/koda/.gradle/caches/transforms-4/3cf13952dc1f643efd4533b9e29e869c/transformed/lifecycle-livedata-core-2.7.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] /home/koda/.gradle/caches/transforms-4/4b9d5a92bf98d8e5cb2ead6c1a20fc41/transformed/jetified-savedstate-ktx-1.2.1/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.savedstate:savedstate:1.2.1] /home/koda/.gradle/caches/transforms-4/35f4dba1388fbabdda272a3c15ce5d1a/transformed/jetified-savedstate-1.2.1/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0] /home/koda/.gradle/caches/transforms-4/293a388b3dffd99e56d6f170d674ef87/transformed/jetified-lifecycle-viewmodel-ktx-2.7.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.7.0] /home/koda/.gradle/caches/transforms-4/7cc87bbec0f6aef2bda442e9a9bd0ecd/transformed/lifecycle-viewmodel-2.7.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.7.0] /home/koda/.gradle/caches/transforms-4/c994bc430e1984fa279fb4fc73bdd8c8/transformed/jetified-lifecycle-viewmodel-savedstate-2.7.0/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.media3:media3-exoplayer:1.2.1] /home/koda/.gradle/caches/transforms-4/2c01ae329e6b0276c06ae596e84e2f2e/transformed/jetified-media3-exoplayer-1.2.1/AndroidManifest.xml:17:1-24:12
 MERGED from [androidx.media3:media3-session:1.2.1] /home/koda/.gradle/caches/transforms-4/9be3607ea35955de0efb8a6cb331db40/transformed/jetified-media3-session-1.2.1/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.media3:media3-extractor:1.2.1] /home/koda/.gradle/caches/transforms-4/7e5a7a84e5538365f2664f47889ec12f/transformed/jetified-media3-extractor-1.2.1/AndroidManifest.xml:17:1-22:12
@@ -42,14 +50,6 @@ MERGED from [androidx.media3:media3-ui:1.2.1] /home/koda/.gradle/caches/transfor
 MERGED from [androidx.recyclerview:recyclerview:1.3.0] /home/koda/.gradle/caches/transforms-4/f365cb2f5f52849dd029d9aa29da1543/transformed/recyclerview-1.3.0/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /home/koda/.gradle/caches/transforms-4/d0165b1fd20940363e0158ebbba1ddb9/transformed/jetified-customview-poolingcontainer-1.0.0/AndroidManifest.xml:17:1-23:12
 MERGED from [io.coil-kt:coil-base:2.5.0] /home/koda/.gradle/caches/transforms-4/658235cdca723637813c28b9af08b787/transformed/jetified-coil-base-2.5.0/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.emoji2:emoji2:1.3.0] /home/koda/.gradle/caches/transforms-4/11f1c8cc4199395c97ff019f192afb91/transformed/jetified-emoji2-1.3.0/AndroidManifest.xml:17:1-35:12
-MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] /home/koda/.gradle/caches/transforms-4/055a716155e49742603f7ab467e6766f/transformed/jetified-lifecycle-process-2.7.0/AndroidManifest.xml:17:1-35:12
-MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.7.0] /home/koda/.gradle/caches/transforms-4/3cf13952dc1f643efd4533b9e29e869c/transformed/lifecycle-livedata-core-2.7.0/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0] /home/koda/.gradle/caches/transforms-4/293a388b3dffd99e56d6f170d674ef87/transformed/jetified-lifecycle-viewmodel-ktx-2.7.0/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.7.0] /home/koda/.gradle/caches/transforms-4/7cc87bbec0f6aef2bda442e9a9bd0ecd/transformed/lifecycle-viewmodel-2.7.0/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] /home/koda/.gradle/caches/transforms-4/4b9d5a92bf98d8e5cb2ead6c1a20fc41/transformed/jetified-savedstate-ktx-1.2.1/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.savedstate:savedstate:1.2.1] /home/koda/.gradle/caches/transforms-4/35f4dba1388fbabdda272a3c15ce5d1a/transformed/jetified-savedstate-1.2.1/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.7.0] /home/koda/.gradle/caches/transforms-4/c994bc430e1984fa279fb4fc73bdd8c8/transformed/jetified-lifecycle-viewmodel-savedstate-2.7.0/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.core:core-ktx:1.12.0] /home/koda/.gradle/caches/transforms-4/9fc8b00659633a5b86968ede9b39927a/transformed/jetified-core-ktx-1.12.0/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.media:media:1.6.0] /home/koda/.gradle/caches/transforms-4/2111a5c4be1e306a488a6b8be7b4bf78/transformed/media-1.6.0/AndroidManifest.xml:17:1-24:12
 MERGED from [androidx.customview:customview:1.0.0] /home/koda/.gradle/caches/transforms-4/2a9ec6635ba7a7d41eeece276ac4805f/transformed/customview-1.0.0/AndroidManifest.xml:17:1-22:12
@@ -59,6 +59,7 @@ MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] /home/koda/.
 MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] /home/koda/.gradle/caches/transforms-4/7b65f9a806e9a7c35fb70a4ac7d4fe1c/transformed/vectordrawable-1.1.0/AndroidManifest.xml:17:1-24:12
 MERGED from [androidx.core:core:1.12.0] /home/koda/.gradle/caches/transforms-4/ee95303aba46cd405cd517288d187148/transformed/core-1.12.0/AndroidManifest.xml:17:1-30:12
 MERGED from [androidx.lifecycle:lifecycle-runtime:2.7.0] /home/koda/.gradle/caches/transforms-4/511e6b71b8cf3fdfbe4fc776d18cbf5f/transformed/lifecycle-runtime-2.7.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0] /home/koda/.gradle/caches/transforms-4/eb757e40221b642e235f19afa2837979/transformed/jetified-lifecycle-viewmodel-compose-2.7.0/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.lifecycle:lifecycle-runtime-ktx:2.7.0] /home/koda/.gradle/caches/transforms-4/e6c1b9d74b6a41a14fee3929e9b8674e/transformed/jetified-lifecycle-runtime-ktx-2.7.0/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.compose.runtime:runtime-saveable-android:1.6.1] /home/koda/.gradle/caches/transforms-4/86ed55760079f2d22f629c5759fd9d82/transformed/jetified-runtime-saveable-release/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.compose.runtime:runtime-android:1.6.1] /home/koda/.gradle/caches/transforms-4/df192417af8e16f510c8f04e4a1f8d5c/transformed/jetified-runtime-release/AndroidManifest.xml:2:1-7:12
@@ -84,9 +85,27 @@ uses-permission#android.permission.INTERNET
 ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:5:5-67
 	android:name
 		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:5:22-64
+uses-permission#android.permission.READ_EXTERNAL_STORAGE
+ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:6:5-107
+	android:maxSdkVersion
+		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:6:78-104
+	android:name
+		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:6:22-77
+uses-permission#android.permission.READ_MEDIA_AUDIO
+ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:7:5-75
+	android:name
+		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:7:22-72
+uses-permission#android.permission.FOREGROUND_SERVICE
+ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:8:5-77
+	android:name
+		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:8:22-74
+uses-permission#android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK
+ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:9:5-92
+	android:name
+		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:9:22-89
 application
-ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:7:5-25:19
-INJECTED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:7:5-25:19
+ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:11:5-38:19
+INJECTED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:11:5-38:19
 MERGED from [androidx.compose.ui:ui-tooling-android:1.6.1] /home/koda/.gradle/caches/transforms-4/f27f129536f6fd2cb2981026f3e41d93/transformed/jetified-ui-tooling-release/AndroidManifest.xml:22:5-26:19
 MERGED from [androidx.compose.ui:ui-tooling-android:1.6.1] /home/koda/.gradle/caches/transforms-4/f27f129536f6fd2cb2981026f3e41d93/transformed/jetified-ui-tooling-release/AndroidManifest.xml:22:5-26:19
 MERGED from [androidx.compose.ui:ui-test-manifest:1.6.1] /home/koda/.gradle/caches/transforms-4/0efb1de3aa89a75d9b49d9ce5d11ed7d/transformed/jetified-ui-test-manifest-1.6.1/AndroidManifest.xml:22:5-26:19
@@ -108,37 +127,51 @@ MERGED from [androidx.startup:startup-runtime:1.1.1] /home/koda/.gradle/caches/t
 	android:appComponentFactory
 		ADDED from [androidx.core:core:1.12.0] /home/koda/.gradle/caches/transforms-4/ee95303aba46cd405cd517288d187148/transformed/core-1.12.0/AndroidManifest.xml:28:18-86
 	android:supportsRtl
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:12:9-35
+		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:16:9-35
 	android:label
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:11:9-41
+		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:15:9-41
 	android:fullBackupContent
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:10:9-54
+		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:14:9-54
 	tools:targetApi
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:14:9-29
+		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:18:9-29
 	android:allowBackup
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:8:9-35
+		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:12:9-35
 	android:theme
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:13:9-48
+		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:17:9-48
 	android:dataExtractionRules
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:9:9-65
+		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:13:9-65
 activity#com.frito.music.MainActivity
-ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:15:9-24:20
+ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:19:9-28:20
 	android:exported
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:17:13-36
+		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:21:13-36
 	android:theme
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:18:13-52
+		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:22:13-52
 	android:name
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:16:13-41
+		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:20:13-41
 intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
-ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:19:13-23:29
+ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:23:13-27:29
 action#android.intent.action.MAIN
-ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:20:17-69
+ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:24:17-69
 	android:name
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:20:25-66
+		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:24:25-66
 category#android.intent.category.LAUNCHER
-ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:22:17-77
+ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:26:17-77
 	android:name
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:22:27-74
+		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:26:27-74
+service#com.frito.music.service.MusicService
+ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:30:9-37:19
+	android:exported
+		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:33:13-36
+	android:foregroundServiceType
+		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:32:13-58
+	android:name
+		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:31:13-49
+intent-filter#action:name:androidx.media3.session.MediaSessionService
+ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:34:13-36:29
+action#androidx.media3.session.MediaSessionService
+ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:35:17-85
+	android:name
+		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:35:25-83
 uses-sdk
 INJECTED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml
@@ -195,6 +228,22 @@ MERGED from [androidx.activity:activity-compose:1.8.2] /home/koda/.gradle/caches
 MERGED from [androidx.activity:activity-compose:1.8.2] /home/koda/.gradle/caches/transforms-4/7451a0a4eeb6a026baeb59dbe12c8b7e/transformed/jetified-activity-compose-1.8.2/AndroidManifest.xml:5:5-44
 MERGED from [androidx.activity:activity-ktx:1.8.2] /home/koda/.gradle/caches/transforms-4/9e7993719c7c9a005fc6a0bbf7377a98/transformed/jetified-activity-ktx-1.8.2/AndroidManifest.xml:5:5-44
 MERGED from [androidx.activity:activity-ktx:1.8.2] /home/koda/.gradle/caches/transforms-4/9e7993719c7c9a005fc6a0bbf7377a98/transformed/jetified-activity-ktx-1.8.2/AndroidManifest.xml:5:5-44
+MERGED from [androidx.emoji2:emoji2:1.3.0] /home/koda/.gradle/caches/transforms-4/11f1c8cc4199395c97ff019f192afb91/transformed/jetified-emoji2-1.3.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.emoji2:emoji2:1.3.0] /home/koda/.gradle/caches/transforms-4/11f1c8cc4199395c97ff019f192afb91/transformed/jetified-emoji2-1.3.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] /home/koda/.gradle/caches/transforms-4/055a716155e49742603f7ab467e6766f/transformed/jetified-lifecycle-process-2.7.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] /home/koda/.gradle/caches/transforms-4/055a716155e49742603f7ab467e6766f/transformed/jetified-lifecycle-process-2.7.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.7.0] /home/koda/.gradle/caches/transforms-4/3cf13952dc1f643efd4533b9e29e869c/transformed/lifecycle-livedata-core-2.7.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.7.0] /home/koda/.gradle/caches/transforms-4/3cf13952dc1f643efd4533b9e29e869c/transformed/lifecycle-livedata-core-2.7.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] /home/koda/.gradle/caches/transforms-4/4b9d5a92bf98d8e5cb2ead6c1a20fc41/transformed/jetified-savedstate-ktx-1.2.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] /home/koda/.gradle/caches/transforms-4/4b9d5a92bf98d8e5cb2ead6c1a20fc41/transformed/jetified-savedstate-ktx-1.2.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate:1.2.1] /home/koda/.gradle/caches/transforms-4/35f4dba1388fbabdda272a3c15ce5d1a/transformed/jetified-savedstate-1.2.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate:1.2.1] /home/koda/.gradle/caches/transforms-4/35f4dba1388fbabdda272a3c15ce5d1a/transformed/jetified-savedstate-1.2.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0] /home/koda/.gradle/caches/transforms-4/293a388b3dffd99e56d6f170d674ef87/transformed/jetified-lifecycle-viewmodel-ktx-2.7.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0] /home/koda/.gradle/caches/transforms-4/293a388b3dffd99e56d6f170d674ef87/transformed/jetified-lifecycle-viewmodel-ktx-2.7.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.7.0] /home/koda/.gradle/caches/transforms-4/7cc87bbec0f6aef2bda442e9a9bd0ecd/transformed/lifecycle-viewmodel-2.7.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.7.0] /home/koda/.gradle/caches/transforms-4/7cc87bbec0f6aef2bda442e9a9bd0ecd/transformed/lifecycle-viewmodel-2.7.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.7.0] /home/koda/.gradle/caches/transforms-4/c994bc430e1984fa279fb4fc73bdd8c8/transformed/jetified-lifecycle-viewmodel-savedstate-2.7.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.7.0] /home/koda/.gradle/caches/transforms-4/c994bc430e1984fa279fb4fc73bdd8c8/transformed/jetified-lifecycle-viewmodel-savedstate-2.7.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.media3:media3-exoplayer:1.2.1] /home/koda/.gradle/caches/transforms-4/2c01ae329e6b0276c06ae596e84e2f2e/transformed/jetified-media3-exoplayer-1.2.1/AndroidManifest.xml:20:5-44
 MERGED from [androidx.media3:media3-exoplayer:1.2.1] /home/koda/.gradle/caches/transforms-4/2c01ae329e6b0276c06ae596e84e2f2e/transformed/jetified-media3-exoplayer-1.2.1/AndroidManifest.xml:20:5-44
 MERGED from [androidx.media3:media3-session:1.2.1] /home/koda/.gradle/caches/transforms-4/9be3607ea35955de0efb8a6cb331db40/transformed/jetified-media3-session-1.2.1/AndroidManifest.xml:20:5-44
@@ -219,22 +268,6 @@ MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /home/koda/.
 MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /home/koda/.gradle/caches/transforms-4/d0165b1fd20940363e0158ebbba1ddb9/transformed/jetified-customview-poolingcontainer-1.0.0/AndroidManifest.xml:20:5-21:38
 MERGED from [io.coil-kt:coil-base:2.5.0] /home/koda/.gradle/caches/transforms-4/658235cdca723637813c28b9af08b787/transformed/jetified-coil-base-2.5.0/AndroidManifest.xml:5:5-44
 MERGED from [io.coil-kt:coil-base:2.5.0] /home/koda/.gradle/caches/transforms-4/658235cdca723637813c28b9af08b787/transformed/jetified-coil-base-2.5.0/AndroidManifest.xml:5:5-44
-MERGED from [androidx.emoji2:emoji2:1.3.0] /home/koda/.gradle/caches/transforms-4/11f1c8cc4199395c97ff019f192afb91/transformed/jetified-emoji2-1.3.0/AndroidManifest.xml:21:5-44
-MERGED from [androidx.emoji2:emoji2:1.3.0] /home/koda/.gradle/caches/transforms-4/11f1c8cc4199395c97ff019f192afb91/transformed/jetified-emoji2-1.3.0/AndroidManifest.xml:21:5-44
-MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] /home/koda/.gradle/caches/transforms-4/055a716155e49742603f7ab467e6766f/transformed/jetified-lifecycle-process-2.7.0/AndroidManifest.xml:21:5-44
-MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] /home/koda/.gradle/caches/transforms-4/055a716155e49742603f7ab467e6766f/transformed/jetified-lifecycle-process-2.7.0/AndroidManifest.xml:21:5-44
-MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.7.0] /home/koda/.gradle/caches/transforms-4/3cf13952dc1f643efd4533b9e29e869c/transformed/lifecycle-livedata-core-2.7.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.7.0] /home/koda/.gradle/caches/transforms-4/3cf13952dc1f643efd4533b9e29e869c/transformed/lifecycle-livedata-core-2.7.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0] /home/koda/.gradle/caches/transforms-4/293a388b3dffd99e56d6f170d674ef87/transformed/jetified-lifecycle-viewmodel-ktx-2.7.0/AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0] /home/koda/.gradle/caches/transforms-4/293a388b3dffd99e56d6f170d674ef87/transformed/jetified-lifecycle-viewmodel-ktx-2.7.0/AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.7.0] /home/koda/.gradle/caches/transforms-4/7cc87bbec0f6aef2bda442e9a9bd0ecd/transformed/lifecycle-viewmodel-2.7.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.7.0] /home/koda/.gradle/caches/transforms-4/7cc87bbec0f6aef2bda442e9a9bd0ecd/transformed/lifecycle-viewmodel-2.7.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] /home/koda/.gradle/caches/transforms-4/4b9d5a92bf98d8e5cb2ead6c1a20fc41/transformed/jetified-savedstate-ktx-1.2.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] /home/koda/.gradle/caches/transforms-4/4b9d5a92bf98d8e5cb2ead6c1a20fc41/transformed/jetified-savedstate-ktx-1.2.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.savedstate:savedstate:1.2.1] /home/koda/.gradle/caches/transforms-4/35f4dba1388fbabdda272a3c15ce5d1a/transformed/jetified-savedstate-1.2.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.savedstate:savedstate:1.2.1] /home/koda/.gradle/caches/transforms-4/35f4dba1388fbabdda272a3c15ce5d1a/transformed/jetified-savedstate-1.2.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.7.0] /home/koda/.gradle/caches/transforms-4/c994bc430e1984fa279fb4fc73bdd8c8/transformed/jetified-lifecycle-viewmodel-savedstate-2.7.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.7.0] /home/koda/.gradle/caches/transforms-4/c994bc430e1984fa279fb4fc73bdd8c8/transformed/jetified-lifecycle-viewmodel-savedstate-2.7.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.core:core-ktx:1.12.0] /home/koda/.gradle/caches/transforms-4/9fc8b00659633a5b86968ede9b39927a/transformed/jetified-core-ktx-1.12.0/AndroidManifest.xml:5:5-44
 MERGED from [androidx.core:core-ktx:1.12.0] /home/koda/.gradle/caches/transforms-4/9fc8b00659633a5b86968ede9b39927a/transformed/jetified-core-ktx-1.12.0/AndroidManifest.xml:5:5-44
 MERGED from [androidx.media:media:1.6.0] /home/koda/.gradle/caches/transforms-4/2111a5c4be1e306a488a6b8be7b4bf78/transformed/media-1.6.0/AndroidManifest.xml:20:5-22:41
@@ -253,6 +286,8 @@ MERGED from [androidx.core:core:1.12.0] /home/koda/.gradle/caches/transforms-4/e
 MERGED from [androidx.core:core:1.12.0] /home/koda/.gradle/caches/transforms-4/ee95303aba46cd405cd517288d187148/transformed/core-1.12.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.lifecycle:lifecycle-runtime:2.7.0] /home/koda/.gradle/caches/transforms-4/511e6b71b8cf3fdfbe4fc776d18cbf5f/transformed/lifecycle-runtime-2.7.0/AndroidManifest.xml:5:5-44
 MERGED from [androidx.lifecycle:lifecycle-runtime:2.7.0] /home/koda/.gradle/caches/transforms-4/511e6b71b8cf3fdfbe4fc776d18cbf5f/transformed/lifecycle-runtime-2.7.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0] /home/koda/.gradle/caches/transforms-4/eb757e40221b642e235f19afa2837979/transformed/jetified-lifecycle-viewmodel-compose-2.7.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0] /home/koda/.gradle/caches/transforms-4/eb757e40221b642e235f19afa2837979/transformed/jetified-lifecycle-viewmodel-compose-2.7.0/AndroidManifest.xml:5:5-44
 MERGED from [androidx.lifecycle:lifecycle-runtime-ktx:2.7.0] /home/koda/.gradle/caches/transforms-4/e6c1b9d74b6a41a14fee3929e9b8674e/transformed/jetified-lifecycle-runtime-ktx-2.7.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.lifecycle:lifecycle-runtime-ktx:2.7.0] /home/koda/.gradle/caches/transforms-4/e6c1b9d74b6a41a14fee3929e9b8674e/transformed/jetified-lifecycle-runtime-ktx-2.7.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.compose.runtime:runtime-saveable-android:1.6.1] /home/koda/.gradle/caches/transforms-4/86ed55760079f2d22f629c5759fd9d82/transformed/jetified-runtime-saveable-release/AndroidManifest.xml:5:5-44
@@ -291,12 +326,6 @@ ADDED from [androidx.compose.ui:ui-test-manifest:1.6.1] /home/koda/.gradle/cache
 		ADDED from [androidx.compose.ui:ui-test-manifest:1.6.1] /home/koda/.gradle/caches/transforms-4/0efb1de3aa89a75d9b49d9ce5d11ed7d/transformed/jetified-ui-test-manifest-1.6.1/AndroidManifest.xml:25:13-36
 	android:name
 		ADDED from [androidx.compose.ui:ui-test-manifest:1.6.1] /home/koda/.gradle/caches/transforms-4/0efb1de3aa89a75d9b49d9ce5d11ed7d/transformed/jetified-ui-test-manifest-1.6.1/AndroidManifest.xml:24:13-63
-uses-permission#android.permission.ACCESS_NETWORK_STATE
-ADDED from [androidx.media3:media3-exoplayer:1.2.1] /home/koda/.gradle/caches/transforms-4/2c01ae329e6b0276c06ae596e84e2f2e/transformed/jetified-media3-exoplayer-1.2.1/AndroidManifest.xml:22:5-79
-MERGED from [androidx.media3:media3-common:1.2.1] /home/koda/.gradle/caches/transforms-4/58440cf95f50183a43fdf45f16bb2334/transformed/jetified-media3-common-1.2.1/AndroidManifest.xml:22:5-79
-MERGED from [androidx.media3:media3-common:1.2.1] /home/koda/.gradle/caches/transforms-4/58440cf95f50183a43fdf45f16bb2334/transformed/jetified-media3-common-1.2.1/AndroidManifest.xml:22:5-79
-	android:name
-		ADDED from [androidx.media3:media3-exoplayer:1.2.1] /home/koda/.gradle/caches/transforms-4/2c01ae329e6b0276c06ae596e84e2f2e/transformed/jetified-media3-exoplayer-1.2.1/AndroidManifest.xml:22:22-76
 provider#androidx.startup.InitializationProvider
 ADDED from [androidx.emoji2:emoji2:1.3.0] /home/koda/.gradle/caches/transforms-4/11f1c8cc4199395c97ff019f192afb91/transformed/jetified-emoji2-1.3.0/AndroidManifest.xml:24:9-32:20
 MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] /home/koda/.gradle/caches/transforms-4/055a716155e49742603f7ab467e6766f/transformed/jetified-lifecycle-process-2.7.0/AndroidManifest.xml:24:9-32:20
@@ -325,6 +354,12 @@ ADDED from [androidx.lifecycle:lifecycle-process:2.7.0] /home/koda/.gradle/cache
 		ADDED from [androidx.lifecycle:lifecycle-process:2.7.0] /home/koda/.gradle/caches/transforms-4/055a716155e49742603f7ab467e6766f/transformed/jetified-lifecycle-process-2.7.0/AndroidManifest.xml:31:17-49
 	android:name
 		ADDED from [androidx.lifecycle:lifecycle-process:2.7.0] /home/koda/.gradle/caches/transforms-4/055a716155e49742603f7ab467e6766f/transformed/jetified-lifecycle-process-2.7.0/AndroidManifest.xml:30:17-78
+uses-permission#android.permission.ACCESS_NETWORK_STATE
+ADDED from [androidx.media3:media3-exoplayer:1.2.1] /home/koda/.gradle/caches/transforms-4/2c01ae329e6b0276c06ae596e84e2f2e/transformed/jetified-media3-exoplayer-1.2.1/AndroidManifest.xml:22:5-79
+MERGED from [androidx.media3:media3-common:1.2.1] /home/koda/.gradle/caches/transforms-4/58440cf95f50183a43fdf45f16bb2334/transformed/jetified-media3-common-1.2.1/AndroidManifest.xml:22:5-79
+MERGED from [androidx.media3:media3-common:1.2.1] /home/koda/.gradle/caches/transforms-4/58440cf95f50183a43fdf45f16bb2334/transformed/jetified-media3-common-1.2.1/AndroidManifest.xml:22:5-79
+	android:name
+		ADDED from [androidx.media3:media3-exoplayer:1.2.1] /home/koda/.gradle/caches/transforms-4/2c01ae329e6b0276c06ae596e84e2f2e/transformed/jetified-media3-exoplayer-1.2.1/AndroidManifest.xml:22:22-76
 permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
 ADDED from [androidx.core:core:1.12.0] /home/koda/.gradle/caches/transforms-4/ee95303aba46cd405cd517288d187148/transformed/core-1.12.0/AndroidManifest.xml:22:5-24:47
 	android:protectionLevel

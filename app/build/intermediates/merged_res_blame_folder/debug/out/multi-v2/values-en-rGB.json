@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.frito.music.app-mergeDebugResources-50:/values-en-rGB/values-en-rGB.xml",
+            "outputFile": "com.frito.music.app-mergeDebugResources-51:/values-en-rGB/values-en-rGB.xml",
             "map": [
                 {
                     "source": "/home/koda/.gradle/caches/transforms-4/75316661111c61cde9a2823d055e01b8/transformed/jetified-ui-release/res/values-en-rGB/values-en-rGB.xml",

@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.frito.music.app-mergeDebugResources-50:/values/values.xml",
+            "outputFile": "com.frito.music.app-mergeDebugResources-51:/values/values.xml",
             "map": [
                 {
                     "source": "/home/koda/.gradle/caches/transforms-4/9be3607ea35955de0efb8a6cb331db40/transformed/jetified-media3-session-1.2.1/res/values/values.xml",
