@@ -22,6 +22,8 @@ import org.json.JSONArray
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
+import androidx.work.*
+import com.frito.music.downloader.MusicDownloadWorker
 
 class DownloadViewModel(application: Application) : AndroidViewModel(application) {
     private val extensionManager = ExtensionManager(application)
@@ -422,6 +424,38 @@ class DownloadViewModel(application: Application) : AndroidViewModel(application
 
     fun selectQuality(quality: String) {
         _selectedQuality.value = quality
+    }
+
+    fun startDownload(
+        trackId: String,
+        trackName: String,
+        artistName: String,
+        albumName: String,
+        imageUrl: String,
+        trackUrl: String? = null
+    ) {
+        val extensionId = _selectedServerId.value ?: return
+        
+        val workData = workDataOf(
+            "trackId" to trackId,
+            "extensionId" to extensionId,
+            "trackName" to trackName,
+            "artistName" to artistName,
+            "albumName" to albumName,
+            "imageUrl" to imageUrl,
+            "trackUrl" to (trackUrl ?: "")
+        )
+
+        val downloadRequest = OneTimeWorkRequestBuilder<MusicDownloadWorker>()
+            .setInputData(workData)
+            .addTag("download")
+            .build()
+
+        WorkManager.getInstance(getApplication()).enqueueUniqueWork(
+            "download_${trackId}",
+            ExistingWorkPolicy.REPLACE,
+            downloadRequest
+        )
     }
 
     override fun onCleared() {

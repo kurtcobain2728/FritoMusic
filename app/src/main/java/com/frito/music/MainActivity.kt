@@ -49,7 +49,11 @@ import com.frito.music.ui.theme.LocalAppColors
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val prefs = getSharedPreferences("FritoMusicPrefs", android.content.Context.MODE_PRIVATE)
+        val hasCompletedOnboardingInitial = prefs.getBoolean("has_completed_onboarding", false)
+
         setContent {
+            var showOnboarding by remember { mutableStateOf(!hasCompletedOnboardingInitial) }
             val themeViewModel: ThemeViewModel = viewModel()
             val homeViewModel: HomeViewModel = viewModel()
             val playerViewModel: PlayerViewModel = viewModel()
@@ -67,6 +71,14 @@ class MainActivity : ComponentActivity() {
                 backgroundImageUri = backgroundImageUri,
                 isDark = isDark
             ) {
+                if (showOnboarding) {
+                    com.frito.music.ui.screens.OnboardingScreen(
+                        onFinish = {
+                            prefs.edit().putBoolean("has_completed_onboarding", true).apply()
+                            showOnboarding = false
+                        }
+                    )
+                } else {
                 var currentTab by remember { mutableStateOf("inicio") }
                 var currentSubScreen by remember { mutableStateOf<String?>(null) }
                 var showPlayerScreen by remember { mutableStateOf(false) }
@@ -236,6 +248,7 @@ class MainActivity : ComponentActivity() {
                                             },
                                             viewModel = downloadViewModel
                                         )
+                                        "gestor_descargas" -> DownloadsManagerScreen(onBack = { currentSubScreen = null })
                                         "artist_detail" -> {
                                             selectedArtistId?.let { id ->
                                                 ArtistDetailScreen(
@@ -292,6 +305,7 @@ class MainActivity : ComponentActivity() {
                                                 onNavigateToAppearance = { currentSubScreen = "apariencia" },
                                                 onNavigateToDonations = { currentSubScreen = "donaciones" },
                                                 onNavigateToDownload = { currentSubScreen = "descargar" },
+                                                onNavigateToDownloadsManager = { currentSubScreen = "gestor_descargas" },
                                                 onNavigateToExtensions = { currentSubScreen = "extensiones" }
                                             )
                                             else -> HomeScreen(homeViewModel = homeViewModel, playerViewModel = playerViewModel)
@@ -301,6 +315,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+                } // End if(showOnboarding) else
 
                     // Player Overlay — spring + fade para sensación física
                     AnimatedVisibility(

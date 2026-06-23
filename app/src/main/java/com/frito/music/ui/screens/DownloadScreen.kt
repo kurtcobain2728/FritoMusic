@@ -362,7 +362,15 @@ fun DownloadScreen(
             availableQualities = availableQualities,
             initialQuality = selectedQuality,
             onDownload = { quality ->
-                // TODO: Implement actual download logic here
+                viewModel.selectQuality(quality)
+                viewModel.startDownload(
+                    trackId = trackToDownload!!.id,
+                    trackName = trackToDownload!!.name,
+                    artistName = trackToDownload!!.artists,
+                    albumName = trackToDownload!!.album,
+                    imageUrl = trackToDownload!!.imageUrl,
+                    trackUrl = trackToDownload!!.external_url
+                )
                 trackToDownload = null
             },
             onDismiss = {

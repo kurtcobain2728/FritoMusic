@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.frito.music.app-mergeDebugResources-51:/values-v24/values-v24.xml",
+            "outputFile": "com.frito.music.app-mergeDebugResources-60:/values-v24/values-v24.xml",
             "map": [
                 {
                     "source": "/home/koda/.gradle/caches/transforms-4/2111a5c4be1e306a488a6b8be7b4bf78/transformed/media-1.6.0/res/values-v24/values-v24.xml",

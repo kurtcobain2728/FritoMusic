@@ -38,8 +38,12 @@ fun AlbumScreen(albumId: String, viewModel: DownloadViewModel, onBack: () -> Uni
     val appColors = LocalAppColors.current
     var albumDetail by remember { mutableStateOf<AlbumDetail?>(null) }
     var isLoading by remember { mutableStateOf(true) }
-    var error by remember { mutableStateOf<String?>(null) }
+    val isSearching by viewModel.isSearching.collectAsState()
+    
     var trackToDownload by remember { mutableStateOf<AlbumTrack?>(null) }
+    var downloadingFullAlbum by remember { mutableStateOf(false) }
+
+    var error by remember { mutableStateOf<String?>(null) }
 
     val availableQualities by viewModel.availableQualities.collectAsState()
     val selectedQuality by viewModel.selectedQuality.collectAsState()
@@ -173,7 +177,7 @@ fun AlbumScreen(albumId: String, viewModel: DownloadViewModel, onBack: () -> Uni
 
                     // Download Album Button
                     Button(
-                        onClick = { /* TODO: Download Full Album */ },
+                        onClick = { downloadingFullAlbum = true },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = appColors.accent
                         ),
@@ -220,19 +224,45 @@ fun AlbumScreen(albumId: String, viewModel: DownloadViewModel, onBack: () -> Uni
         }
     }
 
-    if (trackToDownload != null && albumDetail != null) {
+    if ((trackToDownload != null || downloadingFullAlbum) && albumDetail != null) {
+        val dialogTitle = if (downloadingFullAlbum) "Álbum: ${albumDetail!!.name}" else trackToDownload!!.name
+        val dialogArtist = if (downloadingFullAlbum) albumDetail!!.artists else trackToDownload!!.artists
+        
         DownloadDialog(
-            trackName = trackToDownload!!.name,
-            artistName = trackToDownload!!.artists,
+            trackName = dialogTitle,
+            artistName = dialogArtist,
             imageUrl = albumDetail!!.imageUrl,
             availableQualities = availableQualities,
             initialQuality = selectedQuality,
             onDownload = { quality ->
-                // TODO: Implement actual download logic here
+                viewModel.selectQuality(quality)
+                if (downloadingFullAlbum) {
+                    albumDetail!!.tracks.forEach { track ->
+                        viewModel.startDownload(
+                            trackId = track.id,
+                            trackName = track.name,
+                            artistName = track.artists,
+                            albumName = albumDetail!!.name,
+                            imageUrl = albumDetail!!.imageUrl,
+                            trackUrl = ""
+                        )
+                    }
+                } else {
+                    viewModel.startDownload(
+                        trackId = trackToDownload!!.id,
+                        trackName = trackToDownload!!.name,
+                        artistName = trackToDownload!!.artists,
+                        albumName = albumDetail!!.name,
+                        imageUrl = albumDetail!!.imageUrl,
+                        trackUrl = ""
+                    )
+                }
                 trackToDownload = null
+                downloadingFullAlbum = false
             },
             onDismiss = {
                 trackToDownload = null
+                downloadingFullAlbum = false
             }
         )
     }

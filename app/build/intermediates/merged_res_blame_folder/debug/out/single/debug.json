@@ -1,10 +1,10 @@
 [
     {
-        "merged": "com.frito.music.app-merged_res-53:/xml_data_extraction_rules.xml.flat",
-        "source": "com.frito.music.app-main-55:/xml/data_extraction_rules.xml"
+        "merged": "com.frito.music.app-merged_res-62:/xml_data_extraction_rules.xml.flat",
+        "source": "com.frito.music.app-main-64:/xml/data_extraction_rules.xml"
     },
     {
-        "merged": "com.frito.music.app-merged_res-53:/xml_backup_rules.xml.flat",
-        "source": "com.frito.music.app-main-55:/xml/backup_rules.xml"
+        "merged": "com.frito.music.app-merged_res-62:/xml_backup_rules.xml.flat",
+        "source": "com.frito.music.app-main-64:/xml/backup_rules.xml"
     }
 ]

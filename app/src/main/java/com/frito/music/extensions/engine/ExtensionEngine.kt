@@ -10,6 +10,7 @@ import java.util.zip.ZipFile
 class ExtensionEngine(private val context: Context, private val extensionName: String) {
     private var rhinoContext: org.mozilla.javascript.Context? = null
     private var scope: ScriptableObject? = null
+    private val fileBridge = FileBridge()
 
     init {
         initEngine()
@@ -39,7 +40,7 @@ class ExtensionEngine(private val context: Context, private val extensionName: S
         ScriptableObject.putProperty(scope, "utils", org.mozilla.javascript.Context.javaToJS(UtilsBridge(), scope))
         ScriptableObject.putProperty(scope, "matching", org.mozilla.javascript.Context.javaToJS(MatchingBridge(), scope))
         ScriptableObject.putProperty(scope, "storage", org.mozilla.javascript.Context.javaToJS(StorageBridge(), scope))
-        ScriptableObject.putProperty(scope, "file", org.mozilla.javascript.Context.javaToJS(FileBridge(), scope))
+        ScriptableObject.putProperty(scope, "file", org.mozilla.javascript.Context.javaToJS(fileBridge, scope))
 
         val registerCode = """
             var __extension = null;
@@ -236,6 +237,62 @@ class ExtensionEngine(private val context: Context, private val extensionName: S
             ?: throw Exception("getAlbum returned null")
 
         return result
+    }
+
+    fun getDownloadUrl(trackId: String, trackUrl: String? = null): String? {
+        val escapedId = trackId.replace("\\", "\\\\").replace("'", "\\'")
+        val escapedUrl = trackUrl?.replace("\\", "\\\\")?.replace("'", "\\'") ?: ""
+
+        // Intentar getDownloadUrl primero (SpotiFLAC o similar directo)
+        val hasGetDownloadUrl = evalBool("typeof __extension.getDownloadUrl === 'function'")
+        if (hasGetDownloadUrl) {
+            val jsCode = "JSON.stringify(__extension.getDownloadUrl('$escapedId', '$escapedUrl'))"
+            val result = evalStr(jsCode)
+            if (!result.isNullOrEmpty() && result != "null" && result != "undefined") {
+                return try {
+                    val obj = JSONObject(result)
+                    obj.optString("url").takeIf { it.isNotEmpty() }
+                } catch (e: Exception) {
+                    // Si el resultado es directamente un string plano
+                    if (result.startsWith("\"")) result.removeSurrounding("\"") else result
+                }
+            }
+        }
+
+        // Si no hay getDownloadUrl, intentar con la función 'download' con flag urlOnly: true
+        val hasDownload = evalBool("typeof __extension.download === 'function'")
+        if (hasDownload) {
+            // First, clear the intercepted URL
+            fileBridge.interceptedUrl = null
+
+            // Try to force the extension to run its download logic with a dummy path, 
+            // so we can intercept the URL when it calls file.download
+            val interceptCode = """
+                try {
+                    __extension.download('$escapedId', 'LOSSLESS', '/tmp/dummy.m4a', null);
+                } catch(e) { log.error("Intercept error: " + e); }
+            """.trimIndent()
+            evalStr(interceptCode)
+
+            val intercepted = fileBridge.interceptedUrl
+            if (!intercepted.isNullOrEmpty()) {
+                return intercepted
+            }
+
+            // Fallback for extensions that DO return an object
+            val jsCode = "JSON.stringify(__extension.download('$escapedId', '', {urlOnly: true, fetchUrlOnly: true}))"
+            val result = evalStr(jsCode)
+            if (!result.isNullOrEmpty() && result != "null" && result != "undefined") {
+                return try {
+                    val obj = JSONObject(result)
+                    obj.optString("url").takeIf { it.isNotEmpty() } ?: obj.optString("file_path").takeIf { it.isNotEmpty() }
+                } catch (e: Exception) {
+                    null
+                }
+            }
+        }
+
+        return null
     }
 
     fun destroy() {

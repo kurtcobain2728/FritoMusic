@@ -37,6 +37,7 @@ fun MoreScreen(
     onNavigateToAppearance: () -> Unit = {},
     onNavigateToDonations: () -> Unit = {},
     onNavigateToDownload: () -> Unit = {},
+    onNavigateToDownloadsManager: () -> Unit = {},
     onNavigateToExtensions: () -> Unit = {},
     favoritesCount: Int,
     playlistsCount: Int
@@ -49,6 +50,7 @@ fun MoreScreen(
         MenuItem("Apariencia", "Temas, colores y estilo", Icons.Default.Palette, Color(0xFF9C27B0)) { onNavigateToAppearance() },
         MenuItem("Donaciones", "Apoya el proyecto", Icons.Default.CardGiftcard, Color(0xFFFFC107)) { onNavigateToDonations() },
         MenuItem("Descargar Música", "Busca y descarga desde Spotify, Deezer, Tidal...", Icons.Default.CloudDownload, appColors.accent) { onNavigateToDownload() },
+        MenuItem("Gestor de Descargas", "Ver estado e historial de descargas", Icons.Default.DownloadDone, Color(0xFF4CAF50)) { onNavigateToDownloadsManager() },
         MenuItem("Extensiones", "Gestiona proveedores de música y metadatos", Icons.Default.Extension, Color(0xFFFF9800)) { onNavigateToExtensions() }
     )
 

@@ -112,11 +112,11 @@ class UtilsBridge {
     }
 
     fun appUserAgent(): String {
-        return "SpotiFLAC-Mobile/1.0"
+        return "SpotiFLAC/1.2.5"
     }
 
     fun appVersion(): String {
-        return "1.0"
+        return "1.2.5"
     }
 
     fun md5(input: String): String {
@@ -214,6 +214,8 @@ class StorageBridge {
 }
 
 class FileBridge {
+    var interceptedUrl: String? = null
+
     fun exists(path: String): Boolean {
         return try { java.io.File(path).exists() } catch (e: Exception) { false }
     }
@@ -241,6 +243,11 @@ class FileBridge {
     }
 
     fun download(url: String, path: String, options: Any?): Any? {
-        return null
+        if (interceptedUrl == null) {
+            interceptedUrl = url
+        }
+        val result = org.mozilla.javascript.NativeObject()
+        result.put("success", result, true)
+        return result
     }
 }

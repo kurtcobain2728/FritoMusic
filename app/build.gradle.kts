@@ -72,6 +72,9 @@ dependencies {
     // JS Engine for Extensions
     implementation("com.faendir.rhino:rhino-android:1.6.0")
 
+    // WorkManager para descargas en background
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

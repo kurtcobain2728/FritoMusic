@@ -67,6 +67,10 @@ attr ttcIndex
 attr unplayed_color
 attr use_artwork
 attr use_controller
+bool enable_system_alarm_service_default
+bool enable_system_foreground_service_default
+bool enable_system_job_service_default
+bool workmanager_test_configuration
 color androidx_core_ripple_material_light
 color androidx_core_secondary_text_default_material_light
 color call_notification_answer_color
