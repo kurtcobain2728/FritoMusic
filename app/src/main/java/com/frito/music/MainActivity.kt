@@ -241,6 +241,10 @@ class MainActivity : ComponentActivity() {
                                                 ArtistDetailScreen(
                                                     artistId = id,
                                                     viewModel = downloadViewModel,
+                                                    onNavigateToAlbum = { albumId ->
+                                                        selectedAlbumId = albumId
+                                                        currentSubScreen = "album_detail"
+                                                    },
                                                     onBack = { currentSubScreen = "descargar" }
                                                 )
                                             }

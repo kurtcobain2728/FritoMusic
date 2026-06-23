@@ -18,6 +18,7 @@ import com.frito.music.extensions.engine.AlbumResult
 import com.frito.music.extensions.engine.ArtistResult
 import com.frito.music.extensions.engine.ExtensionEngine
 import org.json.JSONObject
+import org.json.JSONArray
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
@@ -128,6 +129,10 @@ class DownloadViewModel(application: Application) : AndroidViewModel(application
             return
         }
 
+        if (_searchQuery.value == query && _searchResults.value != null) {
+            return
+        }
+
         _searchQuery.value = query
         viewModelScope.launch {
             _isSearching.value = true
@@ -136,11 +141,18 @@ class DownloadViewModel(application: Application) : AndroidViewModel(application
                 val results = withContext(Dispatchers.IO) {
                     withTimeout(20000L) {
                         var extResults = activeEngine?.performSearch(query)
+                        if (extResults == null) {
+                            extResults = SearchResult(emptyList(), emptyList(), emptyList())
+                        }
                         
-                        // Si la extensión falla o no devuelve resultados, usamos Deezer nativo
-                        if (extResults == null || (extResults.tracks.isEmpty() && extResults.albums.isEmpty() && extResults.artists.isEmpty())) {
-                            Log.d("DownloadViewModel", "Extension search empty/failed, falling back to Deezer API")
-                            extResults = searchNativeDeezer(query)
+                        if (extResults.tracks.isEmpty() || extResults.albums.isEmpty() || extResults.artists.isEmpty()) {
+                            Log.d("DownloadViewModel", "Extension missing some results, merging with Deezer API")
+                            val deezerResults = searchNativeDeezer(query)
+                            extResults = SearchResult(
+                                tracks = extResults.tracks.ifEmpty { deezerResults.tracks },
+                                albums = extResults.albums.ifEmpty { deezerResults.albums },
+                                artists = extResults.artists.ifEmpty { deezerResults.artists }
+                            )
                         }
                         extResults
                     }
@@ -269,6 +281,144 @@ class DownloadViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun getEngine(): ExtensionEngine? = activeEngine
+
+    // Native Deezer Fallbacks for Album and Artist Detail
+    suspend fun getAlbumDetails(albumId: String): String? {
+        return withContext(Dispatchers.IO) {
+            try {
+                // Try extension first
+                val extResult = activeEngine?.fetchAlbum(albumId)
+                if (!extResult.isNullOrEmpty() && extResult != "null" && extResult != "undefined" && extResult.trim() != "{}") {
+                    return@withContext extResult
+                }
+                
+                // Fallback to native Deezer API
+                Log.d("DownloadViewModel", "Falling back to Deezer API for Album $albumId")
+                val url = URL("https://api.deezer.com/album/$albumId")
+                val connection = url.openConnection() as HttpURLConnection
+                connection.requestMethod = "GET"
+                connection.connectTimeout = 10000
+                connection.readTimeout = 10000
+
+                if (connection.responseCode == 200) {
+                    val responseStr = connection.inputStream.bufferedReader().use { it.readText() }
+                    val json = JSONObject(responseStr)
+                    
+                    // Convert Deezer format to Engine format
+                    val engineJson = JSONObject()
+                    engineJson.put("id", json.optString("id"))
+                    engineJson.put("name", json.optString("title"))
+                    val artistObj = json.optJSONObject("artist")
+                    engineJson.put("artists", artistObj?.optString("name") ?: "")
+                    engineJson.put("image_url", json.optString("cover_xl"))
+                    
+                    val tracksArr = JSONArray()
+                    val deezerTracks = json.optJSONObject("tracks")?.optJSONArray("data")
+                    if (deezerTracks != null) {
+                        for (i in 0 until deezerTracks.length()) {
+                            val dt = deezerTracks.getJSONObject(i)
+                            val t = JSONObject()
+                            t.put("id", dt.optString("id"))
+                            t.put("name", dt.optString("title"))
+                            t.put("artists", dt.optJSONObject("artist")?.optString("name") ?: "")
+                            t.put("duration_ms", dt.optLong("duration", 0) * 1000L)
+                            tracksArr.put(t)
+                        }
+                    }
+                    engineJson.put("tracks", tracksArr as Any)
+                    engineJson.toString()
+                } else {
+                    null
+                }
+            } catch (e: Exception) {
+                Log.e("DownloadViewModel", "Error in getAlbumDetails", e)
+                null
+            }
+        }
+    }
+
+    suspend fun getArtistDetails(artistId: String): String? {
+        return withContext(Dispatchers.IO) {
+            try {
+                // Try extension first
+                val extResult = activeEngine?.fetchArtist(artistId)
+                if (!extResult.isNullOrEmpty() && extResult != "null" && extResult != "undefined" && extResult.trim() != "{}") {
+                    return@withContext extResult
+                }
+                
+                // Fallback to native Deezer API
+                Log.d("DownloadViewModel", "Falling back to Deezer API for Artist $artistId")
+                
+                // Fetch artist info
+                val url = URL("https://api.deezer.com/artist/$artistId")
+                val connection = url.openConnection() as HttpURLConnection
+                connection.connectTimeout = 10000
+                connection.readTimeout = 10000
+                val artistJson = if (connection.responseCode == 200) {
+                    JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+                } else JSONObject()
+                
+                // Fetch top tracks
+                val topUrl = URL("https://api.deezer.com/artist/$artistId/top?limit=10")
+                val topConn = topUrl.openConnection() as HttpURLConnection
+                topConn.connectTimeout = 10000
+                topConn.readTimeout = 10000
+                val topTracksDeezer = if (topConn.responseCode == 200) {
+                    JSONObject(topConn.inputStream.bufferedReader().use { it.readText() }).optJSONArray("data")
+                } else null
+                
+                // Fetch albums
+                val albumsUrl = URL("https://api.deezer.com/artist/$artistId/albums?limit=20")
+                val albumsConn = albumsUrl.openConnection() as HttpURLConnection
+                albumsConn.connectTimeout = 10000
+                albumsConn.readTimeout = 10000
+                val albumsDeezer = if (albumsConn.responseCode == 200) {
+                    JSONObject(albumsConn.inputStream.bufferedReader().use { it.readText() }).optJSONArray("data")
+                } else null
+                
+                // Convert to Engine Format
+                val engineJson = JSONObject()
+                engineJson.put("id", artistJson.optString("id", artistId))
+                engineJson.put("name", artistJson.optString("name", "Unknown Artist"))
+                engineJson.put("image_url", artistJson.optString("picture_xl"))
+                
+                val tracksArr = JSONArray()
+                if (topTracksDeezer != null) {
+                    for (i in 0 until topTracksDeezer.length()) {
+                        val dt = topTracksDeezer.getJSONObject(i)
+                        val t = JSONObject()
+                        t.put("id", dt.optString("id"))
+                        t.put("name", dt.optString("title"))
+                        t.put("artists", dt.optJSONObject("artist")?.optString("name") ?: "")
+                        t.put("album", dt.optJSONObject("album")?.optString("title") ?: "")
+                        t.put("duration_ms", dt.optLong("duration", 0) * 1000L)
+                        t.put("image_url", dt.optJSONObject("album")?.optString("cover_xl") ?: "")
+                        tracksArr.put(t)
+                    }
+                }
+                engineJson.put("top_tracks", tracksArr as Any)
+                
+                val albumsArr = JSONArray()
+                if (albumsDeezer != null) {
+                    for (i in 0 until albumsDeezer.length()) {
+                        val da = albumsDeezer.getJSONObject(i)
+                        val a = JSONObject()
+                        a.put("id", da.optString("id"))
+                        a.put("name", da.optString("title"))
+                        a.put("artists", artistJson.optString("name", ""))
+                        a.put("image_url", da.optString("cover_xl"))
+                        albumsArr.put(a)
+                    }
+                }
+                engineJson.put("albums", albumsArr as Any)
+                
+                engineJson.toString()
+            } catch (e: Exception) {
+                Log.e("DownloadViewModel", "Error in getArtistDetails", e)
+                null
+            }
+        }
+    }
 
     fun selectQuality(quality: String) {
         _selectedQuality.value = quality

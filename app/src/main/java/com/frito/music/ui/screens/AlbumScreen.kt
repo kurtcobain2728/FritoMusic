@@ -31,6 +31,7 @@ import org.json.JSONObject
 import org.json.JSONArray
 import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.ui.viewmodels.DownloadViewModel
+import com.frito.music.ui.components.DownloadDialog
 
 @Composable
 fun AlbumScreen(albumId: String, viewModel: DownloadViewModel, onBack: () -> Unit) {
@@ -38,17 +39,21 @@ fun AlbumScreen(albumId: String, viewModel: DownloadViewModel, onBack: () -> Uni
     var albumDetail by remember { mutableStateOf<AlbumDetail?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
+    var trackToDownload by remember { mutableStateOf<AlbumTrack?>(null) }
+
+    val availableQualities by viewModel.availableQualities.collectAsState()
+    val selectedQuality by viewModel.selectedQuality.collectAsState()
 
     LaunchedEffect(albumId) {
         isLoading = true
         try {
             val jsonStr = withContext(Dispatchers.IO) {
-                viewModel.getEngine()?.fetchAlbum(albumId)
+                viewModel.getAlbumDetails(albumId)
             }
-            if (!jsonStr.isNullOrEmpty()) {
+            if (!jsonStr.isNullOrEmpty() && jsonStr != "null" && jsonStr != "undefined" && jsonStr.trim() != "{}") {
                 albumDetail = parseAlbumDetail(jsonStr, albumId)
             } else {
-                error = "El álbum no devolvió resultados."
+                error = "El álbum no devolvió resultados o no es soportado por esta extensión."
             }
         } catch (e: Throwable) {
             e.printStackTrace()
@@ -204,7 +209,9 @@ fun AlbumScreen(albumId: String, viewModel: DownloadViewModel, onBack: () -> Uni
 
             // Album Tracks
             itemsIndexed(album.tracks) { index, track ->
-                AlbumTrackItem(index = index + 1, track = track)
+                AlbumTrackItem(index = index + 1, track = track) {
+                    trackToDownload = track
+                }
             }
             
             item {
@@ -212,15 +219,32 @@ fun AlbumScreen(albumId: String, viewModel: DownloadViewModel, onBack: () -> Uni
             }
         }
     }
+
+    if (trackToDownload != null && albumDetail != null) {
+        DownloadDialog(
+            trackName = trackToDownload!!.name,
+            artistName = trackToDownload!!.artists,
+            imageUrl = albumDetail!!.imageUrl,
+            availableQualities = availableQualities,
+            initialQuality = selectedQuality,
+            onDownload = { quality ->
+                // TODO: Implement actual download logic here
+                trackToDownload = null
+            },
+            onDismiss = {
+                trackToDownload = null
+            }
+        )
+    }
 }
 
 @Composable
-fun AlbumTrackItem(index: Int, track: AlbumTrack) {
+fun AlbumTrackItem(index: Int, track: AlbumTrack, onClick: () -> Unit) {
     val appColors = LocalAppColors.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { /* TODO: Download Track */ }
+            .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -259,7 +283,7 @@ fun AlbumTrackItem(index: Int, track: AlbumTrack) {
             modifier = Modifier
                 .size(36.dp)
                 .border(BorderStroke(1.dp, appColors.textSecondary), RoundedCornerShape(8.dp))
-                .clickable { /* TODO: Download Track */ },
+                .clickable { onClick() },
             contentAlignment = Alignment.Center
         ) {
             Icon(

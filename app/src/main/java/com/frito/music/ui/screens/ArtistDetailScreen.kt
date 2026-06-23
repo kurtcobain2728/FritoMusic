@@ -25,22 +25,29 @@ import org.json.JSONObject
 import org.json.JSONArray
 import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.ui.viewmodels.DownloadViewModel
+import com.frito.music.ui.components.DownloadDialog
 
 @Composable
-fun ArtistDetailScreen(artistId: String, viewModel: DownloadViewModel, onBack: () -> Unit) {
+fun ArtistDetailScreen(artistId: String, viewModel: DownloadViewModel, onNavigateToAlbum: (String) -> Unit = {}, onBack: () -> Unit) {
     val appColors = LocalAppColors.current
     var artistDetail by remember { mutableStateOf<ArtistDetail?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
+    var trackToDownload by remember { mutableStateOf<ArtistTrack?>(null) }
+
+    val availableQualities by viewModel.availableQualities.collectAsState()
+    val selectedQuality by viewModel.selectedQuality.collectAsState()
 
     LaunchedEffect(artistId) {
         isLoading = true
         try {
             val jsonStr = withContext(Dispatchers.IO) {
-                viewModel.getEngine()?.fetchArtist(artistId)
+                viewModel.getArtistDetails(artistId)
             }
-            if (!jsonStr.isNullOrEmpty()) {
+            if (!jsonStr.isNullOrEmpty() && jsonStr != "null" && jsonStr != "undefined" && jsonStr.trim() != "{}") {
                 artistDetail = parseArtistDetail(jsonStr, artistId)
+            } else {
+                error = "El artista no pudo ser cargado (sin resultados o error de red)."
             }
         } catch (e: Throwable) {
             e.printStackTrace()
@@ -55,32 +62,6 @@ fun ArtistDetailScreen(artistId: String, viewModel: DownloadViewModel, onBack: (
             .fillMaxSize()
             .background(appColors.background)
     ) {
-        // Top Bar
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 48.dp, start = 16.dp, end = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                tint = appColors.textPrimary,
-                modifier = Modifier
-                    .size(28.dp)
-                    .clickable { onBack() }
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            Text(
-                text = artistDetail?.name ?: "Cargando...",
-                color = appColors.textPrimary,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(end = 28.dp)
-            )
-            Spacer(modifier = Modifier.weight(1f))
-        }
-
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = appColors.accent)
@@ -92,18 +73,10 @@ fun ArtistDetailScreen(artistId: String, viewModel: DownloadViewModel, onBack: (
         } else if (artistDetail != null) {
             val artist = artistDetail!!
             LazyColumn(modifier = Modifier.fillMaxSize()) {
-                // Header (Imagen gigante circular)
+                // Header Completo
                 item {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(180.dp)
-                                .clip(CircleShape)
-                                .background(Color.DarkGray)
-                        ) {
+                    Box(modifier = Modifier.fillMaxWidth().height(340.dp)) {
+                        Box(modifier = Modifier.fillMaxSize().background(Color.DarkGray)) {
                             if (artist.imageUrl.isNotEmpty()) {
                                 coil.compose.AsyncImage(
                                     model = artist.imageUrl,
@@ -113,12 +86,43 @@ fun ArtistDetailScreen(artistId: String, viewModel: DownloadViewModel, onBack: (
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Box(
+                            modifier = Modifier
+                                .padding(top = 48.dp, start = 16.dp)
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.5f))
+                                .clickable { onBack() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(180.dp)
+                                .align(Alignment.BottomCenter)
+                                .background(
+                                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                                        colors = listOf(Color.Transparent, appColors.background),
+                                        startY = 0f,
+                                        endY = Float.POSITIVE_INFINITY
+                                    )
+                                )
+                        )
                         Text(
                             text = artist.name,
-                            color = appColors.textPrimary,
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.ExtraBold
+                            color = Color.White,
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(start = 24.dp, end = 24.dp, bottom = 24.dp)
                         )
                     }
                 }
@@ -138,6 +142,7 @@ fun ArtistDetailScreen(artistId: String, viewModel: DownloadViewModel, onBack: (
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .clickable { trackToDownload = track }
                                         .padding(vertical = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
@@ -204,7 +209,8 @@ fun ArtistDetailScreen(artistId: String, viewModel: DownloadViewModel, onBack: (
                                 AlbumCard(
                                     title = album.name,
                                     subtitle = album.artists.ifEmpty { "Álbum" },
-                                    imageUrl = album.imageUrl
+                                    imageUrl = album.imageUrl,
+                                    onClick = { onNavigateToAlbum(album.id) }
                                 )
                             }
                         }
@@ -230,7 +236,8 @@ fun ArtistDetailScreen(artistId: String, viewModel: DownloadViewModel, onBack: (
                                 AlbumCard(
                                     title = single.name,
                                     subtitle = single.artists.ifEmpty { "Sencillo" },
-                                    imageUrl = single.imageUrl
+                                    imageUrl = single.imageUrl,
+                                    onClick = { onNavigateToAlbum(single.id) }
                                 )
                             }
                         }
@@ -242,6 +249,23 @@ fun ArtistDetailScreen(artistId: String, viewModel: DownloadViewModel, onBack: (
                 item { Spacer(modifier = Modifier.height(40.dp)) }
             }
         }
+    }
+
+    if (trackToDownload != null && artistDetail != null) {
+        DownloadDialog(
+            trackName = trackToDownload!!.name,
+            artistName = trackToDownload!!.artists,
+            imageUrl = trackToDownload!!.imageUrl.ifEmpty { artistDetail!!.imageUrl },
+            availableQualities = availableQualities,
+            initialQuality = selectedQuality,
+            onDownload = { quality ->
+                // TODO: Implement actual download logic here
+                trackToDownload = null
+            },
+            onDismiss = {
+                trackToDownload = null
+            }
+        )
     }
 }
 
@@ -325,9 +349,13 @@ private fun parseArtistDetail(jsonStr: String, artistId: String): ArtistDetail {
 }
 
 @Composable
-fun AlbumCard(title: String, subtitle: String, imageUrl: String?) {
+fun AlbumCard(title: String, subtitle: String, imageUrl: String?, onClick: () -> Unit) {
     val appColors = com.frito.music.ui.theme.LocalAppColors.current
-    androidx.compose.foundation.layout.Column(modifier = Modifier.width(140.dp)) {
+    androidx.compose.foundation.layout.Column(
+        modifier = Modifier
+            .width(140.dp)
+            .clickable { onClick() }
+    ) {
         androidx.compose.foundation.layout.Box(
             modifier = Modifier
                 .size(140.dp)

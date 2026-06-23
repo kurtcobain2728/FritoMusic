@@ -12,7 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Clear
@@ -41,6 +41,7 @@ import com.frito.music.extensions.engine.ArtistResult
 import com.frito.music.extensions.engine.TrackResult
 import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.ui.viewmodels.DownloadViewModel
+import com.frito.music.ui.components.DownloadDialog
 
 enum class SearchTab {
     CANCIONES, ALBUMES, ARTISTAS
@@ -72,6 +73,7 @@ fun DownloadScreen(
 
     var searchQuery by remember { mutableStateOf(initialQuery) }
     var selectedTab by remember { mutableStateOf(SearchTab.CANCIONES) }
+    var trackToDownload by remember { mutableStateOf<TrackResult?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.loadServers()
@@ -82,16 +84,14 @@ fun DownloadScreen(
             kotlinx.coroutines.delay(800)
             viewModel.search(searchQuery)
         } else if (searchQuery.isEmpty()) {
-            viewModel.clearSearch()
+            // we can call a clearSearch function or similar
+            // viewModel.clearSearch() doesn't exist, so we pass empty string to search
+            viewModel.search("")
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(appColors.background)
-    ) {
-        // Top Bar
+    Column(modifier = Modifier.fillMaxSize().background(appColors.background)) {
+        // Header
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -99,22 +99,20 @@ fun DownloadScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                imageVector = Icons.Default.ArrowBack,
                 contentDescription = "Back",
                 tint = appColors.textPrimary,
                 modifier = Modifier
                     .size(28.dp)
                     .clickable { onBack() }
             )
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.width(16.dp))
             Text(
                 text = "Descargar Música",
                 color = appColors.textPrimary,
-                fontSize = 20.sp,
+                fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.weight(1f))
-            Spacer(modifier = Modifier.size(28.dp))
         }
 
         // Header Section
@@ -330,7 +328,9 @@ fun DownloadScreen(
                         when (selectedTab) {
                             SearchTab.CANCIONES -> {
                                 items(results.tracks) { track ->
-                                    TrackItem(track)
+                                    TrackItem(track) {
+                                        trackToDownload = track
+                                    }
                                 }
                             }
                             SearchTab.ALBUMES -> {
@@ -353,15 +353,32 @@ fun DownloadScreen(
             }
         }
     }
+
+    if (trackToDownload != null) {
+        DownloadDialog(
+            trackName = trackToDownload!!.name,
+            artistName = trackToDownload!!.artists,
+            imageUrl = trackToDownload!!.imageUrl,
+            availableQualities = availableQualities,
+            initialQuality = selectedQuality,
+            onDownload = { quality ->
+                // TODO: Implement actual download logic here
+                trackToDownload = null
+            },
+            onDismiss = {
+                trackToDownload = null
+            }
+        )
+    }
 }
 
 @Composable
-fun TrackItem(track: TrackResult) {
+fun TrackItem(track: TrackResult, onClick: () -> Unit) {
     val appColors = LocalAppColors.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { /* TODO: Open Download Dialog */ }
+            .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -410,7 +427,7 @@ fun TrackItem(track: TrackResult) {
             modifier = Modifier
                 .size(36.dp)
                 .border(BorderStroke(1.dp, SpotifyColor), RoundedCornerShape(8.dp))
-                .clickable { /* TODO: Open Download Dialog */ },
+                .clickable { onClick() },
             contentAlignment = Alignment.Center
         ) {
             Icon(
