@@ -43,6 +43,7 @@ import com.frito.music.ui.theme.FritoMusicTheme
 import com.frito.music.ui.viewmodels.HomeViewModel
 import com.frito.music.ui.viewmodels.PlayerViewModel
 import com.frito.music.ui.viewmodels.DownloadViewModel
+import com.frito.music.ui.viewmodels.StreamViewModel
 import com.frito.music.ui.theme.ThemeViewModel
 import com.frito.music.ui.theme.LocalAppColors
 
@@ -58,6 +59,7 @@ class MainActivity : ComponentActivity() {
             val homeViewModel: HomeViewModel = viewModel()
             val playerViewModel: PlayerViewModel = viewModel()
             val downloadViewModel: DownloadViewModel = viewModel()
+            val streamViewModel: StreamViewModel = viewModel()
 
             val themeMode by themeViewModel.themeMode.collectAsState()
             val accentColor by themeViewModel.accentColor.collectAsState()
@@ -295,7 +297,7 @@ class MainActivity : ComponentActivity() {
                                                 playerViewModel = playerViewModel
                                             )
                                             "buscar" -> SearchScreen(homeViewModel = homeViewModel, playerViewModel = playerViewModel)
-                                            "stream" -> StreamScreen()
+                                            "stream" -> StreamScreen(streamViewModel = streamViewModel, playerViewModel = playerViewModel)
                                             "mas" -> MoreScreen(
                                                 favoritesCount = favorites.size,
                                                 playlistsCount = playlists.size,
