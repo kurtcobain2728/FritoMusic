@@ -336,6 +336,7 @@ class MainActivity : ComponentActivity() {
                     ) {
                         PlayerScreen(
                             viewModel = playerViewModel,
+                            streamViewModel = streamViewModel,
                             onClose = { showPlayerScreen = false }
                         )
                     }

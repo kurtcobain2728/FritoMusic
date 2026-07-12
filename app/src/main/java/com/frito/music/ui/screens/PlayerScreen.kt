@@ -38,6 +38,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import androidx.compose.ui.platform.LocalContext
 import com.frito.music.ui.viewmodels.PlayerViewModel
+import com.frito.music.ui.viewmodels.StreamViewModel
 import androidx.media3.common.Player
 import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.data.models.AudioFile
@@ -60,6 +61,8 @@ fun PlayerScreen(viewModel: PlayerViewModel, streamViewModel: StreamViewModel, o
     val repeatMode by viewModel.repeatMode.collectAsState()
     val isCurrentFavorite by viewModel.isCurrentFavorite.collectAsState()
     val playlists by viewModel.playlists.collectAsState()
+    val currentLyrics by streamViewModel.currentLyrics.collectAsState()
+    val isLoadingLyrics by streamViewModel.isLoadingLyrics.collectAsState()
     var showLyrics by remember { mutableStateOf(false) }
     var showPlaylistSheet by remember { mutableStateOf(false) }
     var showCreateDialog by remember { mutableStateOf(false) }
@@ -353,8 +356,6 @@ fun PlayerScreen(viewModel: PlayerViewModel, streamViewModel: StreamViewModel, o
                     .background(appColors.surface),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Letra de la Canción (Próximamente)", color = appColors.textSecondary, fontSize = 18.sp)
-                
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowDown,
                     contentDescription = "Close Lyrics",
@@ -365,6 +366,35 @@ fun PlayerScreen(viewModel: PlayerViewModel, streamViewModel: StreamViewModel, o
                         .size(36.dp)
                         .clickable { showLyrics = false }
                 )
+
+                when {
+                    isLoadingLyrics -> {
+                        CircularProgressIndicator(color = Color(0xFF1DB954))
+                    }
+                    currentLyrics != null -> {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 24.dp, vertical = 80.dp)
+                        ) {
+                            item {
+                                Text(
+                                    text = currentLyrics!!,
+                                    color = appColors.textPrimary,
+                                    fontSize = 16.sp,
+                                    lineHeight = 24.sp
+                                )
+                            }
+                        }
+                    }
+                    else -> {
+                        Text(
+                            text = "Letras no disponibles",
+                            color = appColors.textSecondary,
+                            fontSize = 16.sp
+                        )
+                    }
+                }
             }
         }
 
