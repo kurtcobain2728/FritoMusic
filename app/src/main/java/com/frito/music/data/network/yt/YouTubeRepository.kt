@@ -4,9 +4,19 @@ import com.frito.music.data.models.StreamableTrack
 import com.music.innertube.YouTube
 import com.music.innertube.models.SongItem
 import com.music.innertube.models.WatchEndpoint
-import com.music.innertube.models.YouTubeClient
+import com.music.innertube.models.YouTubeClient.Companion.ANDROID_VR_1_43_32
+import com.music.innertube.models.YouTubeClient.Companion.ANDROID_VR_1_61_48
+import com.music.innertube.models.YouTubeClient.Companion.TVHTML5_SIMPLY_EMBEDDED_PLAYER
+import com.music.innertube.models.YouTubeClient.Companion.WEB_REMIX
 
 object YouTubeRepository {
+
+    private val STREAM_CLIENTS = listOf(
+        ANDROID_VR_1_43_32,
+        ANDROID_VR_1_61_48,
+        TVHTML5_SIMPLY_EMBEDDED_PLAYER,
+        WEB_REMIX
+    )
 
     suspend fun search(query: String): Result<List<StreamableTrack>> = runCatching {
         val result = YouTube.search(query, YouTube.SearchFilter.FILTER_SONG)
@@ -23,18 +33,30 @@ object YouTubeRepository {
     }
 
     suspend fun getStreamUrl(videoId: String): Result<String> = runCatching {
-        val playerResponse = YouTube.player(videoId, null, YouTubeClient.WEB_REMIX).getOrThrow()
+        var lastException: Exception? = null
 
-        val format = playerResponse.streamingData?.adaptiveFormats
-            ?.filter { it.mimeType.startsWith("audio/") }
-            ?.maxByOrNull { it.bitrate }
-            ?: throw Exception("No audio format found")
+        for (client in STREAM_CLIENTS) {
+            try {
+                val playerResponse = YouTube.player(videoId, null, client).getOrThrow()
 
-        format.url
-            ?: YouTube.newPipePlayer(videoId, playerResponse)?.streamingData?.adaptiveFormats
-                ?.filter { it.mimeType.startsWith("audio/") }
-                ?.maxByOrNull { it.bitrate }?.url
-            ?: throw Exception("Could not resolve stream URL")
+                val format = playerResponse.streamingData?.adaptiveFormats
+                    ?.filter { it.mimeType.startsWith("audio/") }
+                    ?.maxByOrNull { it.bitrate }
+
+                if (format != null) {
+                    format.url?.let { return@runCatching it }
+
+                    YouTube.newPipePlayer(videoId, playerResponse)?.streamingData?.adaptiveFormats
+                        ?.filter { it.mimeType.startsWith("audio/") }
+                        ?.maxByOrNull { it.bitrate }?.url?.let { return@runCatching it }
+                }
+            } catch (e: Exception) {
+                lastException = e
+                continue
+            }
+        }
+
+        throw lastException ?: Exception("Could not resolve stream URL with any client")
     }
 
     suspend fun getLyrics(videoId: String): Result<String?> = runCatching {
