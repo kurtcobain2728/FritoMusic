@@ -136,9 +136,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 metadataBuilder.setArtworkUri(Uri.parse(audio.albumUri))
             }
 
+            val uri = if (audio.path.startsWith("http://") || audio.path.startsWith("https://")) {
+                Uri.parse(audio.path)
+            } else {
+                Uri.fromFile(File(audio.path))
+            }
+
             MediaItem.Builder()
                 .setMediaId(audio.id.toString())
-                .setUri(Uri.fromFile(File(audio.path)))
+                .setUri(uri)
                 .setMediaMetadata(metadataBuilder.build())
                 .build()
         }
