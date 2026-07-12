@@ -1,15 +1,17 @@
 package com.frito.music.data.network.yt
 
 import com.frito.music.data.models.StreamableTrack
+import com.music.innertube.NewPipeExtractor
 import com.music.innertube.YouTube
 import com.music.innertube.models.ArtistItem
 import com.music.innertube.models.SongItem
 import com.music.innertube.models.WatchEndpoint
-import com.music.innertube.pages.ArtistPage
+import com.music.innertube.models.YouTubeClient
 import com.music.innertube.models.YouTubeClient.Companion.ANDROID_VR_1_43_32
 import com.music.innertube.models.YouTubeClient.Companion.ANDROID_VR_1_61_48
 import com.music.innertube.models.YouTubeClient.Companion.TVHTML5_SIMPLY_EMBEDDED_PLAYER
 import com.music.innertube.models.YouTubeClient.Companion.WEB_REMIX
+import com.music.innertube.pages.ArtistPage
 
 object YouTubeRepository {
 
@@ -50,21 +52,64 @@ object YouTubeRepository {
             try {
                 val playerResponse = YouTube.player(videoId, null, client).getOrThrow()
 
+                // Check if playability status is OK
+                if (playerResponse.playabilityStatus.status != "OK") {
+                    lastException = Exception("Playability: ${playerResponse.playabilityStatus.reason}")
+                    continue
+                }
+
                 val format = playerResponse.streamingData?.adaptiveFormats
                     ?.filter { it.mimeType.startsWith("audio/") }
                     ?.maxByOrNull { it.bitrate }
 
                 if (format != null) {
-                    format.url?.let { return@runCatching it }
+                    // 1. Try direct URL
+                    val directUrl = format.url
+                    if (!directUrl.isNullOrEmpty()) {
+                        return@runCatching directUrl
+                    }
 
-                    YouTube.newPipePlayer(videoId, playerResponse)?.streamingData?.adaptiveFormats
-                        ?.filter { it.mimeType.startsWith("audio/") }
-                        ?.maxByOrNull { it.bitrate }?.url?.let { return@runCatching it }
+                    // 2. Try signatureCipher deobfuscation via NewPipe
+                    val sigCipher = format.signatureCipher
+                    val cipher = format.cipher
+                    if (!sigCipher.isNullOrEmpty() || !cipher.isNullOrEmpty()) {
+                        val deobfuscatedUrl = NewPipeExtractor.getStreamUrl(format, videoId)
+                        if (deobfuscatedUrl != null) {
+                            return@runCatching deobfuscatedUrl
+                        }
+                    }
+
+                    // 3. Try NewPipe player as last resort for this client
+                    val newPipeUrls = NewPipeExtractor.newPipePlayer(videoId)
+                    if (newPipeUrls.isNotEmpty()) {
+                        // Find best audio stream
+                        val audioUrl = newPipeUrls.firstOrNull { (itag, _) ->
+                            playerResponse.streamingData?.adaptiveFormats
+                                ?.any { it.itag == itag && it.mimeType.startsWith("audio/") } == true
+                        }?.second ?: newPipeUrls.firstOrNull()?.second
+
+                        if (audioUrl != null) {
+                            return@runCatching audioUrl
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 lastException = e
                 continue
             }
+        }
+
+        // Final fallback: try NewPipe directly without any client
+        try {
+            val newPipeUrls = NewPipeExtractor.newPipePlayer(videoId)
+            if (newPipeUrls.isNotEmpty()) {
+                val audioUrl = newPipeUrls.firstOrNull()?.second
+                if (audioUrl != null) {
+                    return@runCatching audioUrl
+                }
+            }
+        } catch (e: Exception) {
+            // Ignore
         }
 
         throw lastException ?: Exception("Could not resolve stream URL with any client")
