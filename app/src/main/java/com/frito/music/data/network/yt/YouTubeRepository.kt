@@ -2,8 +2,10 @@ package com.frito.music.data.network.yt
 
 import com.frito.music.data.models.StreamableTrack
 import com.music.innertube.YouTube
+import com.music.innertube.models.ArtistItem
 import com.music.innertube.models.SongItem
 import com.music.innertube.models.WatchEndpoint
+import com.music.innertube.pages.ArtistPage
 import com.music.innertube.models.YouTubeClient.Companion.ANDROID_VR_1_43_32
 import com.music.innertube.models.YouTubeClient.Companion.ANDROID_VR_1_61_48
 import com.music.innertube.models.YouTubeClient.Companion.TVHTML5_SIMPLY_EMBEDDED_PLAYER
@@ -30,6 +32,15 @@ object YouTubeRepository {
                 thumbnailUrl = song.thumbnail
             )
         }
+    }
+
+    suspend fun searchArtists(query: String): Result<List<ArtistItem>> = runCatching {
+        val result = YouTube.search(query, YouTube.SearchFilter.FILTER_ARTIST)
+        result.getOrThrow().items.filterIsInstance<ArtistItem>()
+    }
+
+    suspend fun getArtistDetails(browseId: String): Result<ArtistPage> = runCatching {
+        YouTube.artist(browseId).getOrThrow()
     }
 
     suspend fun getStreamUrl(videoId: String): Result<String> = runCatching {

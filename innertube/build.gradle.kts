@@ -32,6 +32,9 @@ dependencies {
     implementation(libs.ktor.serialization.json)
     implementation(libs.ktor.client.encoding)
     implementation(libs.brotli)
-    implementation(libs.newpipeextractor)
+    implementation(libs.newpipeextractor) {
+        exclude(group = "org.mozilla", module = "rhino")
+        exclude(group = "org.mozilla", module = "rhino-runtime")
+    }
     coreLibraryDesugaring(libs.desugaring)
 }

@@ -2,7 +2,7 @@ package com.frito.music.service
 
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
-import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
@@ -18,17 +18,14 @@ class MusicService : MediaSessionService() {
     private var cache: SimpleCache? = null
 
     private fun createDataSourceFactory(): androidx.media3.datasource.DataSource.Factory {
-        val httpFactory = DefaultHttpDataSource.Factory()
-            .setAllowCrossProtocolRedirects(true)
-            .setConnectTimeoutMs(30_000)
-            .setReadTimeoutMs(30_000)
+        val defaultDataSource = DefaultDataSource.Factory(this)
         
         return cache?.let { cacheInstance ->
             CacheDataSource.Factory()
                 .setCache(cacheInstance)
-                .setUpstreamDataSourceFactory(httpFactory)
+                .setUpstreamDataSourceFactory(defaultDataSource)
                 .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
-        } ?: httpFactory
+        } ?: defaultDataSource
     }
 
     override fun onCreate() {

@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -30,23 +31,26 @@ import com.frito.music.data.models.StreamableTrack
 import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.ui.viewmodels.PlayerViewModel
 import com.frito.music.ui.viewmodels.StreamViewModel
+import com.music.innertube.models.ArtistItem
 
 enum class StreamTab {
-    CANCIONES, PLAYLISTS
+    CANCIONES, ARTISTAS, PLAYLISTS
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StreamScreen(
     streamViewModel: StreamViewModel,
-    playerViewModel: PlayerViewModel
+    playerViewModel: PlayerViewModel,
+    onNavigateToArtist: (String) -> Unit = {}
 ) {
     val appColors = LocalAppColors.current
-    
+
     val searchResults by streamViewModel.searchResults.collectAsState()
+    val artistResults by streamViewModel.artistResults.collectAsState()
     val isSearching by streamViewModel.isSearching.collectAsState()
     val errorMessage by streamViewModel.errorMessage.collectAsState()
-    
+
     var searchQuery by remember { mutableStateOf("") }
     var selectedTab by remember { mutableStateOf(StreamTab.CANCIONES) }
     
@@ -227,6 +231,18 @@ fun StreamScreen(
                         unselectedContentColor = appColors.textSecondary
                     )
                     Tab(
+                        selected = selectedTab == StreamTab.ARTISTAS,
+                        onClick = { selectedTab = StreamTab.ARTISTAS },
+                        text = { 
+                            Text(
+                                "Artistas", 
+                                fontWeight = if (selectedTab == StreamTab.ARTISTAS) FontWeight.Bold else FontWeight.Normal
+                            ) 
+                        },
+                        selectedContentColor = appColors.textPrimary,
+                        unselectedContentColor = appColors.textSecondary
+                    )
+                    Tab(
                         selected = selectedTab == StreamTab.PLAYLISTS,
                         onClick = { selectedTab = StreamTab.PLAYLISTS },
                         text = { 
@@ -242,6 +258,7 @@ fun StreamScreen(
                 
                 // Results
                 val results = searchResults
+                val artists = artistResults
                 if (results != null && selectedTab == StreamTab.CANCIONES) {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -251,6 +268,18 @@ fun StreamScreen(
                             StreamTrackItem(
                                 track = track,
                                 onClick = { streamViewModel.playTrack(track, playerViewModel) }
+                            )
+                        }
+                    }
+                } else if (artists != null && selectedTab == StreamTab.ARTISTAS) {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 24.dp, top = 8.dp)
+                    ) {
+                        items(artists) { artist ->
+                            StreamArtistItem(
+                                artist = artist,
+                                onClick = { onNavigateToArtist(artist.id) }
                             )
                         }
                     }
@@ -347,5 +376,77 @@ fun StreamTrackItem(
                 modifier = Modifier.size(20.dp)
             )
         }
+    }
+}
+
+@Composable
+fun StreamArtistItem(
+    artist: ArtistItem,
+    onClick: () -> Unit
+) {
+    val appColors = LocalAppColors.current
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Artist Image
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF1A1A1A)),
+            contentAlignment = Alignment.Center
+        ) {
+            if (artist.thumbnail != null && artist.thumbnail!!.isNotEmpty()) {
+                AsyncImage(
+                    model = artist.thumbnail,
+                    contentDescription = artist.title,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Icon(
+                    Icons.Default.MusicNote,
+                    contentDescription = null,
+                    tint = appColors.textSecondary
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        // Artist Info
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = artist.title,
+                color = appColors.textPrimary,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Artista",
+                color = appColors.textSecondary,
+                fontSize = 14.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        // Arrow indicator
+        Icon(
+            imageVector = Icons.Default.PlayArrow,
+            contentDescription = "View Artist",
+            tint = appColors.textSecondary,
+            modifier = Modifier.size(24.dp)
+        )
     }
 }

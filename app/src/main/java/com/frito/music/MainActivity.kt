@@ -87,6 +87,7 @@ class MainActivity : ComponentActivity() {
                 var selectedPlaylist by remember { mutableStateOf<Playlist?>(null) }
                 var selectedArtistId by remember { mutableStateOf<String?>(null) }
                 var selectedAlbumId by remember { mutableStateOf<String?>(null) }
+                var selectedStreamArtistId by remember { mutableStateOf<String?>(null) }
 
                 val favorites by playerViewModel.favorites.collectAsState(initial = emptySet())
                 val playlists by playerViewModel.playlists.collectAsState(initial = emptyList())
@@ -105,6 +106,9 @@ class MainActivity : ComponentActivity() {
                         currentSubScreen = "descargar"
                         selectedArtistId = null
                         selectedAlbumId = null
+                    } else if (currentSubScreen == "stream_artist_detail") {
+                        currentSubScreen = null
+                        selectedStreamArtistId = null
                     } else if (currentSubScreen != null) {
                         currentSubScreen = null
                     } else {
@@ -273,6 +277,19 @@ class MainActivity : ComponentActivity() {
                                                 )
                                             }
                                         }
+                                        "stream_artist_detail" -> {
+                                            selectedStreamArtistId?.let { id ->
+                                                StreamArtistDetailScreen(
+                                                    artistId = id,
+                                                    streamViewModel = streamViewModel,
+                                                    playerViewModel = playerViewModel,
+                                                    onBack = {
+                                                        currentSubScreen = null
+                                                        selectedStreamArtistId = null
+                                                    }
+                                                )
+                                            }
+                                        }
                                         "extensiones" -> ExtensionsScreen(onBack = { currentSubScreen = null })
                                         else -> {
                                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -297,7 +314,14 @@ class MainActivity : ComponentActivity() {
                                                 playerViewModel = playerViewModel
                                             )
                                             "buscar" -> SearchScreen(homeViewModel = homeViewModel, playerViewModel = playerViewModel)
-                                            "stream" -> StreamScreen(streamViewModel = streamViewModel, playerViewModel = playerViewModel)
+                                            "stream" -> StreamScreen(
+                                                streamViewModel = streamViewModel,
+                                                playerViewModel = playerViewModel,
+                                                onNavigateToArtist = { id ->
+                                                    selectedStreamArtistId = id
+                                                    currentSubScreen = "stream_artist_detail"
+                                                }
+                                            )
                                             "mas" -> MoreScreen(
                                                 favoritesCount = favorites.size,
                                                 playlistsCount = playlists.size,
