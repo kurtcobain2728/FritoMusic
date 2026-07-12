@@ -40,6 +40,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.frito.music.ui.viewmodels.PlayerViewModel
 import androidx.media3.common.Player
 import com.frito.music.ui.theme.LocalAppColors
+import com.frito.music.data.models.AudioFile
 
 fun formatDuration(ms: Long): String {
     val totalSeconds = ms / 1000
@@ -49,7 +50,7 @@ fun formatDuration(ms: Long): String {
 }
 
 @Composable
-fun PlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit) {
+fun PlayerScreen(viewModel: PlayerViewModel, streamViewModel: StreamViewModel, onClose: () -> Unit) {
     val isPlaying by viewModel.isPlaying.collectAsState()
     val progress by viewModel.progress.collectAsState()
     val currentAudio by viewModel.currentAudio.collectAsState()
@@ -258,13 +259,7 @@ fun PlayerScreen(viewModel: PlayerViewModel, onClose: () -> Unit) {
             Spacer(modifier = Modifier.height(8.dp))
 
             // Audio Info
-            Text(
-                text = "44.1 kHz • 1054 kbps • FLAC",
-                color = appColors.textSecondary,
-                fontSize = 12.sp,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
+            QualityInfo(audio = currentAudio)
 
             Spacer(modifier = Modifier.weight(1f))
 
@@ -588,6 +583,24 @@ fun WaveformProgress(
             )
         }
     }
+}
+
+@Composable
+fun QualityInfo(audio: AudioFile?) {
+    val appColors = LocalAppColors.current
+    
+    val qualityText = if (audio?.path?.startsWith("http") == true) {
+        "Streaming • YouTube Music"
+    } else {
+        val extension = audio?.path?.substringAfterLast(".")?.uppercase() ?: "AUDIO"
+        "44.1 kHz • ${extension}"
+    }
+    
+    Text(
+        text = qualityText,
+        color = appColors.textSecondary,
+        fontSize = 12.sp
+    )
 }
 
 @Composable
