@@ -2,25 +2,56 @@ package com.frito.music.service
 
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
+import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import java.io.File
 
 @androidx.media3.common.util.UnstableApi
 class MusicService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
+    private var cache: SimpleCache? = null
+
+    private fun createDataSourceFactory(): androidx.media3.datasource.DataSource.Factory {
+        val httpFactory = DefaultHttpDataSource.Factory()
+            .setAllowCrossProtocolRedirects(true)
+            .setConnectTimeoutMs(30_000)
+            .setReadTimeoutMs(30_000)
+        
+        return cache?.let { cacheInstance ->
+            CacheDataSource.Factory()
+                .setCache(cacheInstance)
+                .setUpstreamDataSourceFactory(httpFactory)
+                .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+        } ?: httpFactory
+    }
 
     override fun onCreate() {
         super.onCreate()
+        
+        // Initialize cache
+        val cacheDir = File(cacheDir, "stream-cache")
+        val evictor = LeastRecentlyUsedCacheEvictor(500 * 1024 * 1024L) // 500MB
+        cache = SimpleCache(cacheDir, evictor)
+        
         val player = ExoPlayer.Builder(this)
+            .setMediaSourceFactory(
+                DefaultMediaSourceFactory(createDataSourceFactory())
+            )
             .setAudioAttributes(
                 AudioAttributes.Builder()
-                    .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
                     .setUsage(C.USAGE_MEDIA)
+                    .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
                     .build(),
                 true // Maneja el foco de audio (pausa en llamadas, etc)
             )
             .setHandleAudioBecomingNoisy(true) // Pausa al desconectar auriculares
+            .setWakeMode(C.WAKE_MODE_NETWORK)
             .setSeekParameters(androidx.media3.exoplayer.SeekParameters.EXACT) // Búsqueda exacta para evitar tartamudeo al soltar la barra
             .build()
             
@@ -45,6 +76,8 @@ class MusicService : MediaSessionService() {
             release()
             mediaSession = null
         }
+        cache?.release()
+        cache = null
         super.onDestroy()
     }
 }
