@@ -13,6 +13,8 @@ import com.music.innertube.models.YouTubeClient.Companion.TVHTML5_SIMPLY_EMBEDDE
 import com.music.innertube.models.YouTubeClient.Companion.WEB_REMIX
 import com.music.innertube.pages.AlbumPage
 import com.music.innertube.pages.ArtistPage
+import com.music.innertube.pages.ExplorePage
+import com.music.innertube.pages.HomePage
 
 object YouTubeRepository {
 
@@ -48,6 +50,14 @@ object YouTubeRepository {
 
     suspend fun getAlbumDetails(browseId: String): Result<AlbumPage> = runCatching {
         YouTube.album(browseId).getOrThrow()
+    }
+
+    suspend fun getHome(): Result<HomePage> = runCatching {
+        YouTube.home().getOrThrow()
+    }
+
+    suspend fun getExplore(): Result<ExplorePage> = runCatching {
+        YouTube.explore().getOrThrow()
     }
 
     suspend fun getStreamUrl(videoId: String): Result<String> = runCatching {

@@ -8,6 +8,8 @@ import com.music.innertube.models.ArtistItem
 import com.music.innertube.models.SongItem
 import com.music.innertube.pages.AlbumPage
 import com.music.innertube.pages.ArtistPage
+import com.music.innertube.pages.ExplorePage
+import com.music.innertube.pages.HomePage
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,6 +48,15 @@ class StreamViewModel : ViewModel() {
 
     private val _isLoadingAlbum = MutableStateFlow(false)
     val isLoadingAlbum: StateFlow<Boolean> = _isLoadingAlbum.asStateFlow()
+
+    private val _homePage = MutableStateFlow<HomePage?>(null)
+    val homePage: StateFlow<HomePage?> = _homePage.asStateFlow()
+
+    private val _explorePage = MutableStateFlow<ExplorePage?>(null)
+    val explorePage: StateFlow<ExplorePage?> = _explorePage.asStateFlow()
+
+    private val _isLoadingHome = MutableStateFlow(false)
+    val isLoadingHome: StateFlow<Boolean> = _isLoadingHome.asStateFlow()
 
     private var searchJob: Job? = null
     
@@ -211,5 +222,30 @@ class StreamViewModel : ViewModel() {
         _searchResults.value = null
         _artistResults.value = null
         _errorMessage.value = null
+    }
+
+    fun loadHomeContent() {
+        viewModelScope.launch {
+            _isLoadingHome.value = true
+            _errorMessage.value = null
+
+            YouTubeRepository.getHome()
+                .onSuccess { home ->
+                    _homePage.value = home
+                }
+                .onFailure { error ->
+                    _errorMessage.value = error.message ?: "Error loading home content"
+                }
+
+            YouTubeRepository.getExplore()
+                .onSuccess { explore ->
+                    _explorePage.value = explore
+                }
+                .onFailure { error ->
+                    _errorMessage.value = error.message ?: "Error loading explore content"
+                }
+
+            _isLoadingHome.value = false
+        }
     }
 }
