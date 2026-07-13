@@ -34,6 +34,7 @@ import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.ui.viewmodels.PlayerViewModel
 import com.frito.music.ui.viewmodels.StreamViewModel
 import com.music.innertube.models.ArtistItem
+import com.music.innertube.models.SongItem
 
 enum class StreamTab {
     CANCIONES, ARTISTAS, PLAYLISTS
@@ -53,11 +54,21 @@ fun StreamScreen(
     val artistResults by streamViewModel.artistResults.collectAsState()
     val isSearching by streamViewModel.isSearching.collectAsState()
     val errorMessage by streamViewModel.errorMessage.collectAsState()
+    val homePage by streamViewModel.homePage.collectAsState()
+    val explorePage by streamViewModel.explorePage.collectAsState()
+    val isLoadingHome by streamViewModel.isLoadingHome.collectAsState()
 
     var searchQuery by remember { mutableStateOf("") }
     var selectedTab by remember { mutableStateOf(StreamTab.CANCIONES) }
     var showTutorial by remember { mutableStateOf(!com.frito.music.data.repository.YouTubeLoginManager.hasSeenTutorial()) }
     var showLogoutModal by remember { mutableStateOf(false) }
+    val isLoggedIn = com.frito.music.data.repository.YouTubeLoginManager.isLoggedIn()
+
+    LaunchedEffect(isLoggedIn) {
+        if (isLoggedIn) {
+            streamViewModel.loadHomeContent()
+        }
+    }
 
     if (showTutorial) {
         StreamTutorialScreen(
@@ -96,7 +107,6 @@ fun StreamScreen(
             )
 
             // Login button
-            val isLoggedIn = com.frito.music.data.repository.YouTubeLoginManager.isLoggedIn()
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -222,29 +232,53 @@ fun StreamScreen(
                 }
             }
             searchResults == null && searchQuery.isEmpty() -> {
-                // Empty State
-                Box(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(32.dp)
+                if (isLoggedIn) {
+                    StreamHomeScreen(
+                        homePage = homePage,
+                        explorePage = explorePage,
+                        isLoading = isLoadingHome,
+                        onPlaySong = { song ->
+                            streamViewModel.playArtistSong(song, playerViewModel)
+                        },
+                        onAlbumClick = { browseId ->
+                            streamViewModel.loadAlbumDetails(browseId)
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                } else {
+                    // Login Prompt
+                    Box(
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.MusicNote,
-                            contentDescription = null,
-                            tint = appColors.textSecondary.copy(alpha = 0.5f),
-                            modifier = Modifier.size(80.dp)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Busca tu canción favorita para escuchar en streaming",
-                            color = appColors.textSecondary.copy(alpha = 0.7f),
-                            fontSize = 16.sp,
-                            textAlign = TextAlign.Center,
-                            lineHeight = 22.sp
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.MusicNote,
+                                contentDescription = null,
+                                tint = appColors.textSecondary.copy(alpha = 0.5f),
+                                modifier = Modifier.size(80.dp)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Inicia sesión para ver contenido recomendado",
+                                color = appColors.textSecondary.copy(alpha = 0.7f),
+                                fontSize = 16.sp,
+                                textAlign = TextAlign.Center,
+                                lineHeight = 22.sp
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(
+                                onClick = { onNavigateToLogin() },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF1DB954)
+                                )
+                            ) {
+                                Text("Iniciar sesión")
+                            }
+                        }
                     }
                 }
             }
