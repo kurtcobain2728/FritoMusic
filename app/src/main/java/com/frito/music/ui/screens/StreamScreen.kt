@@ -62,7 +62,10 @@ fun StreamScreen(
 
     var searchQuery by remember { mutableStateOf("") }
     var selectedTab by remember { mutableStateOf(StreamTab.CANCIONES) }
-    var showTutorial by remember { mutableStateOf(!com.frito.music.data.repository.YouTubeLoginManager.hasSeenTutorial()) }
+    var showTutorial by remember { 
+        val hasSeen = com.frito.music.data.repository.YouTubeLoginManager.hasSeenTutorial()
+        mutableStateOf(!hasSeen) 
+    }
     var showLogoutModal by remember { mutableStateOf(false) }
     val isLoggedIn = com.frito.music.data.repository.YouTubeLoginManager.isLoggedIn()
 
