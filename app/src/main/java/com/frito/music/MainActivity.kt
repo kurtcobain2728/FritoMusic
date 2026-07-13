@@ -93,6 +93,7 @@ class MainActivity : ComponentActivity() {
                 var selectedAlbumId by remember { mutableStateOf<String?>(null) }
                 var selectedStreamArtistId by remember { mutableStateOf<String?>(null) }
                 var selectedStreamAlbumId by remember { mutableStateOf<String?>(null) }
+                var selectedStreamPlaylistId by remember { mutableStateOf<String?>(null) }
                 var showYouTubeLogin by remember { mutableStateOf(false) }
 
                 val favorites by playerViewModel.favorites.collectAsState(initial = emptySet())
@@ -118,6 +119,9 @@ class MainActivity : ComponentActivity() {
                     } else if (currentSubScreen == "stream_album_detail") {
                         currentSubScreen = "stream_artist_detail"
                         selectedStreamAlbumId = null
+                    } else if (currentSubScreen == "stream_playlist_detail") {
+                        currentSubScreen = "stream_playlists"
+                        selectedStreamPlaylistId = null
                     } else if (currentSubScreen == "stream_playlists") {
                         currentSubScreen = null
                     } else if (showYouTubeLogin) {
@@ -331,9 +335,23 @@ class MainActivity : ComponentActivity() {
                                             StreamPlaylistsScreen(
                                                 streamViewModel = streamViewModel,
                                                 onPlaylistClick = { playlistId ->
-                                                    // TODO: Navigate to playlist detail
+                                                    selectedStreamPlaylistId = playlistId
+                                                    currentSubScreen = "stream_playlist_detail"
                                                 }
                                             )
+                                        }
+                                        "stream_playlist_detail" -> {
+                                            selectedStreamPlaylistId?.let { playlistId ->
+                                                YouTubePlaylistDetailScreen(
+                                                    playlistId = playlistId,
+                                                    streamViewModel = streamViewModel,
+                                                    playerViewModel = playerViewModel,
+                                                    onBack = {
+                                                        currentSubScreen = "stream_playlists"
+                                                        selectedStreamPlaylistId = null
+                                                    }
+                                                )
+                                            }
                                         }
                                         "extensiones" -> ExtensionsScreen(onBack = { currentSubScreen = null })
                                         else -> {
