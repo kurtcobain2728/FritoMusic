@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.frito.music.data.models.StreamableTrack
+import com.frito.music.ui.components.YouTubeLogoutModal
 import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.ui.viewmodels.PlayerViewModel
 import com.frito.music.ui.viewmodels.StreamViewModel
@@ -56,6 +57,7 @@ fun StreamScreen(
     var searchQuery by remember { mutableStateOf("") }
     var selectedTab by remember { mutableStateOf(StreamTab.CANCIONES) }
     var showTutorial by remember { mutableStateOf(!com.frito.music.data.repository.YouTubeLoginManager.hasSeenTutorial()) }
+    var showLogoutModal by remember { mutableStateOf(false) }
 
     if (showTutorial) {
         StreamTutorialScreen(
@@ -99,7 +101,13 @@ fun StreamScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
-                    .clickable { onNavigateToLogin() }
+                    .clickable {
+                        if (isLoggedIn) {
+                            showLogoutModal = true
+                        } else {
+                            onNavigateToLogin()
+                        }
+                    }
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 Icon(
@@ -333,6 +341,18 @@ fun StreamScreen(
                 }
             }
         }
+    }
+
+    // Logout Modal
+    if (showLogoutModal) {
+        YouTubeLogoutModal(
+            accountName = com.frito.music.data.repository.YouTubeLoginManager.getAccountName(),
+            accountEmail = com.frito.music.data.repository.YouTubeLoginManager.getAccountEmail(),
+            onDismiss = { showLogoutModal = false },
+            onLogout = {
+                com.frito.music.data.repository.YouTubeLoginManager.logout()
+            }
+        )
     }
 }
 
