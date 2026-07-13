@@ -11,6 +11,7 @@ import com.music.innertube.models.YouTubeClient.Companion.ANDROID_VR_1_43_32
 import com.music.innertube.models.YouTubeClient.Companion.ANDROID_VR_1_61_48
 import com.music.innertube.models.YouTubeClient.Companion.TVHTML5_SIMPLY_EMBEDDED_PLAYER
 import com.music.innertube.models.YouTubeClient.Companion.WEB_REMIX
+import com.music.innertube.pages.AlbumPage
 import com.music.innertube.pages.ArtistPage
 
 object YouTubeRepository {
@@ -43,6 +44,10 @@ object YouTubeRepository {
 
     suspend fun getArtistDetails(browseId: String): Result<ArtistPage> = runCatching {
         YouTube.artist(browseId).getOrThrow()
+    }
+
+    suspend fun getAlbumDetails(browseId: String): Result<AlbumPage> = runCatching {
+        YouTube.album(browseId).getOrThrow()
     }
 
     suspend fun getStreamUrl(videoId: String): Result<String> = runCatching {

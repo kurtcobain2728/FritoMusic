@@ -6,6 +6,7 @@ import com.frito.music.data.models.StreamableTrack
 import com.frito.music.data.network.yt.YouTubeRepository
 import com.music.innertube.models.ArtistItem
 import com.music.innertube.models.SongItem
+import com.music.innertube.pages.AlbumPage
 import com.music.innertube.pages.ArtistPage
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -39,6 +40,12 @@ class StreamViewModel : ViewModel() {
 
     private val _isLoadingArtist = MutableStateFlow(false)
     val isLoadingArtist: StateFlow<Boolean> = _isLoadingArtist.asStateFlow()
+
+    private val _selectedAlbum = MutableStateFlow<AlbumPage?>(null)
+    val selectedAlbum: StateFlow<AlbumPage?> = _selectedAlbum.asStateFlow()
+
+    private val _isLoadingAlbum = MutableStateFlow(false)
+    val isLoadingAlbum: StateFlow<Boolean> = _isLoadingAlbum.asStateFlow()
 
     private var searchJob: Job? = null
     
@@ -129,6 +136,52 @@ class StreamViewModel : ViewModel() {
     }
 
     fun playArtistSong(song: SongItem, playerViewModel: PlayerViewModel) {
+        viewModelScope.launch {
+            _errorMessage.value = null
+
+            val streamableTrack = StreamableTrack(
+                videoId = song.id,
+                title = song.title,
+                artist = song.artists.joinToString(", ") { it.name },
+                album = song.album?.name,
+                durationMs = song.duration?.times(1000L) ?: 0L,
+                thumbnailUrl = song.thumbnail
+            )
+
+            YouTubeRepository.getStreamUrl(song.id)
+                .onSuccess { streamUrl ->
+                    val audioFile = streamableTrack.toAudioFile(streamUrl)
+                    playerViewModel.playAudios(listOf(audioFile), 0)
+                    loadLyrics(song.id)
+                }
+                .onFailure { error ->
+                    _errorMessage.value = error.message ?: "Error playing track"
+                }
+        }
+    }
+
+    fun loadAlbumDetails(browseId: String) {
+        viewModelScope.launch {
+            _isLoadingAlbum.value = true
+            _errorMessage.value = null
+
+            YouTubeRepository.getAlbumDetails(browseId)
+                .onSuccess { albumPage ->
+                    _selectedAlbum.value = albumPage
+                }
+                .onFailure { error ->
+                    _errorMessage.value = error.message ?: "Error loading album"
+                }
+
+            _isLoadingAlbum.value = false
+        }
+    }
+
+    fun clearSelectedAlbum() {
+        _selectedAlbum.value = null
+    }
+
+    fun playAlbumSong(song: SongItem, playerViewModel: PlayerViewModel) {
         viewModelScope.launch {
             _errorMessage.value = null
 

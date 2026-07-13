@@ -92,6 +92,7 @@ class MainActivity : ComponentActivity() {
                 var selectedArtistId by remember { mutableStateOf<String?>(null) }
                 var selectedAlbumId by remember { mutableStateOf<String?>(null) }
                 var selectedStreamArtistId by remember { mutableStateOf<String?>(null) }
+                var selectedStreamAlbumId by remember { mutableStateOf<String?>(null) }
                 var showYouTubeLogin by remember { mutableStateOf(false) }
 
                 val favorites by playerViewModel.favorites.collectAsState(initial = emptySet())
@@ -114,6 +115,9 @@ class MainActivity : ComponentActivity() {
                     } else if (currentSubScreen == "stream_artist_detail") {
                         currentSubScreen = null
                         selectedStreamArtistId = null
+                    } else if (currentSubScreen == "stream_album_detail") {
+                        currentSubScreen = "stream_artist_detail"
+                        selectedStreamAlbumId = null
                     } else if (showYouTubeLogin) {
                         showYouTubeLogin = false
                     } else if (currentSubScreen != null) {
@@ -297,9 +301,26 @@ class MainActivity : ComponentActivity() {
                                                     artistId = id,
                                                     streamViewModel = streamViewModel,
                                                     playerViewModel = playerViewModel,
+                                                    onNavigateToAlbum = { albumId ->
+                                                        selectedStreamAlbumId = albumId
+                                                        currentSubScreen = "stream_album_detail"
+                                                    },
                                                     onBack = {
                                                         currentSubScreen = null
                                                         selectedStreamArtistId = null
+                                                    }
+                                                )
+                                            }
+                                        }
+                                        "stream_album_detail" -> {
+                                            selectedStreamAlbumId?.let { albumId ->
+                                                StreamAlbumDetailScreen(
+                                                    albumId = albumId,
+                                                    streamViewModel = streamViewModel,
+                                                    playerViewModel = playerViewModel,
+                                                    onBack = {
+                                                        currentSubScreen = "stream_artist_detail"
+                                                        selectedStreamAlbumId = null
                                                     }
                                                 )
                                             }
