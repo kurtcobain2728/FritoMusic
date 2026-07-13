@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
@@ -42,7 +43,8 @@ enum class StreamTab {
 fun StreamScreen(
     streamViewModel: StreamViewModel,
     playerViewModel: PlayerViewModel,
-    onNavigateToArtist: (String) -> Unit = {}
+    onNavigateToArtist: (String) -> Unit = {},
+    onNavigateToLogin: () -> Unit = {}
 ) {
     val appColors = LocalAppColors.current
 
@@ -77,8 +79,19 @@ fun StreamScreen(
                 text = "Stream",
                 color = appColors.textPrimary,
                 fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
             )
+
+            // Login button
+            val isLoggedIn = com.frito.music.data.repository.YouTubeLoginManager.isLoggedIn()
+            IconButton(onClick = onNavigateToLogin) {
+                Icon(
+                    imageVector = Icons.Default.AccountCircle,
+                    contentDescription = if (isLoggedIn) "Cuenta" else "Iniciar sesión",
+                    tint = if (isLoggedIn) Color(0xFF1DB954) else appColors.textSecondary
+                )
+            }
         }
         
         // Search Bar

@@ -53,6 +53,10 @@ class MainActivity : ComponentActivity() {
         val prefs = getSharedPreferences("FritoMusicPrefs", android.content.Context.MODE_PRIVATE)
         val hasCompletedOnboardingInitial = prefs.getBoolean("has_completed_onboarding", false)
 
+        // Initialize YouTube Login Manager and load saved session
+        com.frito.music.data.repository.YouTubeLoginManager.init(this)
+        com.frito.music.data.repository.YouTubeLoginManager.loadLoginToYouTube()
+
         setContent {
             var showOnboarding by remember { mutableStateOf(!hasCompletedOnboardingInitial) }
             val themeViewModel: ThemeViewModel = viewModel()
@@ -88,6 +92,7 @@ class MainActivity : ComponentActivity() {
                 var selectedArtistId by remember { mutableStateOf<String?>(null) }
                 var selectedAlbumId by remember { mutableStateOf<String?>(null) }
                 var selectedStreamArtistId by remember { mutableStateOf<String?>(null) }
+                var showYouTubeLogin by remember { mutableStateOf(false) }
 
                 val favorites by playerViewModel.favorites.collectAsState(initial = emptySet())
                 val playlists by playerViewModel.playlists.collectAsState(initial = emptyList())
@@ -109,6 +114,8 @@ class MainActivity : ComponentActivity() {
                     } else if (currentSubScreen == "stream_artist_detail") {
                         currentSubScreen = null
                         selectedStreamArtistId = null
+                    } else if (showYouTubeLogin) {
+                        showYouTubeLogin = false
                     } else if (currentSubScreen != null) {
                         currentSubScreen = null
                     } else {
@@ -141,6 +148,13 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
+                    // YouTube Login Screen
+                    if (showYouTubeLogin) {
+                        YouTubeLoginScreen(
+                            onBack = { showYouTubeLogin = false },
+                            onLoginSuccess = { showYouTubeLogin = false }
+                        )
+                    } else {
                     Scaffold(
                         bottomBar = {
                             Column {
@@ -320,6 +334,9 @@ class MainActivity : ComponentActivity() {
                                                 onNavigateToArtist = { id ->
                                                     selectedStreamArtistId = id
                                                     currentSubScreen = "stream_artist_detail"
+                                                },
+                                                onNavigateToLogin = {
+                                                    showYouTubeLogin = true
                                                 }
                                             )
                                             "mas" -> MoreScreen(
@@ -364,6 +381,7 @@ class MainActivity : ComponentActivity() {
                             onClose = { showPlayerScreen = false }
                         )
                     }
+                    } // else (not showing YouTube Login)
                 }
             }
         }
