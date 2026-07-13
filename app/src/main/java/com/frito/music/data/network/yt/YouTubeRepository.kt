@@ -20,11 +20,18 @@ import com.music.innertube.pages.PlaylistPage
 
 object YouTubeRepository {
 
-    private val STREAM_CLIENTS = listOf(
-        ANDROID_VR_1_43_32,
-        ANDROID_VR_1_61_48,
+    // Clients that don't require PoToken (work without login)
+    private val ANONYMOUS_CLIENTS = listOf(
         TVHTML5_SIMPLY_EMBEDDED_PLAYER,
-        WEB_REMIX
+        ANDROID_VR_1_43_32,
+        ANDROID_VR_1_61_48
+    )
+
+    // Clients that work best with login (have cookies)
+    private val AUTHENTICATED_CLIENTS = listOf(
+        WEB_REMIX,
+        TVHTML5_SIMPLY_EMBEDDED_PLAYER,
+        ANDROID_VR_1_43_32
     )
 
     suspend fun search(query: String): Result<List<StreamableTrack>> = runCatching {
@@ -64,8 +71,10 @@ object YouTubeRepository {
 
     suspend fun getStreamUrl(videoId: String): Result<String> = runCatching {
         var lastException: Exception? = null
+        val isLoggedIn = YouTube.cookie != null
+        val clients = if (isLoggedIn) AUTHENTICATED_CLIENTS else ANONYMOUS_CLIENTS
 
-        for (client in STREAM_CLIENTS) {
+        for (client in clients) {
             try {
                 val playerResponse = YouTube.player(videoId, null, client).getOrThrow()
 

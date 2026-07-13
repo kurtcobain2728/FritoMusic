@@ -52,7 +52,7 @@ fun StreamPlaylistsScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Mis Listas de YouTube",
+                text = "Mis Listas",
                 color = appColors.textPrimary,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
