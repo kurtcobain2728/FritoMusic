@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
@@ -46,7 +47,8 @@ fun StreamScreen(
     streamViewModel: StreamViewModel,
     playerViewModel: PlayerViewModel,
     onNavigateToArtist: (String) -> Unit = {},
-    onNavigateToLogin: () -> Unit = {}
+    onNavigateToLogin: () -> Unit = {},
+    onNavigateToPlaylists: () -> Unit = {}
 ) {
     val appColors = LocalAppColors.current
 
@@ -105,6 +107,24 @@ fun StreamScreen(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f)
             )
+
+            // Playlists button (visible when logged in)
+            if (isLoggedIn) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .clickable { onNavigateToPlaylists() }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.List,
+                        contentDescription = "Listas",
+                        tint = appColors.textPrimary
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+            }
 
             // Login button
             Row(

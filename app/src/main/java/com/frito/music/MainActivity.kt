@@ -118,6 +118,8 @@ class MainActivity : ComponentActivity() {
                     } else if (currentSubScreen == "stream_album_detail") {
                         currentSubScreen = "stream_artist_detail"
                         selectedStreamAlbumId = null
+                    } else if (currentSubScreen == "stream_playlists") {
+                        currentSubScreen = null
                     } else if (showYouTubeLogin) {
                         showYouTubeLogin = false
                     } else if (currentSubScreen != null) {
@@ -325,6 +327,14 @@ class MainActivity : ComponentActivity() {
                                                 )
                                             }
                                         }
+                                        "stream_playlists" -> {
+                                            StreamPlaylistsScreen(
+                                                streamViewModel = streamViewModel,
+                                                onPlaylistClick = { playlistId ->
+                                                    // TODO: Navigate to playlist detail
+                                                }
+                                            )
+                                        }
                                         "extensiones" -> ExtensionsScreen(onBack = { currentSubScreen = null })
                                         else -> {
                                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -358,6 +368,9 @@ class MainActivity : ComponentActivity() {
                                                 },
                                                 onNavigateToLogin = {
                                                     showYouTubeLogin = true
+                                                },
+                                                onNavigateToPlaylists = {
+                                                    currentSubScreen = "stream_playlists"
                                                 }
                                             )
                                             "mas" -> MoreScreen(
