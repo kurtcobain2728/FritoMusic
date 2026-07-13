@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.frito.music.ui.theme.LocalAppColors
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -36,13 +37,12 @@ fun OnboardingScreen(
 ) {
     val pagerState = rememberPagerState(pageCount = { 4 })
     val coroutineScope = rememberCoroutineScope()
-    
-    val context = LocalContext.current
+    val appColors = LocalAppColors.current
     
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(appColors.background),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         HorizontalPager(
@@ -71,7 +71,7 @@ fun OnboardingScreen(
             horizontalArrangement = Arrangement.Center
         ) {
             repeat(4) { iteration ->
-                val color = if (pagerState.currentPage == iteration) MaterialTheme.colorScheme.primary else Color.Gray.copy(alpha = 0.5f)
+                val color = if (pagerState.currentPage == iteration) appColors.accent else appColors.textSecondary.copy(alpha = 0.5f)
                 val width = if (pagerState.currentPage == iteration) 24.dp else 8.dp
                 Box(
                     modifier = Modifier
@@ -98,6 +98,7 @@ fun WelcomePage() {
         ),
         label = "pulse_scale"
     )
+    val appColors = LocalAppColors.current
 
     Column(
         modifier = Modifier
@@ -109,7 +110,7 @@ fun WelcomePage() {
         Icon(
             imageVector = Icons.Filled.LibraryMusic,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
+            tint = appColors.accent,
             modifier = Modifier
                 .size(120.dp)
                 .scale(scale)
@@ -119,14 +120,14 @@ fun WelcomePage() {
             text = "Bienvenido a MusicFrito",
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = appColors.textPrimary,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "Aquí escucharás música a tu gusto, sin límites. \nSiente el ritmo y descubre nuevas melodías.",
             fontSize = 16.sp,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+            color = appColors.textSecondary,
             textAlign = TextAlign.Center
         )
     }
@@ -203,6 +204,7 @@ fun FinalPage(onFinish: () -> Unit) {
         ),
         label = "float_y"
     )
+    val appColors = LocalAppColors.current
 
     Column(
         modifier = Modifier
@@ -214,7 +216,7 @@ fun FinalPage(onFinish: () -> Unit) {
         Icon(
             imageVector = Icons.Filled.RocketLaunch,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
+            tint = appColors.accent,
             modifier = Modifier
                 .size(100.dp)
                 .offset(y = offsetY.dp)
@@ -224,14 +226,14 @@ fun FinalPage(onFinish: () -> Unit) {
             text = "¡Todo listo!",
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = appColors.textPrimary,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "MusicFrito está preparado para darte la mejor experiencia musical.",
             fontSize = 16.sp,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+            color = appColors.textSecondary,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(64.dp))
@@ -241,12 +243,14 @@ fun FinalPage(onFinish: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
-            shape = RoundedCornerShape(16.dp)
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = appColors.accent)
         ) {
             Text(
                 text = "Comenzar",
                 fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = appColors.textPrimary
             )
         }
     }
@@ -262,6 +266,8 @@ fun PermissionPageContent(
     onRequest: () -> Unit,
     onSkip: () -> Unit
 ) {
+    val appColors = LocalAppColors.current
+    
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -274,7 +280,7 @@ fun PermissionPageContent(
                 .size(120.dp)
                 .background(
                     if (isGranted) Color(0xFF4CAF50).copy(alpha = 0.2f) 
-                    else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                    else appColors.accent.copy(alpha = 0.1f),
                     CircleShape
                 ),
             contentAlignment = Alignment.Center
@@ -282,7 +288,7 @@ fun PermissionPageContent(
             Icon(
                 imageVector = if (isGranted) Icons.Filled.CheckCircle else icon,
                 contentDescription = null,
-                tint = if (isGranted) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary,
+                tint = if (isGranted) Color(0xFF4CAF50) else appColors.accent,
                 modifier = Modifier.size(64.dp)
             )
         }
@@ -293,7 +299,7 @@ fun PermissionPageContent(
             text = title,
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = appColors.textPrimary,
             textAlign = TextAlign.Center
         )
         
@@ -302,7 +308,7 @@ fun PermissionPageContent(
         Text(
             text = description,
             fontSize = 16.sp,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+            color = appColors.textSecondary,
             textAlign = TextAlign.Center
         )
         
@@ -316,20 +322,21 @@ fun PermissionPageContent(
                 .height(56.dp),
             shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = if (isGranted) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary
+                containerColor = if (isGranted) Color(0xFF4CAF50) else appColors.accent
             )
         ) {
             Text(
                 text = buttonText,
                 fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = appColors.textPrimary
             )
         }
         
         Spacer(modifier = Modifier.height(16.dp))
         
         TextButton(onClick = onSkip) {
-            Text("Omitir por ahora", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+            Text("Omitir por ahora", color = appColors.textSecondary)
         }
     }
 }
