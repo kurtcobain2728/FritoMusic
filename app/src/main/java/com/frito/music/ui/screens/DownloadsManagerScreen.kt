@@ -152,8 +152,11 @@ fun DownloadItem(workInfo: WorkInfo) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val trackName = workInfo.progress.getString("trackName")
+                    ?: workInfo.outputData.getString("trackName")
+                    ?: "Descarga ${workInfo.id.toString().take(6)}"
                 Text(
-                    text = "Descarga ${workInfo.id.toString().take(6)}...",
+                    text = trackName,
                     color = appColors.textPrimary,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,

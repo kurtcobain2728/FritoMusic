@@ -126,7 +126,8 @@ class MusicDownloadWorker(
                                     PROGRESS to progressPercent,
                                     DOWNLOADED_MB to downloadedMB,
                                     TOTAL_MB to totalMB,
-                                    SPEED to speedStr
+                                    SPEED to speedStr,
+                                    "trackName" to trackName
                                 )
                             )
 
