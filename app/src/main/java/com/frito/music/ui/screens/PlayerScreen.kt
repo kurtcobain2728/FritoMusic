@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -42,6 +43,7 @@ import com.frito.music.ui.viewmodels.StreamViewModel
 import androidx.media3.common.Player
 import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.data.models.AudioFile
+import com.frito.music.ui.components.AddToYouTubePlaylistModal
 
 fun formatDuration(ms: Long): String {
     val totalSeconds = ms / 1000
@@ -67,6 +69,7 @@ fun PlayerScreen(viewModel: PlayerViewModel, streamViewModel: StreamViewModel, o
     var showPlaylistSheet by remember { mutableStateOf(false) }
     var showCreateDialog by remember { mutableStateOf(false) }
     var newPlaylistName by remember { mutableStateOf("") }
+    var showAddToYouTubePlaylist by remember { mutableStateOf(false) }
     
     val appColors = LocalAppColors.current
 
@@ -154,12 +157,18 @@ fun PlayerScreen(viewModel: PlayerViewModel, streamViewModel: StreamViewModel, o
                     )
                 }
                 Icon(
-                    imageVector = Icons.Default.AddCircleOutline,
+                    imageVector = if (currentAudio?.path?.startsWith("http") == true) Icons.AutoMirrored.Filled.PlaylistAdd else Icons.Default.AddCircleOutline,
                     contentDescription = "Add",
                     tint = appColors.textPrimary,
                     modifier = Modifier
                         .size(28.dp)
-                        .clickable { showPlaylistSheet = true }
+                        .clickable {
+                            if (currentAudio?.path?.startsWith("http") == true) {
+                                showAddToYouTubePlaylist = true
+                            } else {
+                                showPlaylistSheet = true
+                            }
+                        }
                 )
             }
 
@@ -511,6 +520,18 @@ fun PlayerScreen(viewModel: PlayerViewModel, streamViewModel: StreamViewModel, o
                 },
                 containerColor = appColors.surface
             )
+        }
+
+        if (showAddToYouTubePlaylist) {
+            currentAudio?.let { audio ->
+                val videoId = audio.path.substringAfterLast("/")
+                AddToYouTubePlaylistModal(
+                    videoId = videoId,
+                    streamViewModel = streamViewModel,
+                    onDismiss = { showAddToYouTubePlaylist = false },
+                    onPlaylistCreated = { showAddToYouTubePlaylist = false }
+                )
+            }
         }
     }
 }

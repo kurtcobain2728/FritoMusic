@@ -297,4 +297,21 @@ class StreamViewModel : ViewModel() {
     fun clearSelectedPlaylist() {
         _selectedPlaylistSongs.value = null
     }
+
+    fun createYouTubePlaylist(title: String) {
+        viewModelScope.launch {
+            YouTubeRepository.createYouTubePlaylist(title)
+                .onSuccess {
+                    loadUserPlaylists()
+                }
+                .onFailure { _errorMessage.value = it.message }
+        }
+    }
+
+    fun addToYouTubePlaylist(playlistId: String, videoId: String) {
+        viewModelScope.launch {
+            YouTubeRepository.addToPlaylist(playlistId, videoId)
+                .onFailure { _errorMessage.value = it.message }
+        }
+    }
 }
