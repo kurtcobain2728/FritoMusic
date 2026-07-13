@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -79,6 +80,9 @@ dependencies {
 
     // JS Engine for Extensions
     implementation("com.faendir.rhino:rhino-android:1.6.0")
+
+    // kotlinx.serialization for JSON parsing
+    implementation(libs.kotlinx.serialization.json)
 
     // WorkManager para descargas en background
     implementation("androidx.work:work-runtime-ktx:2.9.0")

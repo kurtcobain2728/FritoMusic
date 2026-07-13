@@ -14,6 +14,7 @@ ktor-client-encoding = { module = "io.ktor:ktor-client-encoding", version.ref = 
 brotli = { module = "org.brotli:dec", version.ref = "brotli" }
 newpipeextractor = { module = "com.github.TeamNewPipe:NewPipeExtractor", version.ref = "newpipe" }
 desugaring = { module = "com.android.tools:desugar_jdk_libs_nio", version.ref = "desugaring" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version = "1.7.3" }
 
 [plugins]
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
