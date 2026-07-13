@@ -55,6 +55,16 @@ fun StreamScreen(
 
     var searchQuery by remember { mutableStateOf("") }
     var selectedTab by remember { mutableStateOf(StreamTab.CANCIONES) }
+    var showTutorial by remember { mutableStateOf(!com.frito.music.data.repository.YouTubeLoginManager.hasSeenTutorial()) }
+
+    if (showTutorial) {
+        StreamTutorialScreen(
+            onFinish = {
+                com.frito.music.data.repository.YouTubeLoginManager.setTutorialSeen()
+                showTutorial = false
+            }
+        )
+    }
     
     Column(
         modifier = Modifier
@@ -85,12 +95,26 @@ fun StreamScreen(
 
             // Login button
             val isLoggedIn = com.frito.music.data.repository.YouTubeLoginManager.isLoggedIn()
-            IconButton(onClick = onNavigateToLogin) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .clickable { onNavigateToLogin() }
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
                 Icon(
                     imageVector = Icons.Default.AccountCircle,
                     contentDescription = if (isLoggedIn) "Cuenta" else "Iniciar sesión",
                     tint = if (isLoggedIn) Color(0xFF1DB954) else appColors.textSecondary
                 )
+                if (!isLoggedIn) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Iniciar sesión",
+                        color = appColors.textSecondary,
+                        fontSize = 14.sp
+                    )
+                }
             }
         }
         

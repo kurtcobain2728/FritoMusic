@@ -88,4 +88,12 @@ object YouTubeLoginManager {
         YouTube.visitorData = null
         YouTube.dataSyncId = null
     }
+
+    fun hasSeenTutorial(): Boolean {
+        return prefs?.getBoolean("has_seen_stream_tutorial", false) ?: false
+    }
+
+    fun setTutorialSeen() {
+        prefs?.edit()?.putBoolean("has_seen_stream_tutorial", true)?.apply()
+    }
 }
