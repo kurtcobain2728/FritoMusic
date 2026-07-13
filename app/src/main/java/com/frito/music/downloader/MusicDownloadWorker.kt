@@ -41,6 +41,7 @@ class MusicDownloadWorker(
         val artistName = inputData.getString("artistName") ?: "Desconocido"
         val albumName = inputData.getString("albumName") ?: ""
         val trackUrl = inputData.getString("trackUrl")
+        val quality = inputData.getString("quality") ?: "320kbps"
 
         val notificationId = trackId.hashCode()
         createChannel()
@@ -57,7 +58,7 @@ class MusicDownloadWorker(
             // 1. Instanciar el motor y obtener URL real
             Log.d("MusicDownloadWorker", "Fetching download URL for $trackName ($trackId)")
             val engine = ExtensionEngine(applicationContext, extensionId)
-            val downloadUrl = engine.getDownloadUrl(trackId, trackUrl)
+            val downloadUrl = engine.getDownloadUrl(trackId, trackUrl, quality)
             engine.destroy()
 
             if (downloadUrl.isNullOrEmpty()) {

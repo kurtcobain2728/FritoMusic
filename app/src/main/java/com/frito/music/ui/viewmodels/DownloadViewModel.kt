@@ -443,7 +443,8 @@ class DownloadViewModel(application: Application) : AndroidViewModel(application
             "artistName" to artistName,
             "albumName" to albumName,
             "imageUrl" to imageUrl,
-            "trackUrl" to (trackUrl ?: "")
+            "trackUrl" to (trackUrl ?: ""),
+            "quality" to selectedQuality
         )
 
         val downloadRequest = OneTimeWorkRequestBuilder<MusicDownloadWorker>()

@@ -239,14 +239,15 @@ class ExtensionEngine(private val context: Context, private val extensionName: S
         return result
     }
 
-    fun getDownloadUrl(trackId: String, trackUrl: String? = null): String? {
+    fun getDownloadUrl(trackId: String, trackUrl: String? = null, quality: String = "320kbps"): String? {
         val escapedId = trackId.replace("\\", "\\\\").replace("'", "\\'")
         val escapedUrl = trackUrl?.replace("\\", "\\\\")?.replace("'", "\\'") ?: ""
+        val escapedQuality = quality.replace("\\", "\\\\").replace("'", "\'")
 
         // Intentar getDownloadUrl primero (SpotiFLAC o similar directo)
         val hasGetDownloadUrl = evalBool("typeof __extension.getDownloadUrl === 'function'")
         if (hasGetDownloadUrl) {
-            val jsCode = "JSON.stringify(__extension.getDownloadUrl('$escapedId', '$escapedUrl'))"
+            val jsCode = "JSON.stringify(__extension.getDownloadUrl('$escapedId', '$escapedUrl', '$escapedQuality'))"
             val result = evalStr(jsCode)
             if (!result.isNullOrEmpty() && result != "null" && result != "undefined") {
                 return try {
@@ -269,7 +270,7 @@ class ExtensionEngine(private val context: Context, private val extensionName: S
             // so we can intercept the URL when it calls file.download
             val interceptCode = """
                 try {
-                    __extension.download('$escapedId', 'LOSSLESS', '/tmp/dummy.m4a', null);
+                    __extension.download('$escapedId', '$escapedQuality', '/tmp/dummy.m4a', null);
                 } catch(e) { log.error("Intercept error: " + e); }
             """.trimIndent()
             evalStr(interceptCode)
@@ -280,7 +281,7 @@ class ExtensionEngine(private val context: Context, private val extensionName: S
             }
 
             // Fallback for extensions that DO return an object
-            val jsCode = "JSON.stringify(__extension.download('$escapedId', '', {urlOnly: true, fetchUrlOnly: true}))"
+            val jsCode = "JSON.stringify(__extension.download('$escapedId', '$escapedQuality', {urlOnly: true, fetchUrlOnly: true}))"
             val result = evalStr(jsCode)
             if (!result.isNullOrEmpty() && result != "null" && result != "undefined") {
                 return try {
