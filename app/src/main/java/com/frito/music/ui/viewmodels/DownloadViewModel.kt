@@ -147,7 +147,7 @@ class DownloadViewModel(application: Application) : AndroidViewModel(application
                             extResults = SearchResult(emptyList(), emptyList(), emptyList())
                         }
                         
-                        if (extResults.tracks.isEmpty() || extResults.albums.isEmpty() || extResults.artists.isEmpty()) {
+                        if (extResults.tracks.isEmpty() && extResults.albums.isEmpty() && extResults.artists.isEmpty()) {
                             Log.d("DownloadViewModel", "Extension missing some results, merging with Deezer API")
                             val deezerResults = searchNativeDeezer(query)
                             extResults = SearchResult(
