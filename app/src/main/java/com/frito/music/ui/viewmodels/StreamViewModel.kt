@@ -5,11 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.frito.music.data.models.StreamableTrack
 import com.frito.music.data.network.yt.YouTubeRepository
 import com.music.innertube.models.ArtistItem
+import com.music.innertube.models.PlaylistItem
 import com.music.innertube.models.SongItem
 import com.music.innertube.pages.AlbumPage
 import com.music.innertube.pages.ArtistPage
 import com.music.innertube.pages.ExplorePage
 import com.music.innertube.pages.HomePage
+import com.music.innertube.pages.PlaylistPage
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,6 +59,15 @@ class StreamViewModel : ViewModel() {
 
     private val _isLoadingHome = MutableStateFlow(false)
     val isLoadingHome: StateFlow<Boolean> = _isLoadingHome.asStateFlow()
+
+    private val _userPlaylists = MutableStateFlow<List<PlaylistItem>>(emptyList())
+    val userPlaylists: StateFlow<List<PlaylistItem>> = _userPlaylists.asStateFlow()
+
+    private val _selectedPlaylistSongs = MutableStateFlow<PlaylistPage?>(null)
+    val selectedPlaylistSongs: StateFlow<PlaylistPage?> = _selectedPlaylistSongs.asStateFlow()
+
+    private val _isLoadingPlaylists = MutableStateFlow(false)
+    val isLoadingPlaylists: StateFlow<Boolean> = _isLoadingPlaylists.asStateFlow()
 
     private var searchJob: Job? = null
     
@@ -247,5 +258,43 @@ class StreamViewModel : ViewModel() {
 
             _isLoadingHome.value = false
         }
+    }
+
+    fun loadUserPlaylists() {
+        viewModelScope.launch {
+            _isLoadingPlaylists.value = true
+            _errorMessage.value = null
+
+            YouTubeRepository.getUserPlaylists()
+                .onSuccess { playlists ->
+                    _userPlaylists.value = playlists
+                }
+                .onFailure { error ->
+                    _errorMessage.value = error.message ?: "Error loading playlists"
+                }
+
+            _isLoadingPlaylists.value = false
+        }
+    }
+
+    fun loadPlaylistSongs(playlistId: String) {
+        viewModelScope.launch {
+            _isLoadingPlaylists.value = true
+            _errorMessage.value = null
+
+            YouTubeRepository.getPlaylistSongs(playlistId)
+                .onSuccess { playlistPage ->
+                    _selectedPlaylistSongs.value = playlistPage
+                }
+                .onFailure { error ->
+                    _errorMessage.value = error.message ?: "Error loading playlist songs"
+                }
+
+            _isLoadingPlaylists.value = false
+        }
+    }
+
+    fun clearSelectedPlaylist() {
+        _selectedPlaylistSongs.value = null
     }
 }

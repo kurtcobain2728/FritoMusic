@@ -4,6 +4,7 @@ import com.frito.music.data.models.StreamableTrack
 import com.music.innertube.NewPipeExtractor
 import com.music.innertube.YouTube
 import com.music.innertube.models.ArtistItem
+import com.music.innertube.models.PlaylistItem
 import com.music.innertube.models.SongItem
 import com.music.innertube.models.WatchEndpoint
 import com.music.innertube.models.YouTubeClient
@@ -15,6 +16,7 @@ import com.music.innertube.pages.AlbumPage
 import com.music.innertube.pages.ArtistPage
 import com.music.innertube.pages.ExplorePage
 import com.music.innertube.pages.HomePage
+import com.music.innertube.pages.PlaylistPage
 
 object YouTubeRepository {
 
@@ -138,5 +140,23 @@ object YouTubeRepository {
         nextResult.lyricsEndpoint?.let { endpoint ->
             YouTube.lyrics(endpoint).getOrThrow()
         }
+    }
+
+    suspend fun getUserPlaylists(): Result<List<PlaylistItem>> = runCatching {
+        val result = YouTube.library("FEmusic_liked_playlists").getOrThrow()
+        result.items.filterIsInstance<PlaylistItem>()
+    }
+
+    suspend fun getPlaylistSongs(playlistId: String): Result<PlaylistPage> = runCatching {
+        YouTube.playlist(playlistId).getOrThrow()
+    }
+
+    suspend fun createYouTubePlaylist(title: String): Result<String> = runCatching {
+        YouTube.createPlaylist(title) ?: throw Exception("Failed to create playlist")
+    }
+
+    suspend fun addToPlaylist(playlistId: String, videoId: String): Result<Unit> = runCatching {
+        YouTube.addToPlaylist(playlistId, videoId)
+        Unit
     }
 }
