@@ -27,14 +27,20 @@ object StorageUtils {
         context: Context,
         artistName: String,
         albumName: String,
-        trackName: String
+        trackName: String,
+        quality: String = "320kbps"
     ): Pair<Uri, OutputStream>? {
         val safeArtist = sanitizeFilename(artistName).ifEmpty { "Desconocido" }
         val safeAlbum = sanitizeFilename(albumName)
         val safeTrack = sanitizeFilename(trackName).ifEmpty { "Pista Desconocida" }
         
-        val fileName = "$safeTrack.mp3" // Defaulting to mp3, the downloader can detect MIME type later if needed
-        val mimeType = "audio/mpeg"
+        val (extension, mimeType) = when {
+            quality.contains("FLAC", ignoreCase = true) || 
+            quality.contains("Hi-Res", ignoreCase = true) -> "flac" to "audio/flac"
+            quality.startsWith("256") -> "m4a" to "audio/mp4"
+            else -> "mp3" to "audio/mpeg"
+        }
+        val fileName = "$safeTrack.$extension"
 
         // La estructura será: Music/FritoM/{Artist}/{Album}/
         val relativePath = if (safeAlbum.isNotEmpty()) {

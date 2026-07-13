@@ -71,7 +71,7 @@ class MusicDownloadWorker(
 
             // 2. Crear archivo local usando StorageUtils
             val fileStreamPair = StorageUtils.createAudioFileStream(
-                applicationContext, artistName, albumName, trackName
+                applicationContext, artistName, albumName, trackName, quality
             )
             
             if (fileStreamPair == null) {
