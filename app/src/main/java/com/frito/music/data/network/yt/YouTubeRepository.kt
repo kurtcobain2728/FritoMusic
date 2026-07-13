@@ -17,8 +17,11 @@ import com.music.innertube.pages.ArtistPage
 import com.music.innertube.pages.ExplorePage
 import com.music.innertube.pages.HomePage
 import com.music.innertube.pages.PlaylistPage
+import com.frito.music.utils.potoken.PoTokenGenerator
 
 object YouTubeRepository {
+
+    private val poTokenGenerator = PoTokenGenerator()
 
     // Clients that don't require PoToken (work without login)
     private val ANONYMOUS_CLIENTS = listOf(
@@ -76,7 +79,24 @@ object YouTubeRepository {
 
         for (client in clients) {
             try {
-                val playerResponse = YouTube.player(videoId, null, client).getOrThrow()
+                // Generate PoToken for clients that require it
+                val poToken = if (client.useWebPoTokens) {
+                    val sessionId = YouTube.dataSyncId ?: YouTube.visitorData
+                    if (sessionId != null) {
+                        poTokenGenerator.getWebClientPoToken(videoId, sessionId)
+                    } else {
+                        null
+                    }
+                } else {
+                    null
+                }
+
+                val playerResponse = YouTube.player(
+                    videoId = videoId,
+                    playlistId = null,
+                    client = client,
+                    poToken = poToken?.playerRequestPoToken
+                ).getOrThrow()
 
                 // Check if playability status is OK
                 if (playerResponse.playabilityStatus.status != "OK") {
@@ -89,10 +109,14 @@ object YouTubeRepository {
                     ?.maxByOrNull { it.bitrate }
 
                 if (format != null) {
-                    // 1. Try direct URL
+                    // 1. Try direct URL with PoToken
                     val directUrl = format.url
                     if (!directUrl.isNullOrEmpty()) {
-                        return@runCatching directUrl
+                        return@runCatching if (poToken != null) {
+                            "$directUrl&pot=${poToken.streamingDataPoToken}"
+                        } else {
+                            directUrl
+                        }
                     }
 
                     // 2. Try signatureCipher deobfuscation via NewPipe
@@ -101,7 +125,11 @@ object YouTubeRepository {
                     if (!sigCipher.isNullOrEmpty() || !cipher.isNullOrEmpty()) {
                         val deobfuscatedUrl = NewPipeExtractor.getStreamUrl(format, videoId)
                         if (deobfuscatedUrl != null) {
-                            return@runCatching deobfuscatedUrl
+                            return@runCatching if (poToken != null) {
+                                "$deobfuscatedUrl&pot=${poToken.streamingDataPoToken}"
+                            } else {
+                                deobfuscatedUrl
+                            }
                         }
                     }
 
