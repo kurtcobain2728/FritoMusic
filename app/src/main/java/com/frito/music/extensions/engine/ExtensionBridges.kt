@@ -1,5 +1,7 @@
 package com.frito.music.extensions.engine
 
+import android.content.Context
+import android.content.SharedPreferences
 import android.util.Log
 import org.mozilla.javascript.Scriptable
 import java.io.InputStream
@@ -197,19 +199,21 @@ class MatchingBridge {
     }
 }
 
-class StorageBridge {
-    private val store = mutableMapOf<String, String>()
-
-    fun get(key: String): String? {
-        return store[key]
+class StorageBridge(private val context: Context, private val extensionId: String) {
+    private val prefs: SharedPreferences by lazy {
+        context.getSharedPreferences("ext_storage_$extensionId", Context.MODE_PRIVATE)
     }
 
-    fun set(key: String, value: String?) {
-        if (value == null) {
-            store.remove(key)
-        } else {
-            store[key] = value
-        }
+    operator fun get(key: String): String? {
+        return prefs.getString(key, null)
+    }
+
+    operator fun set(key: String, value: String) {
+        prefs.edit().putString(key, value).apply()
+    }
+
+    fun remove(key: String) {
+        prefs.edit().remove(key).apply()
     }
 }
 

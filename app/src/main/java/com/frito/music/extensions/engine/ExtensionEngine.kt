@@ -39,7 +39,7 @@ class ExtensionEngine(private val context: Context, private val extensionName: S
         ScriptableObject.putProperty(scope, "gobackend", org.mozilla.javascript.Context.javaToJS(GoBackendBridge(), scope))
         ScriptableObject.putProperty(scope, "utils", org.mozilla.javascript.Context.javaToJS(UtilsBridge(), scope))
         ScriptableObject.putProperty(scope, "matching", org.mozilla.javascript.Context.javaToJS(MatchingBridge(), scope))
-        ScriptableObject.putProperty(scope, "storage", org.mozilla.javascript.Context.javaToJS(StorageBridge(), scope))
+        ScriptableObject.putProperty(scope, "storage", org.mozilla.javascript.Context.javaToJS(StorageBridge(context, extensionName), scope))
         ScriptableObject.putProperty(scope, "file", org.mozilla.javascript.Context.javaToJS(fileBridge, scope))
 
         val registerCode = """
