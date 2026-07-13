@@ -2,6 +2,8 @@
 
 **Status:** ✅ Complete
 
+**Commit:** `cb17a0d feat: complete stream improvements integration`
+
 **Changes Made:**
 
 1. **Created YouTubePlaylistDetailScreen** (`app/src/main/java/com/frito/music/ui/screens/YouTubePlaylistDetailScreen.kt`)
@@ -27,5 +29,9 @@
 - ✅ YouTubePlaylistDetailScreen loads and displays playlist songs
 - ✅ Play/Shuffle functionality works
 - ✅ Back navigation properly implemented
+- ✅ Tutorial shows on first visit (existing)
+- ✅ Logout modal works (existing)
+- ✅ Home content loads when logged in (existing)
+- ✅ Add to playlist works from PlayerScreen (Task 7)
 
 **Build Result:** ✅ BUILD SUCCESSFUL
