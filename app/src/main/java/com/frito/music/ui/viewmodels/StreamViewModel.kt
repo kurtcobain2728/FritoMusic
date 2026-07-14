@@ -12,12 +12,14 @@ import com.music.innertube.pages.ArtistPage
 import com.music.innertube.pages.ExplorePage
 import com.music.innertube.pages.HomePage
 import com.music.innertube.pages.PlaylistPage
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class StreamViewModel : ViewModel() {
     
@@ -85,7 +87,10 @@ class StreamViewModel : ViewModel() {
             _isSearching.value = true
             _errorMessage.value = null
 
-            YouTubeRepository.search(query)
+            val searchResult = withContext(Dispatchers.IO) {
+                YouTubeRepository.search(query)
+            }
+            searchResult
                 .onSuccess { results ->
                     _searchResults.value = results
                 }
@@ -94,7 +99,10 @@ class StreamViewModel : ViewModel() {
                     _searchResults.value = null
                 }
 
-            YouTubeRepository.searchArtists(query)
+            val artistResult = withContext(Dispatchers.IO) {
+                YouTubeRepository.searchArtists(query)
+            }
+            artistResult
                 .onSuccess { artists ->
                     _artistResults.value = artists
                 }
@@ -108,7 +116,10 @@ class StreamViewModel : ViewModel() {
         viewModelScope.launch {
             _errorMessage.value = null
             
-            YouTubeRepository.getStreamUrl(track.videoId)
+            val result = withContext(Dispatchers.IO) {
+                YouTubeRepository.getStreamUrl(track.videoId)
+            }
+            result
                 .onSuccess { streamUrl ->
                     val audioFile = track.toAudioFile(streamUrl)
                     playerViewModel.playAudios(listOf(audioFile), 0)
@@ -127,7 +138,10 @@ class StreamViewModel : ViewModel() {
             _isLoadingLyrics.value = true
             _currentLyrics.value = null
             
-            YouTubeRepository.getLyrics(videoId)
+            val result = withContext(Dispatchers.IO) {
+                YouTubeRepository.getLyrics(videoId)
+            }
+            result
                 .onSuccess { lyrics ->
                     _currentLyrics.value = lyrics
                 }
@@ -141,7 +155,10 @@ class StreamViewModel : ViewModel() {
             _isLoadingArtist.value = true
             _errorMessage.value = null
 
-            YouTubeRepository.getArtistDetails(browseId)
+            val result = withContext(Dispatchers.IO) {
+                YouTubeRepository.getArtistDetails(browseId)
+            }
+            result
                 .onSuccess { artistPage ->
                     _selectedArtist.value = artistPage
                 }
@@ -170,7 +187,10 @@ class StreamViewModel : ViewModel() {
                 thumbnailUrl = song.thumbnail
             )
 
-            YouTubeRepository.getStreamUrl(song.id)
+            val result = withContext(Dispatchers.IO) {
+                YouTubeRepository.getStreamUrl(song.id)
+            }
+            result
                 .onSuccess { streamUrl ->
                     val audioFile = streamableTrack.toAudioFile(streamUrl)
                     playerViewModel.playAudios(listOf(audioFile), 0)
@@ -187,7 +207,10 @@ class StreamViewModel : ViewModel() {
             _isLoadingAlbum.value = true
             _errorMessage.value = null
 
-            YouTubeRepository.getAlbumDetails(browseId)
+            val result = withContext(Dispatchers.IO) {
+                YouTubeRepository.getAlbumDetails(browseId)
+            }
+            result
                 .onSuccess { albumPage ->
                     _selectedAlbum.value = albumPage
                 }
@@ -216,7 +239,10 @@ class StreamViewModel : ViewModel() {
                 thumbnailUrl = song.thumbnail
             )
 
-            YouTubeRepository.getStreamUrl(song.id)
+            val result = withContext(Dispatchers.IO) {
+                YouTubeRepository.getStreamUrl(song.id)
+            }
+            result
                 .onSuccess { streamUrl ->
                     val audioFile = streamableTrack.toAudioFile(streamUrl)
                     playerViewModel.playAudios(listOf(audioFile), 0)
@@ -240,7 +266,10 @@ class StreamViewModel : ViewModel() {
             _isLoadingHome.value = true
             _errorMessage.value = null
 
-            YouTubeRepository.getHome()
+            val homeResult = withContext(Dispatchers.IO) {
+                YouTubeRepository.getHome()
+            }
+            homeResult
                 .onSuccess { home ->
                     _homePage.value = home
                 }
@@ -248,7 +277,10 @@ class StreamViewModel : ViewModel() {
                     _errorMessage.value = error.message ?: "Error loading home content"
                 }
 
-            YouTubeRepository.getExplore()
+            val exploreResult = withContext(Dispatchers.IO) {
+                YouTubeRepository.getExplore()
+            }
+            exploreResult
                 .onSuccess { explore ->
                     _explorePage.value = explore
                 }
@@ -265,7 +297,10 @@ class StreamViewModel : ViewModel() {
             _isLoadingPlaylists.value = true
             _errorMessage.value = null
 
-            YouTubeRepository.getUserPlaylists()
+            val result = withContext(Dispatchers.IO) {
+                YouTubeRepository.getUserPlaylists()
+            }
+            result
                 .onSuccess { playlists ->
                     _userPlaylists.value = playlists
                 }
@@ -282,7 +317,10 @@ class StreamViewModel : ViewModel() {
             _isLoadingPlaylists.value = true
             _errorMessage.value = null
 
-            YouTubeRepository.getPlaylistSongs(playlistId)
+            val result = withContext(Dispatchers.IO) {
+                YouTubeRepository.getPlaylistSongs(playlistId)
+            }
+            result
                 .onSuccess { playlistPage ->
                     _selectedPlaylistSongs.value = playlistPage
                 }
@@ -300,7 +338,10 @@ class StreamViewModel : ViewModel() {
 
     fun createYouTubePlaylist(title: String) {
         viewModelScope.launch {
-            YouTubeRepository.createYouTubePlaylist(title)
+            val result = withContext(Dispatchers.IO) {
+                YouTubeRepository.createYouTubePlaylist(title)
+            }
+            result
                 .onSuccess {
                     loadUserPlaylists()
                 }
@@ -310,7 +351,10 @@ class StreamViewModel : ViewModel() {
 
     fun addToYouTubePlaylist(playlistId: String, videoId: String) {
         viewModelScope.launch {
-            YouTubeRepository.addToPlaylist(playlistId, videoId)
+            val result = withContext(Dispatchers.IO) {
+                YouTubeRepository.addToPlaylist(playlistId, videoId)
+            }
+            result
                 .onFailure { _errorMessage.value = it.message }
         }
     }
