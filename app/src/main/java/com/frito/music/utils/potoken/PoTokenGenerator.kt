@@ -2,7 +2,6 @@ package com.frito.music.utils.potoken
 
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -18,11 +17,11 @@ class PoTokenGenerator {
     private var webPoTokenStreamingPot: String? = null
     private var webPoTokenGenerator: PoTokenWebView? = null
 
-    fun getWebClientPoToken(videoId: String, sessionId: String): PoTokenResult? {
+    suspend fun getWebClientPoToken(videoId: String, sessionId: String): PoTokenResult? {
         if (!webViewSupported || webViewBadImpl) return null
 
         return try {
-            runBlocking { getWebClientPoToken(videoId, sessionId, forceRecreate = false) }
+            getWebClientPoToken(videoId, sessionId, forceRecreate = false)
         } catch (e: Exception) {
             when (e) {
                 is BadWebViewException -> {

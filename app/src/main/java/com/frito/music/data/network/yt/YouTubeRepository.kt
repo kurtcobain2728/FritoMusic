@@ -18,6 +18,8 @@ import com.music.innertube.pages.ExplorePage
 import com.music.innertube.pages.HomePage
 import com.music.innertube.pages.PlaylistPage
 import com.frito.music.utils.potoken.PoTokenGenerator
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 object YouTubeRepository {
 
@@ -72,7 +74,8 @@ object YouTubeRepository {
         YouTube.explore().getOrThrow()
     }
 
-    suspend fun getStreamUrl(videoId: String): Result<String> = runCatching {
+    suspend fun getStreamUrl(videoId: String): Result<String> = withContext(Dispatchers.IO) {
+    runCatching {
         var lastException: Exception? = null
         val isLoggedIn = YouTube.cookie != null
         val clients = if (isLoggedIn) AUTHENTICATED_CLIENTS else ANONYMOUS_CLIENTS
@@ -167,6 +170,7 @@ object YouTubeRepository {
         }
 
         throw lastException ?: Exception("Could not resolve stream URL with any client")
+    }
     }
 
     suspend fun getLyrics(videoId: String): Result<String?> = runCatching {
