@@ -1,19 +1,29 @@
 <lint-module
     format="1"
-    dir="/home/koda/Documentos/frito-music-definitive/Frito-Music/app"
+    dir="C:\Users\kurtc\Documents\FritoM\FritoMusic\app"
     name=":app"
     type="APP"
-    maven="Frito-Music:app:"
-    agpVersion="8.2.0"
+    maven="Frito-Music:app:unspecified"
+    agpVersion="8.9.0"
     buildFolder="build"
-    bootClassPath="/home/koda/Android/Sdk/platforms/android-34/android.jar:/home/koda/Android/Sdk/build-tools/34.0.0/core-lambda-stubs.jar"
-    javaSourceLevel="1.8"
+    bootClassPath="C:\Users\kurtc\AppData\Local\Android\Sdk\platforms\android-34\android.jar;C:\Users\kurtc\AppData\Local\Android\Sdk\build-tools\35.0.0\core-lambda-stubs.jar"
+    javaSourceLevel="21"
     compileTarget="android-34"
     neverShrinking="true">
   <lintOptions
+      disable="FlowOperatorInvokedInComposition,ComposableStateFlowValue"
       abortOnError="true"
       absolutePaths="true"
       checkReleaseBuilds="true"
-      explainIssues="true"/>
+      explainIssues="true">
+    <severities>
+      <severity
+        id="ComposableStateFlowValue"
+        severity="IGNORE" />
+      <severity
+        id="FlowOperatorInvokedInComposition"
+        severity="IGNORE" />
+    </severities>
+  </lintOptions>
   <variant name="debug"/>
 </lint-module>

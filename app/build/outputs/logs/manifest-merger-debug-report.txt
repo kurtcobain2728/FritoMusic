@@ -1,704 +1,726 @@
 -- Merging decision tree log ---
 manifest
-ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:2:1-47:12
-INJECTED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:2:1-47:12
-INJECTED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:2:1-47:12
-INJECTED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:2:1-47:12
-MERGED from [io.coil-kt:coil-compose:2.5.0] /home/koda/.gradle/caches/transforms-4/691bd85df47c287c01f0ba20bdb0f714/transformed/jetified-coil-compose-2.5.0/AndroidManifest.xml:2:1-7:12
-MERGED from [io.coil-kt:coil-compose-base:2.5.0] /home/koda/.gradle/caches/transforms-4/982683f7f5ee28a5f87dbbf5da021d39/transformed/jetified-coil-compose-base-2.5.0/AndroidManifest.xml:2:1-7:12
-MERGED from [io.coil-kt:coil:2.5.0] /home/koda/.gradle/caches/transforms-4/04a012dea421514cdecefa7a09edcfcd/transformed/jetified-coil-2.5.0/AndroidManifest.xml:2:1-7:12
-MERGED from [com.google.accompanist:accompanist-drawablepainter:0.32.0] /home/koda/.gradle/caches/transforms-4/ad5c58f83efd8c5e15182985253949b4/transformed/jetified-accompanist-drawablepainter-0.32.0/AndroidManifest.xml:17:1-23:12
-MERGED from [androidx.compose.material3:material3-android:1.2.0] /home/koda/.gradle/caches/transforms-4/668ff39cb3d0a048298c4a2fba89287d/transformed/jetified-material3-release/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.compose.material:material-android:1.6.1] /home/koda/.gradle/caches/transforms-4/70855b9233dd142afd1f277df5133e05/transformed/jetified-material-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.material:material-icons-core-android:1.6.1] /home/koda/.gradle/caches/transforms-4/ce7336918e8f4c2b80ffbb1b15965cc3/transformed/jetified-material-icons-core-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.material:material-icons-extended-android:1.6.1] /home/koda/.gradle/caches/transforms-4/391e138d4654751aa5626ca189c8ae4c/transformed/jetified-material-icons-extended-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.material:material-ripple-android:1.6.1] /home/koda/.gradle/caches/transforms-4/00ab23715a0f5bf88482ff4936091311/transformed/jetified-material-ripple-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.animation:animation-core-android:1.6.1] /home/koda/.gradle/caches/transforms-4/665de527c599d4d1136ca6dc65a8bb9b/transformed/jetified-animation-core-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.animation:animation-android:1.6.1] /home/koda/.gradle/caches/transforms-4/951685fc86088777cc62ad311920df8d/transformed/jetified-animation-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.foundation:foundation-layout-android:1.6.1] /home/koda/.gradle/caches/transforms-4/32e169fd45f08ef15fbc226e75b677d8/transformed/jetified-foundation-layout-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.foundation:foundation-android:1.6.1] /home/koda/.gradle/caches/transforms-4/60dbc46f4d80b8c1c66811aeb531bb81/transformed/jetified-foundation-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.ui:ui-tooling-data-android:1.6.1] /home/koda/.gradle/caches/transforms-4/03b0ff12e69e68baba98dadb70a04d71/transformed/jetified-ui-tooling-data-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.ui:ui-unit-android:1.6.1] /home/koda/.gradle/caches/transforms-4/09daddb0b39802cc5e9a40578ff2f0eb/transformed/jetified-ui-unit-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.ui:ui-geometry-android:1.6.1] /home/koda/.gradle/caches/transforms-4/bc0e52d702af626faf09c67b807a2e3f/transformed/jetified-ui-geometry-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.ui:ui-util-android:1.6.1] /home/koda/.gradle/caches/transforms-4/42726104c0a1bad4711d9d46de7d789c/transformed/jetified-ui-util-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.ui:ui-text-android:1.6.1] /home/koda/.gradle/caches/transforms-4/81e4c156bbd384beaeaa10d55a2b7655/transformed/jetified-ui-text-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.6.1] /home/koda/.gradle/caches/transforms-4/a73dbf95254b1c36feb7a6d787b48c43/transformed/jetified-ui-tooling-preview-release/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.compose.ui:ui-tooling-android:1.6.1] /home/koda/.gradle/caches/transforms-4/f27f129536f6fd2cb2981026f3e41d93/transformed/jetified-ui-tooling-release/AndroidManifest.xml:17:1-28:12
-MERGED from [androidx.compose.ui:ui-graphics-android:1.6.1] /home/koda/.gradle/caches/transforms-4/b3eb1e6346701cd9382df96dc60dd85e/transformed/jetified-ui-graphics-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.ui:ui-android:1.6.1] /home/koda/.gradle/caches/transforms-4/75316661111c61cde9a2823d055e01b8/transformed/jetified-ui-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.ui:ui-test-manifest:1.6.1] /home/koda/.gradle/caches/transforms-4/0efb1de3aa89a75d9b49d9ce5d11ed7d/transformed/jetified-ui-test-manifest-1.6.1/AndroidManifest.xml:17:1-28:12
-MERGED from [androidx.activity:activity:1.8.2] /home/koda/.gradle/caches/transforms-4/aa1574ff68116482343102bdfa2618f7/transformed/jetified-activity-1.8.2/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.activity:activity-compose:1.8.2] /home/koda/.gradle/caches/transforms-4/7451a0a4eeb6a026baeb59dbe12c8b7e/transformed/jetified-activity-compose-1.8.2/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.activity:activity-ktx:1.8.2] /home/koda/.gradle/caches/transforms-4/9e7993719c7c9a005fc6a0bbf7377a98/transformed/jetified-activity-ktx-1.8.2/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.work:work-runtime-ktx:2.9.0] /home/koda/.gradle/caches/transforms-4/d586a1e13d4be593b956aa67e278af1e/transformed/work-runtime-ktx-2.9.0/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:17:1-145:12
-MERGED from [androidx.emoji2:emoji2:1.3.0] /home/koda/.gradle/caches/transforms-4/11f1c8cc4199395c97ff019f192afb91/transformed/jetified-emoji2-1.3.0/AndroidManifest.xml:17:1-35:12
-MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] /home/koda/.gradle/caches/transforms-4/055a716155e49742603f7ab467e6766f/transformed/jetified-lifecycle-process-2.7.0/AndroidManifest.xml:17:1-35:12
-MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.7.0] /home/koda/.gradle/caches/transforms-4/8c7829e0b4c5ad851bfdfdff9bd9f18e/transformed/jetified-lifecycle-livedata-core-ktx-2.7.0/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.lifecycle:lifecycle-service:2.7.0] /home/koda/.gradle/caches/transforms-4/242bcebe04df1c46841535f5c0fca3bc/transformed/jetified-lifecycle-service-2.7.0/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.lifecycle:lifecycle-livedata:2.7.0] /home/koda/.gradle/caches/transforms-4/af3f905e49de5927bb61189ceeeb9fa0/transformed/lifecycle-livedata-2.7.0/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.7.0] /home/koda/.gradle/caches/transforms-4/3cf13952dc1f643efd4533b9e29e869c/transformed/lifecycle-livedata-core-2.7.0/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] /home/koda/.gradle/caches/transforms-4/4b9d5a92bf98d8e5cb2ead6c1a20fc41/transformed/jetified-savedstate-ktx-1.2.1/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.savedstate:savedstate:1.2.1] /home/koda/.gradle/caches/transforms-4/35f4dba1388fbabdda272a3c15ce5d1a/transformed/jetified-savedstate-1.2.1/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0] /home/koda/.gradle/caches/transforms-4/293a388b3dffd99e56d6f170d674ef87/transformed/jetified-lifecycle-viewmodel-ktx-2.7.0/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.7.0] /home/koda/.gradle/caches/transforms-4/7cc87bbec0f6aef2bda442e9a9bd0ecd/transformed/lifecycle-viewmodel-2.7.0/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.7.0] /home/koda/.gradle/caches/transforms-4/c994bc430e1984fa279fb4fc73bdd8c8/transformed/jetified-lifecycle-viewmodel-savedstate-2.7.0/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.media3:media3-exoplayer:1.2.1] /home/koda/.gradle/caches/transforms-4/2c01ae329e6b0276c06ae596e84e2f2e/transformed/jetified-media3-exoplayer-1.2.1/AndroidManifest.xml:17:1-24:12
-MERGED from [androidx.media3:media3-session:1.2.1] /home/koda/.gradle/caches/transforms-4/9be3607ea35955de0efb8a6cb331db40/transformed/jetified-media3-session-1.2.1/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.media3:media3-extractor:1.2.1] /home/koda/.gradle/caches/transforms-4/7e5a7a84e5538365f2664f47889ec12f/transformed/jetified-media3-extractor-1.2.1/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.media3:media3-container:1.2.1] /home/koda/.gradle/caches/transforms-4/d6887886842ff8b6a2e485d074668361/transformed/jetified-media3-container-1.2.1/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.media3:media3-datasource:1.2.1] /home/koda/.gradle/caches/transforms-4/66629430fb05274c0847a0fe4c89f34c/transformed/jetified-media3-datasource-1.2.1/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.media3:media3-decoder:1.2.1] /home/koda/.gradle/caches/transforms-4/1774bc51c3d1de81fd424f2316ebae16/transformed/jetified-media3-decoder-1.2.1/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.media3:media3-database:1.2.1] /home/koda/.gradle/caches/transforms-4/e9f87917f7207380e005a59dd6cb3453/transformed/jetified-media3-database-1.2.1/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.media3:media3-common:1.2.1] /home/koda/.gradle/caches/transforms-4/58440cf95f50183a43fdf45f16bb2334/transformed/jetified-media3-common-1.2.1/AndroidManifest.xml:17:1-24:12
-MERGED from [androidx.media3:media3-ui:1.2.1] /home/koda/.gradle/caches/transforms-4/6e4d51b3f5173a08d4f3f4d2f1823a32/transformed/jetified-media3-ui-1.2.1/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.recyclerview:recyclerview:1.3.0] /home/koda/.gradle/caches/transforms-4/f365cb2f5f52849dd029d9aa29da1543/transformed/recyclerview-1.3.0/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /home/koda/.gradle/caches/transforms-4/d0165b1fd20940363e0158ebbba1ddb9/transformed/jetified-customview-poolingcontainer-1.0.0/AndroidManifest.xml:17:1-23:12
-MERGED from [io.coil-kt:coil-base:2.5.0] /home/koda/.gradle/caches/transforms-4/658235cdca723637813c28b9af08b787/transformed/jetified-coil-base-2.5.0/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.core:core-ktx:1.12.0] /home/koda/.gradle/caches/transforms-4/9fc8b00659633a5b86968ede9b39927a/transformed/jetified-core-ktx-1.12.0/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.media:media:1.6.0] /home/koda/.gradle/caches/transforms-4/2111a5c4be1e306a488a6b8be7b4bf78/transformed/media-1.6.0/AndroidManifest.xml:17:1-24:12
-MERGED from [androidx.customview:customview:1.0.0] /home/koda/.gradle/caches/transforms-4/2a9ec6635ba7a7d41eeece276ac4805f/transformed/customview-1.0.0/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.autofill:autofill:1.0.0] /home/koda/.gradle/caches/transforms-4/5e851212d1a084a29bfe3dad3f3614eb/transformed/jetified-autofill-1.0.0/AndroidManifest.xml:17:1-24:12
-MERGED from [androidx.appcompat:appcompat-resources:1.6.1] /home/koda/.gradle/caches/transforms-4/b2cc0bf0041d5208d3656dc07ada78b3/transformed/jetified-appcompat-resources-1.6.1/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] /home/koda/.gradle/caches/transforms-4/291029d6b55cff68d8c36d98c0efbe7f/transformed/vectordrawable-animated-1.1.0/AndroidManifest.xml:17:1-24:12
-MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] /home/koda/.gradle/caches/transforms-4/7b65f9a806e9a7c35fb70a4ac7d4fe1c/transformed/vectordrawable-1.1.0/AndroidManifest.xml:17:1-24:12
-MERGED from [androidx.core:core:1.12.0] /home/koda/.gradle/caches/transforms-4/ee95303aba46cd405cd517288d187148/transformed/core-1.12.0/AndroidManifest.xml:17:1-30:12
-MERGED from [androidx.lifecycle:lifecycle-runtime:2.7.0] /home/koda/.gradle/caches/transforms-4/511e6b71b8cf3fdfbe4fc776d18cbf5f/transformed/lifecycle-runtime-2.7.0/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0] /home/koda/.gradle/caches/transforms-4/eb757e40221b642e235f19afa2837979/transformed/jetified-lifecycle-viewmodel-compose-2.7.0/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.lifecycle:lifecycle-runtime-ktx:2.7.0] /home/koda/.gradle/caches/transforms-4/e6c1b9d74b6a41a14fee3929e9b8674e/transformed/jetified-lifecycle-runtime-ktx-2.7.0/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.compose.runtime:runtime-saveable-android:1.6.1] /home/koda/.gradle/caches/transforms-4/86ed55760079f2d22f629c5759fd9d82/transformed/jetified-runtime-saveable-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.compose.runtime:runtime-android:1.6.1] /home/koda/.gradle/caches/transforms-4/df192417af8e16f510c8f04e4a1f8d5c/transformed/jetified-runtime-release/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.room:room-ktx:2.5.0] /home/koda/.gradle/caches/transforms-4/5ce4ed40c2c6972f51000d61d3606ef2/transformed/jetified-room-ktx-2.5.0/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.room:room-runtime:2.5.0] /home/koda/.gradle/caches/transforms-4/f08c754a2c8f0d2f59ef27ec07017fa2/transformed/room-runtime-2.5.0/AndroidManifest.xml:17:1-31:12
-MERGED from [com.faendir.rhino:rhino-android:1.6.0] /home/koda/.gradle/caches/transforms-4/1b4c57b563a1fbfcb8a2f970fdfb9985/transformed/jetified-rhino-android-1.6.0/AndroidManifest.xml:2:1-10:12
-MERGED from [androidx.sqlite:sqlite-framework:2.3.0] /home/koda/.gradle/caches/transforms-4/1a2db40516735a8b00914c83813868b4/transformed/sqlite-framework-2.3.0/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.annotation:annotation-experimental:1.4.0] /home/koda/.gradle/caches/transforms-4/a68049f476bdec881b024da18b68410f/transformed/jetified-annotation-experimental-1.4.0/AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.sqlite:sqlite:2.3.0] /home/koda/.gradle/caches/transforms-4/c0c73c87c5cf190477908c3b6cdba443/transformed/sqlite-2.3.0/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /home/koda/.gradle/caches/transforms-4/e29bab75a5b3794c3e2b8d5bb74d5702/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:17:1-27:12
-MERGED from [androidx.exifinterface:exifinterface:1.3.6] /home/koda/.gradle/caches/transforms-4/a9dca2be8f2bc36501f9c84a494635fb/transformed/exifinterface-1.3.6/AndroidManifest.xml:17:1-24:12
-MERGED from [androidx.interpolator:interpolator:1.0.0] /home/koda/.gradle/caches/transforms-4/0a455b413f9bd7542309744242af60b3/transformed/interpolator-1.0.0/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.arch.core:core-runtime:2.2.0] /home/koda/.gradle/caches/transforms-4/74ce941fd3d33a2d684172b9520c5619/transformed/core-runtime-2.2.0/AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:17:1-55:12
-MERGED from [androidx.startup:startup-runtime:1.1.1] /home/koda/.gradle/caches/transforms-4/c72f88799e216773ccba4e1097f2809b/transformed/jetified-startup-runtime-1.1.1/AndroidManifest.xml:17:1-33:12
-MERGED from [androidx.tracing:tracing:1.0.0] /home/koda/.gradle/caches/transforms-4/b668ad940e3fa88c90f4d9cae6d3b6e1/transformed/jetified-tracing-1.0.0/AndroidManifest.xml:17:1-24:12
+ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:2:1-49:12
+INJECTED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:2:1-49:12
+INJECTED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:2:1-49:12
+INJECTED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:2:1-49:12
+MERGED from [:innertube] C:\Users\kurtc\Documents\FritoM\FritoMusic\innertube\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.media3:media3-session:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\3b107819a63998286f4894f9091ca55c\transformed\jetified-media3-session-1.2.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.media3:media3-ui:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\173ea117a3dc94203a74ec2607ebccf2\transformed\jetified-media3-ui-1.2.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.media3:media3-extractor:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\697369c0728e9352e0e639822c858864\transformed\jetified-media3-extractor-1.2.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.media3:media3-container:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\aabf39faaf85392fb9860e4adf57722b\transformed\jetified-media3-container-1.2.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.media3:media3-datasource:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\1d60fc815748692407f3186a23c57694\transformed\jetified-media3-datasource-1.2.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.media3:media3-decoder:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\7cd41cd3bd6240b1f7b3b9bc5b57ada4\transformed\jetified-media3-decoder-1.2.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.media3:media3-database:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\7118ef015d155f2471044c076d2fcf1c\transformed\jetified-media3-database-1.2.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.media3:media3-common:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4d4df8fb8ff4d584705d4549d309032b\transformed\jetified-media3-common-1.2.1\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.media3:media3-exoplayer:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\86923ceb7d4395a7c91b8d67344b1718\transformed\jetified-media3-exoplayer-1.2.1\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.media:media:1.6.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\e05128f4be85bf1025d0f0fc6014efa1\transformed\media-1.6.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.recyclerview:recyclerview:1.3.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\f01eecef89342a94d9d775b27c198734\transformed\recyclerview-1.3.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.work:work-runtime-ktx:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\a01d9c7a8f0f68d618263f0ffcb96d20\transformed\work-runtime-ktx-2.9.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:17:1-145:12
+MERGED from [androidx.compose.material3:material3-android:1.2.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\a964b150e370c8193a2700ceee37984f\transformed\jetified-material3-release\AndroidManifest.xml:17:1-22:12
+MERGED from [io.coil-kt:coil-compose:2.5.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\af3bc169505d8a158bd70777bf1ad111\transformed\jetified-coil-compose-2.5.0\AndroidManifest.xml:2:1-7:12
+MERGED from [io.coil-kt:coil-compose-base:2.5.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\64739fce74622336efd6cb89ebdc5e8a\transformed\jetified-coil-compose-base-2.5.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material:material-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\f4ca62addc622677d4f8987f4fce3a32\transformed\jetified-material-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material:material-icons-core-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\617bc839066b6bfad7a4527187133847\transformed\jetified-material-icons-core-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material:material-icons-extended-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\51d5948778894cf5baeed33acb31dc2a\transformed\jetified-material-icons-extended-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material:material-ripple-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\b259b7fb1426bb14cc391cac1a897315\transformed\jetified-material-ripple-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.animation:animation-core-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4314031db6c5507c06cb72afae2afb08\transformed\jetified-animation-core-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.animation:animation-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\dd930b8117597d22f99b6837eace2605\transformed\jetified-animation-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\f1d55937575ddc82ac0e166a605cbebc\transformed\jetified-foundation-layout-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.foundation:foundation-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\88fd8fb432f30bd41ca0c2466d832b8a\transformed\jetified-foundation-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\fc207c210507930a8f9a9dec51aa7eab\transformed\jetified-ui-tooling-data-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-unit-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\299117345c51735bf1c91374ebb09a6d\transformed\jetified-ui-unit-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-geometry-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\053c82cb90c471f0aff2f5cd671b5c47\transformed\jetified-ui-geometry-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-util-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\74516231b53820fd33ebbd25a42c9ee5\transformed\jetified-ui-util-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-text-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6dff409187cf7a476c6f94766efb8fce\transformed\jetified-ui-text-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\cad467b8aedbe909dfc44e4addb6d979\transformed\jetified-ui-tooling-preview-release\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.compose.ui:ui-tooling-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4b927998a1df90b68ba4acebf0e59c50\transformed\jetified-ui-tooling-release\AndroidManifest.xml:17:1-28:12
+MERGED from [androidx.compose.ui:ui-graphics-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\007e5255dc5d2021e93933e9b64df5eb\transformed\jetified-ui-graphics-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-test-manifest:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\cc2e85246042036403ce00b69bd42861\transformed\jetified-ui-test-manifest-1.6.1\AndroidManifest.xml:17:1-28:12
+MERGED from [androidx.activity:activity:1.8.2] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4e5dec3081d1fd70824c1714b2293d1f\transformed\jetified-activity-1.8.2\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.activity:activity-ktx:1.8.2] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\5b5a8c929eefa610156f988c4fda7413\transformed\jetified-activity-ktx-1.8.2\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.activity:activity-compose:1.8.2] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\bb56784884ab229e747d8cfebfa77237\transformed\jetified-activity-compose-1.8.2\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\ec8b12cf19c55de022505d70da2df78e\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\19c3a63ca66bba8803ad51b2f22fb750\transformed\jetified-lifecycle-process-2.7.0\AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\f1782aa26c4ea873d7b7eb0a55384653\transformed\jetified-lifecycle-livedata-core-ktx-2.7.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-service:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\24979028917fc0efcfc744c27bd09751\transformed\jetified-lifecycle-service-2.7.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\be406df387bf1141ae97eb29a8b131c1\transformed\lifecycle-livedata-2.7.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\04ebd309a5e0541cd8f9818f49aa4673\transformed\lifecycle-livedata-core-2.7.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\3ebea775652a1edf3b0199e971f30fcc\transformed\jetified-savedstate-ktx-1.2.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.savedstate:savedstate:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\44248c8f472d205232bb33d872328868\transformed\jetified-savedstate-1.2.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\f6a6b40a2b6690664b8c390c794704b9\transformed\jetified-lifecycle-viewmodel-savedstate-2.7.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\aa227de5386af07c6f7915e8b872f953\transformed\jetified-lifecycle-viewmodel-ktx-2.7.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\de16bf58b0f65616363df575f2c420e5\transformed\lifecycle-viewmodel-2.7.0\AndroidManifest.xml:17:1-22:12
+MERGED from [io.coil-kt:coil:2.5.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\95da5dd75609033d22137e8a7fcea7d8\transformed\jetified-coil-2.5.0\AndroidManifest.xml:2:1-7:12
+MERGED from [io.coil-kt:coil-base:2.5.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\3f7a42f7d98e6ac86c3abba393b29435\transformed\jetified-coil-base-2.5.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-runtime:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\41a1c835ddbf30ba9eb133b53aa3a17d\transformed\lifecycle-runtime-2.7.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\1bcbbd9c5f0bb1e3c0d1cc45144792f6\transformed\jetified-lifecycle-runtime-ktx-2.7.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4856dabb7b589b717ba3de6ec95746ce\transformed\jetified-lifecycle-viewmodel-compose-2.7.0\AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.accompanist:accompanist-drawablepainter:0.32.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\beba605afd2642443628134135e27ee8\transformed\jetified-accompanist-drawablepainter-0.32.0\AndroidManifest.xml:17:1-23:12
+MERGED from [androidx.compose.ui:ui-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\696f37892b17205d25ebf5bc67415e18\transformed\jetified-ui-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.customview:customview:1.0.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\bc13114920450f01b575ab0143aafbb5\transformed\customview-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.autofill:autofill:1.0.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\b3c9b4f7ee48625e411506eb54af3c47\transformed\jetified-autofill-1.0.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.appcompat:appcompat-resources:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\3489a062084efdcbc7728d98d7631759\transformed\jetified-appcompat-resources-1.6.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\eb7407d40d5d6ff95ccf37ac57a8bc6a\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\ea865cf58d3a653b316b9f0c079ef744\transformed\vectordrawable-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.core:core:1.12.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\06efa49984d53b716d6cc938ab58f8a6\transformed\core-1.12.0\AndroidManifest.xml:17:1-30:12
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\fdb07fc16e821269e364ecb20dbb531e\transformed\jetified-customview-poolingcontainer-1.0.0\AndroidManifest.xml:17:1-23:12
+MERGED from [androidx.core:core-ktx:1.12.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\dd7947696470bb45a3b4160a24d27c85\transformed\jetified-core-ktx-1.12.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.room:room-ktx:2.5.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\3a0dd7d3ea1ed7356488d7f200598e26\transformed\jetified-room-ktx-2.5.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.room:room-runtime:2.5.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\b97921766780669b144193987ce66809\transformed\room-runtime-2.5.0\AndroidManifest.xml:17:1-31:12
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\71dd1e9295ad08b333de37fcc6230ca3\transformed\jetified-runtime-saveable-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\879bb932dbca492b5b8230b55d152863\transformed\jetified-runtime-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.sqlite:sqlite-framework:2.3.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\7de8813a31848d74b28db083e2284019\transformed\sqlite-framework-2.3.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.annotation:annotation-experimental:1.4.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\a0fb3237edc51bef00b29c6149450759\transformed\jetified-annotation-experimental-1.4.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.sqlite:sqlite:2.3.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\fd0a728593cb5b1a09b239d8ebe218d1\transformed\sqlite-2.3.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\152d7a9024425c853d1245fd8ef4559e\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:17:1-27:12
+MERGED from [com.squareup.okhttp3:okhttp-android:5.3.2] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\894f1fd9c68c1e3c267fcb399d4a8fb4\transformed\jetified-okhttp-release\AndroidManifest.xml:2:1-22:12
+MERGED from [com.faendir.rhino:rhino-android:1.6.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\d9c3832accd8518303dc9c898edc512f\transformed\jetified-rhino-android-1.6.0\AndroidManifest.xml:2:1-10:12
+MERGED from [androidx.exifinterface:exifinterface:1.3.6] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\165b79558f0303f137f8209c02d63fca\transformed\exifinterface-1.3.6\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\9d88baf5201611d89decab3178cf5cf0\transformed\interpolator-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\dd34c1bc1f5e296a4ce7f9795313b289\transformed\core-runtime-2.2.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:17:1-55:12
+MERGED from [androidx.startup:startup-runtime:1.2.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\fb83e8ecee86db69538855ee7758555e\transformed\jetified-startup-runtime-1.2.0\AndroidManifest.xml:17:1-31:12
+MERGED from [androidx.tracing:tracing:1.0.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\89e78b1f2a856674bd84d990808bf098\transformed\jetified-tracing-1.0.0\AndroidManifest.xml:17:1-24:12
 	package
-		INJECTED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml
+		INJECTED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml
 	android:versionName
-		INJECTED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml
+		INJECTED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml
 	xmlns:tools
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:3:5-51
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:3:5-51
 	android:versionCode
-		INJECTED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml
+		INJECTED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml
 	xmlns:android
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:2:11-69
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:2:11-69
 uses-permission#android.permission.INTERNET
-ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:5:5-67
+ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:5:5-67
+MERGED from [com.squareup.okhttp3:okhttp-android:5.3.2] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\894f1fd9c68c1e3c267fcb399d4a8fb4\transformed\jetified-okhttp-release\AndroidManifest.xml:8:5-67
+MERGED from [com.squareup.okhttp3:okhttp-android:5.3.2] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\894f1fd9c68c1e3c267fcb399d4a8fb4\transformed\jetified-okhttp-release\AndroidManifest.xml:8:5-67
 	android:name
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:5:22-64
-uses-permission#android.permission.READ_EXTERNAL_STORAGE
-ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:6:5-107
-	android:maxSdkVersion
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:6:78-104
-	android:name
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:6:22-77
-uses-permission#android.permission.READ_MEDIA_AUDIO
-ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:7:5-75
-	android:name
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:7:22-72
-uses-permission#android.permission.FOREGROUND_SERVICE
-ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:8:5-77
-MERGED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:26:5-77
-MERGED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:26:5-77
-	android:name
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:8:22-74
-uses-permission#android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK
-ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:9:5-92
-	android:name
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:9:22-89
-uses-permission#android.permission.FOREGROUND_SERVICE_DATA_SYNC
-ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:10:5-87
-	android:name
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:10:22-84
-uses-permission#android.permission.POST_NOTIFICATIONS
-ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:11:5-77
-	android:name
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:11:22-74
-application
-ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:13:5-45:19
-INJECTED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:13:5-45:19
-MERGED from [androidx.compose.ui:ui-tooling-android:1.6.1] /home/koda/.gradle/caches/transforms-4/f27f129536f6fd2cb2981026f3e41d93/transformed/jetified-ui-tooling-release/AndroidManifest.xml:22:5-26:19
-MERGED from [androidx.compose.ui:ui-tooling-android:1.6.1] /home/koda/.gradle/caches/transforms-4/f27f129536f6fd2cb2981026f3e41d93/transformed/jetified-ui-tooling-release/AndroidManifest.xml:22:5-26:19
-MERGED from [androidx.compose.ui:ui-test-manifest:1.6.1] /home/koda/.gradle/caches/transforms-4/0efb1de3aa89a75d9b49d9ce5d11ed7d/transformed/jetified-ui-test-manifest-1.6.1/AndroidManifest.xml:22:5-26:19
-MERGED from [androidx.compose.ui:ui-test-manifest:1.6.1] /home/koda/.gradle/caches/transforms-4/0efb1de3aa89a75d9b49d9ce5d11ed7d/transformed/jetified-ui-test-manifest-1.6.1/AndroidManifest.xml:22:5-26:19
-MERGED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:28:5-143:19
-MERGED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:28:5-143:19
-MERGED from [androidx.emoji2:emoji2:1.3.0] /home/koda/.gradle/caches/transforms-4/11f1c8cc4199395c97ff019f192afb91/transformed/jetified-emoji2-1.3.0/AndroidManifest.xml:23:5-33:19
-MERGED from [androidx.emoji2:emoji2:1.3.0] /home/koda/.gradle/caches/transforms-4/11f1c8cc4199395c97ff019f192afb91/transformed/jetified-emoji2-1.3.0/AndroidManifest.xml:23:5-33:19
-MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] /home/koda/.gradle/caches/transforms-4/055a716155e49742603f7ab467e6766f/transformed/jetified-lifecycle-process-2.7.0/AndroidManifest.xml:23:5-33:19
-MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] /home/koda/.gradle/caches/transforms-4/055a716155e49742603f7ab467e6766f/transformed/jetified-lifecycle-process-2.7.0/AndroidManifest.xml:23:5-33:19
-MERGED from [androidx.core:core:1.12.0] /home/koda/.gradle/caches/transforms-4/ee95303aba46cd405cd517288d187148/transformed/core-1.12.0/AndroidManifest.xml:28:5-89
-MERGED from [androidx.core:core:1.12.0] /home/koda/.gradle/caches/transforms-4/ee95303aba46cd405cd517288d187148/transformed/core-1.12.0/AndroidManifest.xml:28:5-89
-MERGED from [androidx.room:room-runtime:2.5.0] /home/koda/.gradle/caches/transforms-4/f08c754a2c8f0d2f59ef27ec07017fa2/transformed/room-runtime-2.5.0/AndroidManifest.xml:23:5-29:19
-MERGED from [androidx.room:room-runtime:2.5.0] /home/koda/.gradle/caches/transforms-4/f08c754a2c8f0d2f59ef27ec07017fa2/transformed/room-runtime-2.5.0/AndroidManifest.xml:23:5-29:19
-MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /home/koda/.gradle/caches/transforms-4/e29bab75a5b3794c3e2b8d5bb74d5702/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:24:5-25:19
-MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /home/koda/.gradle/caches/transforms-4/e29bab75a5b3794c3e2b8d5bb74d5702/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:24:5-25:19
-MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:23:5-53:19
-MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:23:5-53:19
-MERGED from [androidx.startup:startup-runtime:1.1.1] /home/koda/.gradle/caches/transforms-4/c72f88799e216773ccba4e1097f2809b/transformed/jetified-startup-runtime-1.1.1/AndroidManifest.xml:25:5-31:19
-MERGED from [androidx.startup:startup-runtime:1.1.1] /home/koda/.gradle/caches/transforms-4/c72f88799e216773ccba4e1097f2809b/transformed/jetified-startup-runtime-1.1.1/AndroidManifest.xml:25:5-31:19
-	android:extractNativeLibs
-		INJECTED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml
-	android:appComponentFactory
-		ADDED from [androidx.core:core:1.12.0] /home/koda/.gradle/caches/transforms-4/ee95303aba46cd405cd517288d187148/transformed/core-1.12.0/AndroidManifest.xml:28:18-86
-	android:supportsRtl
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:18:9-35
-	android:label
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:17:9-41
-	android:fullBackupContent
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:16:9-54
-	tools:targetApi
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:20:9-29
-	android:allowBackup
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:14:9-35
-	android:theme
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:19:9-48
-	android:dataExtractionRules
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:15:9-65
-activity#com.frito.music.MainActivity
-ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:21:9-30:20
-	android:exported
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:23:13-36
-	android:theme
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:24:13-52
-	android:name
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:22:13-41
-intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
-ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:25:13-29:29
-action#android.intent.action.MAIN
-ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:26:17-69
-	android:name
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:26:25-66
-category#android.intent.category.LAUNCHER
-ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:28:17-77
-	android:name
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:28:27-74
-service#androidx.work.impl.foreground.SystemForegroundService
-ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:32:9-35:34
-MERGED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:53:9-59:35
-MERGED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:53:9-59:35
-	android:enabled
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:56:13-77
-	tools:node
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:35:13-31
-	android:exported
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:57:13-37
-	tools:ignore
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:58:13-60
-	tools:targetApi
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:59:13-32
-	android:directBootAware
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:55:13-44
-	android:foregroundServiceType
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:34:13-53
-	android:name
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:33:13-81
-service#com.frito.music.service.MusicService
-ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:37:9-44:19
-	android:exported
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:40:13-36
-	android:foregroundServiceType
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:39:13-58
-	android:name
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:38:13-49
-intent-filter#action:name:androidx.media3.session.MediaSessionService
-ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:41:13-43:29
-action#androidx.media3.session.MediaSessionService
-ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:42:17-85
-	android:name
-		ADDED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml:42:25-83
-uses-sdk
-INJECTED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml reason: use-sdk injection requested
-INJECTED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml
-INJECTED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml
-MERGED from [io.coil-kt:coil-compose:2.5.0] /home/koda/.gradle/caches/transforms-4/691bd85df47c287c01f0ba20bdb0f714/transformed/jetified-coil-compose-2.5.0/AndroidManifest.xml:5:5-44
-MERGED from [io.coil-kt:coil-compose:2.5.0] /home/koda/.gradle/caches/transforms-4/691bd85df47c287c01f0ba20bdb0f714/transformed/jetified-coil-compose-2.5.0/AndroidManifest.xml:5:5-44
-MERGED from [io.coil-kt:coil-compose-base:2.5.0] /home/koda/.gradle/caches/transforms-4/982683f7f5ee28a5f87dbbf5da021d39/transformed/jetified-coil-compose-base-2.5.0/AndroidManifest.xml:5:5-44
-MERGED from [io.coil-kt:coil-compose-base:2.5.0] /home/koda/.gradle/caches/transforms-4/982683f7f5ee28a5f87dbbf5da021d39/transformed/jetified-coil-compose-base-2.5.0/AndroidManifest.xml:5:5-44
-MERGED from [io.coil-kt:coil:2.5.0] /home/koda/.gradle/caches/transforms-4/04a012dea421514cdecefa7a09edcfcd/transformed/jetified-coil-2.5.0/AndroidManifest.xml:5:5-44
-MERGED from [io.coil-kt:coil:2.5.0] /home/koda/.gradle/caches/transforms-4/04a012dea421514cdecefa7a09edcfcd/transformed/jetified-coil-2.5.0/AndroidManifest.xml:5:5-44
-MERGED from [com.google.accompanist:accompanist-drawablepainter:0.32.0] /home/koda/.gradle/caches/transforms-4/ad5c58f83efd8c5e15182985253949b4/transformed/jetified-accompanist-drawablepainter-0.32.0/AndroidManifest.xml:21:5-44
-MERGED from [com.google.accompanist:accompanist-drawablepainter:0.32.0] /home/koda/.gradle/caches/transforms-4/ad5c58f83efd8c5e15182985253949b4/transformed/jetified-accompanist-drawablepainter-0.32.0/AndroidManifest.xml:21:5-44
-MERGED from [androidx.compose.material3:material3-android:1.2.0] /home/koda/.gradle/caches/transforms-4/668ff39cb3d0a048298c4a2fba89287d/transformed/jetified-material3-release/AndroidManifest.xml:20:5-44
-MERGED from [androidx.compose.material3:material3-android:1.2.0] /home/koda/.gradle/caches/transforms-4/668ff39cb3d0a048298c4a2fba89287d/transformed/jetified-material3-release/AndroidManifest.xml:20:5-44
-MERGED from [androidx.compose.material:material-android:1.6.1] /home/koda/.gradle/caches/transforms-4/70855b9233dd142afd1f277df5133e05/transformed/jetified-material-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.material:material-android:1.6.1] /home/koda/.gradle/caches/transforms-4/70855b9233dd142afd1f277df5133e05/transformed/jetified-material-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.material:material-icons-core-android:1.6.1] /home/koda/.gradle/caches/transforms-4/ce7336918e8f4c2b80ffbb1b15965cc3/transformed/jetified-material-icons-core-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.material:material-icons-core-android:1.6.1] /home/koda/.gradle/caches/transforms-4/ce7336918e8f4c2b80ffbb1b15965cc3/transformed/jetified-material-icons-core-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.material:material-icons-extended-android:1.6.1] /home/koda/.gradle/caches/transforms-4/391e138d4654751aa5626ca189c8ae4c/transformed/jetified-material-icons-extended-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.material:material-icons-extended-android:1.6.1] /home/koda/.gradle/caches/transforms-4/391e138d4654751aa5626ca189c8ae4c/transformed/jetified-material-icons-extended-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.material:material-ripple-android:1.6.1] /home/koda/.gradle/caches/transforms-4/00ab23715a0f5bf88482ff4936091311/transformed/jetified-material-ripple-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.material:material-ripple-android:1.6.1] /home/koda/.gradle/caches/transforms-4/00ab23715a0f5bf88482ff4936091311/transformed/jetified-material-ripple-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.animation:animation-core-android:1.6.1] /home/koda/.gradle/caches/transforms-4/665de527c599d4d1136ca6dc65a8bb9b/transformed/jetified-animation-core-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.animation:animation-core-android:1.6.1] /home/koda/.gradle/caches/transforms-4/665de527c599d4d1136ca6dc65a8bb9b/transformed/jetified-animation-core-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.animation:animation-android:1.6.1] /home/koda/.gradle/caches/transforms-4/951685fc86088777cc62ad311920df8d/transformed/jetified-animation-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.animation:animation-android:1.6.1] /home/koda/.gradle/caches/transforms-4/951685fc86088777cc62ad311920df8d/transformed/jetified-animation-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.foundation:foundation-layout-android:1.6.1] /home/koda/.gradle/caches/transforms-4/32e169fd45f08ef15fbc226e75b677d8/transformed/jetified-foundation-layout-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.foundation:foundation-layout-android:1.6.1] /home/koda/.gradle/caches/transforms-4/32e169fd45f08ef15fbc226e75b677d8/transformed/jetified-foundation-layout-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.foundation:foundation-android:1.6.1] /home/koda/.gradle/caches/transforms-4/60dbc46f4d80b8c1c66811aeb531bb81/transformed/jetified-foundation-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.foundation:foundation-android:1.6.1] /home/koda/.gradle/caches/transforms-4/60dbc46f4d80b8c1c66811aeb531bb81/transformed/jetified-foundation-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-tooling-data-android:1.6.1] /home/koda/.gradle/caches/transforms-4/03b0ff12e69e68baba98dadb70a04d71/transformed/jetified-ui-tooling-data-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-tooling-data-android:1.6.1] /home/koda/.gradle/caches/transforms-4/03b0ff12e69e68baba98dadb70a04d71/transformed/jetified-ui-tooling-data-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-unit-android:1.6.1] /home/koda/.gradle/caches/transforms-4/09daddb0b39802cc5e9a40578ff2f0eb/transformed/jetified-ui-unit-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-unit-android:1.6.1] /home/koda/.gradle/caches/transforms-4/09daddb0b39802cc5e9a40578ff2f0eb/transformed/jetified-ui-unit-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-geometry-android:1.6.1] /home/koda/.gradle/caches/transforms-4/bc0e52d702af626faf09c67b807a2e3f/transformed/jetified-ui-geometry-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-geometry-android:1.6.1] /home/koda/.gradle/caches/transforms-4/bc0e52d702af626faf09c67b807a2e3f/transformed/jetified-ui-geometry-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-util-android:1.6.1] /home/koda/.gradle/caches/transforms-4/42726104c0a1bad4711d9d46de7d789c/transformed/jetified-ui-util-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-util-android:1.6.1] /home/koda/.gradle/caches/transforms-4/42726104c0a1bad4711d9d46de7d789c/transformed/jetified-ui-util-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-text-android:1.6.1] /home/koda/.gradle/caches/transforms-4/81e4c156bbd384beaeaa10d55a2b7655/transformed/jetified-ui-text-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-text-android:1.6.1] /home/koda/.gradle/caches/transforms-4/81e4c156bbd384beaeaa10d55a2b7655/transformed/jetified-ui-text-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.6.1] /home/koda/.gradle/caches/transforms-4/a73dbf95254b1c36feb7a6d787b48c43/transformed/jetified-ui-tooling-preview-release/AndroidManifest.xml:20:5-44
-MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.6.1] /home/koda/.gradle/caches/transforms-4/a73dbf95254b1c36feb7a6d787b48c43/transformed/jetified-ui-tooling-preview-release/AndroidManifest.xml:20:5-44
-MERGED from [androidx.compose.ui:ui-tooling-android:1.6.1] /home/koda/.gradle/caches/transforms-4/f27f129536f6fd2cb2981026f3e41d93/transformed/jetified-ui-tooling-release/AndroidManifest.xml:20:5-44
-MERGED from [androidx.compose.ui:ui-tooling-android:1.6.1] /home/koda/.gradle/caches/transforms-4/f27f129536f6fd2cb2981026f3e41d93/transformed/jetified-ui-tooling-release/AndroidManifest.xml:20:5-44
-MERGED from [androidx.compose.ui:ui-graphics-android:1.6.1] /home/koda/.gradle/caches/transforms-4/b3eb1e6346701cd9382df96dc60dd85e/transformed/jetified-ui-graphics-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-graphics-android:1.6.1] /home/koda/.gradle/caches/transforms-4/b3eb1e6346701cd9382df96dc60dd85e/transformed/jetified-ui-graphics-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-android:1.6.1] /home/koda/.gradle/caches/transforms-4/75316661111c61cde9a2823d055e01b8/transformed/jetified-ui-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-android:1.6.1] /home/koda/.gradle/caches/transforms-4/75316661111c61cde9a2823d055e01b8/transformed/jetified-ui-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.ui:ui-test-manifest:1.6.1] /home/koda/.gradle/caches/transforms-4/0efb1de3aa89a75d9b49d9ce5d11ed7d/transformed/jetified-ui-test-manifest-1.6.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.compose.ui:ui-test-manifest:1.6.1] /home/koda/.gradle/caches/transforms-4/0efb1de3aa89a75d9b49d9ce5d11ed7d/transformed/jetified-ui-test-manifest-1.6.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.activity:activity:1.8.2] /home/koda/.gradle/caches/transforms-4/aa1574ff68116482343102bdfa2618f7/transformed/jetified-activity-1.8.2/AndroidManifest.xml:20:5-44
-MERGED from [androidx.activity:activity:1.8.2] /home/koda/.gradle/caches/transforms-4/aa1574ff68116482343102bdfa2618f7/transformed/jetified-activity-1.8.2/AndroidManifest.xml:20:5-44
-MERGED from [androidx.activity:activity-compose:1.8.2] /home/koda/.gradle/caches/transforms-4/7451a0a4eeb6a026baeb59dbe12c8b7e/transformed/jetified-activity-compose-1.8.2/AndroidManifest.xml:5:5-44
-MERGED from [androidx.activity:activity-compose:1.8.2] /home/koda/.gradle/caches/transforms-4/7451a0a4eeb6a026baeb59dbe12c8b7e/transformed/jetified-activity-compose-1.8.2/AndroidManifest.xml:5:5-44
-MERGED from [androidx.activity:activity-ktx:1.8.2] /home/koda/.gradle/caches/transforms-4/9e7993719c7c9a005fc6a0bbf7377a98/transformed/jetified-activity-ktx-1.8.2/AndroidManifest.xml:5:5-44
-MERGED from [androidx.activity:activity-ktx:1.8.2] /home/koda/.gradle/caches/transforms-4/9e7993719c7c9a005fc6a0bbf7377a98/transformed/jetified-activity-ktx-1.8.2/AndroidManifest.xml:5:5-44
-MERGED from [androidx.work:work-runtime-ktx:2.9.0] /home/koda/.gradle/caches/transforms-4/d586a1e13d4be593b956aa67e278af1e/transformed/work-runtime-ktx-2.9.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.work:work-runtime-ktx:2.9.0] /home/koda/.gradle/caches/transforms-4/d586a1e13d4be593b956aa67e278af1e/transformed/work-runtime-ktx-2.9.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:21:5-44
-MERGED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:21:5-44
-MERGED from [androidx.emoji2:emoji2:1.3.0] /home/koda/.gradle/caches/transforms-4/11f1c8cc4199395c97ff019f192afb91/transformed/jetified-emoji2-1.3.0/AndroidManifest.xml:21:5-44
-MERGED from [androidx.emoji2:emoji2:1.3.0] /home/koda/.gradle/caches/transforms-4/11f1c8cc4199395c97ff019f192afb91/transformed/jetified-emoji2-1.3.0/AndroidManifest.xml:21:5-44
-MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] /home/koda/.gradle/caches/transforms-4/055a716155e49742603f7ab467e6766f/transformed/jetified-lifecycle-process-2.7.0/AndroidManifest.xml:21:5-44
-MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] /home/koda/.gradle/caches/transforms-4/055a716155e49742603f7ab467e6766f/transformed/jetified-lifecycle-process-2.7.0/AndroidManifest.xml:21:5-44
-MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.7.0] /home/koda/.gradle/caches/transforms-4/8c7829e0b4c5ad851bfdfdff9bd9f18e/transformed/jetified-lifecycle-livedata-core-ktx-2.7.0/AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.7.0] /home/koda/.gradle/caches/transforms-4/8c7829e0b4c5ad851bfdfdff9bd9f18e/transformed/jetified-lifecycle-livedata-core-ktx-2.7.0/AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-service:2.7.0] /home/koda/.gradle/caches/transforms-4/242bcebe04df1c46841535f5c0fca3bc/transformed/jetified-lifecycle-service-2.7.0/AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-service:2.7.0] /home/koda/.gradle/caches/transforms-4/242bcebe04df1c46841535f5c0fca3bc/transformed/jetified-lifecycle-service-2.7.0/AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-livedata:2.7.0] /home/koda/.gradle/caches/transforms-4/af3f905e49de5927bb61189ceeeb9fa0/transformed/lifecycle-livedata-2.7.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-livedata:2.7.0] /home/koda/.gradle/caches/transforms-4/af3f905e49de5927bb61189ceeeb9fa0/transformed/lifecycle-livedata-2.7.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.7.0] /home/koda/.gradle/caches/transforms-4/3cf13952dc1f643efd4533b9e29e869c/transformed/lifecycle-livedata-core-2.7.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.7.0] /home/koda/.gradle/caches/transforms-4/3cf13952dc1f643efd4533b9e29e869c/transformed/lifecycle-livedata-core-2.7.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] /home/koda/.gradle/caches/transforms-4/4b9d5a92bf98d8e5cb2ead6c1a20fc41/transformed/jetified-savedstate-ktx-1.2.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] /home/koda/.gradle/caches/transforms-4/4b9d5a92bf98d8e5cb2ead6c1a20fc41/transformed/jetified-savedstate-ktx-1.2.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.savedstate:savedstate:1.2.1] /home/koda/.gradle/caches/transforms-4/35f4dba1388fbabdda272a3c15ce5d1a/transformed/jetified-savedstate-1.2.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.savedstate:savedstate:1.2.1] /home/koda/.gradle/caches/transforms-4/35f4dba1388fbabdda272a3c15ce5d1a/transformed/jetified-savedstate-1.2.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0] /home/koda/.gradle/caches/transforms-4/293a388b3dffd99e56d6f170d674ef87/transformed/jetified-lifecycle-viewmodel-ktx-2.7.0/AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0] /home/koda/.gradle/caches/transforms-4/293a388b3dffd99e56d6f170d674ef87/transformed/jetified-lifecycle-viewmodel-ktx-2.7.0/AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.7.0] /home/koda/.gradle/caches/transforms-4/7cc87bbec0f6aef2bda442e9a9bd0ecd/transformed/lifecycle-viewmodel-2.7.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.7.0] /home/koda/.gradle/caches/transforms-4/7cc87bbec0f6aef2bda442e9a9bd0ecd/transformed/lifecycle-viewmodel-2.7.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.7.0] /home/koda/.gradle/caches/transforms-4/c994bc430e1984fa279fb4fc73bdd8c8/transformed/jetified-lifecycle-viewmodel-savedstate-2.7.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.7.0] /home/koda/.gradle/caches/transforms-4/c994bc430e1984fa279fb4fc73bdd8c8/transformed/jetified-lifecycle-viewmodel-savedstate-2.7.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.media3:media3-exoplayer:1.2.1] /home/koda/.gradle/caches/transforms-4/2c01ae329e6b0276c06ae596e84e2f2e/transformed/jetified-media3-exoplayer-1.2.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.media3:media3-exoplayer:1.2.1] /home/koda/.gradle/caches/transforms-4/2c01ae329e6b0276c06ae596e84e2f2e/transformed/jetified-media3-exoplayer-1.2.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.media3:media3-session:1.2.1] /home/koda/.gradle/caches/transforms-4/9be3607ea35955de0efb8a6cb331db40/transformed/jetified-media3-session-1.2.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.media3:media3-session:1.2.1] /home/koda/.gradle/caches/transforms-4/9be3607ea35955de0efb8a6cb331db40/transformed/jetified-media3-session-1.2.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.media3:media3-extractor:1.2.1] /home/koda/.gradle/caches/transforms-4/7e5a7a84e5538365f2664f47889ec12f/transformed/jetified-media3-extractor-1.2.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.media3:media3-extractor:1.2.1] /home/koda/.gradle/caches/transforms-4/7e5a7a84e5538365f2664f47889ec12f/transformed/jetified-media3-extractor-1.2.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.media3:media3-container:1.2.1] /home/koda/.gradle/caches/transforms-4/d6887886842ff8b6a2e485d074668361/transformed/jetified-media3-container-1.2.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.media3:media3-container:1.2.1] /home/koda/.gradle/caches/transforms-4/d6887886842ff8b6a2e485d074668361/transformed/jetified-media3-container-1.2.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.media3:media3-datasource:1.2.1] /home/koda/.gradle/caches/transforms-4/66629430fb05274c0847a0fe4c89f34c/transformed/jetified-media3-datasource-1.2.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.media3:media3-datasource:1.2.1] /home/koda/.gradle/caches/transforms-4/66629430fb05274c0847a0fe4c89f34c/transformed/jetified-media3-datasource-1.2.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.media3:media3-decoder:1.2.1] /home/koda/.gradle/caches/transforms-4/1774bc51c3d1de81fd424f2316ebae16/transformed/jetified-media3-decoder-1.2.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.media3:media3-decoder:1.2.1] /home/koda/.gradle/caches/transforms-4/1774bc51c3d1de81fd424f2316ebae16/transformed/jetified-media3-decoder-1.2.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.media3:media3-database:1.2.1] /home/koda/.gradle/caches/transforms-4/e9f87917f7207380e005a59dd6cb3453/transformed/jetified-media3-database-1.2.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.media3:media3-database:1.2.1] /home/koda/.gradle/caches/transforms-4/e9f87917f7207380e005a59dd6cb3453/transformed/jetified-media3-database-1.2.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.media3:media3-common:1.2.1] /home/koda/.gradle/caches/transforms-4/58440cf95f50183a43fdf45f16bb2334/transformed/jetified-media3-common-1.2.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.media3:media3-common:1.2.1] /home/koda/.gradle/caches/transforms-4/58440cf95f50183a43fdf45f16bb2334/transformed/jetified-media3-common-1.2.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.media3:media3-ui:1.2.1] /home/koda/.gradle/caches/transforms-4/6e4d51b3f5173a08d4f3f4d2f1823a32/transformed/jetified-media3-ui-1.2.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.media3:media3-ui:1.2.1] /home/koda/.gradle/caches/transforms-4/6e4d51b3f5173a08d4f3f4d2f1823a32/transformed/jetified-media3-ui-1.2.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.recyclerview:recyclerview:1.3.0] /home/koda/.gradle/caches/transforms-4/f365cb2f5f52849dd029d9aa29da1543/transformed/recyclerview-1.3.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.recyclerview:recyclerview:1.3.0] /home/koda/.gradle/caches/transforms-4/f365cb2f5f52849dd029d9aa29da1543/transformed/recyclerview-1.3.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /home/koda/.gradle/caches/transforms-4/d0165b1fd20940363e0158ebbba1ddb9/transformed/jetified-customview-poolingcontainer-1.0.0/AndroidManifest.xml:20:5-21:38
-MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /home/koda/.gradle/caches/transforms-4/d0165b1fd20940363e0158ebbba1ddb9/transformed/jetified-customview-poolingcontainer-1.0.0/AndroidManifest.xml:20:5-21:38
-MERGED from [io.coil-kt:coil-base:2.5.0] /home/koda/.gradle/caches/transforms-4/658235cdca723637813c28b9af08b787/transformed/jetified-coil-base-2.5.0/AndroidManifest.xml:5:5-44
-MERGED from [io.coil-kt:coil-base:2.5.0] /home/koda/.gradle/caches/transforms-4/658235cdca723637813c28b9af08b787/transformed/jetified-coil-base-2.5.0/AndroidManifest.xml:5:5-44
-MERGED from [androidx.core:core-ktx:1.12.0] /home/koda/.gradle/caches/transforms-4/9fc8b00659633a5b86968ede9b39927a/transformed/jetified-core-ktx-1.12.0/AndroidManifest.xml:5:5-44
-MERGED from [androidx.core:core-ktx:1.12.0] /home/koda/.gradle/caches/transforms-4/9fc8b00659633a5b86968ede9b39927a/transformed/jetified-core-ktx-1.12.0/AndroidManifest.xml:5:5-44
-MERGED from [androidx.media:media:1.6.0] /home/koda/.gradle/caches/transforms-4/2111a5c4be1e306a488a6b8be7b4bf78/transformed/media-1.6.0/AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.media:media:1.6.0] /home/koda/.gradle/caches/transforms-4/2111a5c4be1e306a488a6b8be7b4bf78/transformed/media-1.6.0/AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.customview:customview:1.0.0] /home/koda/.gradle/caches/transforms-4/2a9ec6635ba7a7d41eeece276ac4805f/transformed/customview-1.0.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.customview:customview:1.0.0] /home/koda/.gradle/caches/transforms-4/2a9ec6635ba7a7d41eeece276ac4805f/transformed/customview-1.0.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.autofill:autofill:1.0.0] /home/koda/.gradle/caches/transforms-4/5e851212d1a084a29bfe3dad3f3614eb/transformed/jetified-autofill-1.0.0/AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.autofill:autofill:1.0.0] /home/koda/.gradle/caches/transforms-4/5e851212d1a084a29bfe3dad3f3614eb/transformed/jetified-autofill-1.0.0/AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.appcompat:appcompat-resources:1.6.1] /home/koda/.gradle/caches/transforms-4/b2cc0bf0041d5208d3656dc07ada78b3/transformed/jetified-appcompat-resources-1.6.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.appcompat:appcompat-resources:1.6.1] /home/koda/.gradle/caches/transforms-4/b2cc0bf0041d5208d3656dc07ada78b3/transformed/jetified-appcompat-resources-1.6.1/AndroidManifest.xml:20:5-44
-MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] /home/koda/.gradle/caches/transforms-4/291029d6b55cff68d8c36d98c0efbe7f/transformed/vectordrawable-animated-1.1.0/AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] /home/koda/.gradle/caches/transforms-4/291029d6b55cff68d8c36d98c0efbe7f/transformed/vectordrawable-animated-1.1.0/AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] /home/koda/.gradle/caches/transforms-4/7b65f9a806e9a7c35fb70a4ac7d4fe1c/transformed/vectordrawable-1.1.0/AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] /home/koda/.gradle/caches/transforms-4/7b65f9a806e9a7c35fb70a4ac7d4fe1c/transformed/vectordrawable-1.1.0/AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.core:core:1.12.0] /home/koda/.gradle/caches/transforms-4/ee95303aba46cd405cd517288d187148/transformed/core-1.12.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.core:core:1.12.0] /home/koda/.gradle/caches/transforms-4/ee95303aba46cd405cd517288d187148/transformed/core-1.12.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-runtime:2.7.0] /home/koda/.gradle/caches/transforms-4/511e6b71b8cf3fdfbe4fc776d18cbf5f/transformed/lifecycle-runtime-2.7.0/AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-runtime:2.7.0] /home/koda/.gradle/caches/transforms-4/511e6b71b8cf3fdfbe4fc776d18cbf5f/transformed/lifecycle-runtime-2.7.0/AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0] /home/koda/.gradle/caches/transforms-4/eb757e40221b642e235f19afa2837979/transformed/jetified-lifecycle-viewmodel-compose-2.7.0/AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0] /home/koda/.gradle/caches/transforms-4/eb757e40221b642e235f19afa2837979/transformed/jetified-lifecycle-viewmodel-compose-2.7.0/AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-runtime-ktx:2.7.0] /home/koda/.gradle/caches/transforms-4/e6c1b9d74b6a41a14fee3929e9b8674e/transformed/jetified-lifecycle-runtime-ktx-2.7.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-runtime-ktx:2.7.0] /home/koda/.gradle/caches/transforms-4/e6c1b9d74b6a41a14fee3929e9b8674e/transformed/jetified-lifecycle-runtime-ktx-2.7.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.compose.runtime:runtime-saveable-android:1.6.1] /home/koda/.gradle/caches/transforms-4/86ed55760079f2d22f629c5759fd9d82/transformed/jetified-runtime-saveable-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.runtime:runtime-saveable-android:1.6.1] /home/koda/.gradle/caches/transforms-4/86ed55760079f2d22f629c5759fd9d82/transformed/jetified-runtime-saveable-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.runtime:runtime-android:1.6.1] /home/koda/.gradle/caches/transforms-4/df192417af8e16f510c8f04e4a1f8d5c/transformed/jetified-runtime-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.compose.runtime:runtime-android:1.6.1] /home/koda/.gradle/caches/transforms-4/df192417af8e16f510c8f04e4a1f8d5c/transformed/jetified-runtime-release/AndroidManifest.xml:5:5-44
-MERGED from [androidx.room:room-ktx:2.5.0] /home/koda/.gradle/caches/transforms-4/5ce4ed40c2c6972f51000d61d3606ef2/transformed/jetified-room-ktx-2.5.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.room:room-ktx:2.5.0] /home/koda/.gradle/caches/transforms-4/5ce4ed40c2c6972f51000d61d3606ef2/transformed/jetified-room-ktx-2.5.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.room:room-runtime:2.5.0] /home/koda/.gradle/caches/transforms-4/f08c754a2c8f0d2f59ef27ec07017fa2/transformed/room-runtime-2.5.0/AndroidManifest.xml:21:5-44
-MERGED from [androidx.room:room-runtime:2.5.0] /home/koda/.gradle/caches/transforms-4/f08c754a2c8f0d2f59ef27ec07017fa2/transformed/room-runtime-2.5.0/AndroidManifest.xml:21:5-44
-MERGED from [com.faendir.rhino:rhino-android:1.6.0] /home/koda/.gradle/caches/transforms-4/1b4c57b563a1fbfcb8a2f970fdfb9985/transformed/jetified-rhino-android-1.6.0/AndroidManifest.xml:6:5-8:41
-MERGED from [com.faendir.rhino:rhino-android:1.6.0] /home/koda/.gradle/caches/transforms-4/1b4c57b563a1fbfcb8a2f970fdfb9985/transformed/jetified-rhino-android-1.6.0/AndroidManifest.xml:6:5-8:41
-MERGED from [androidx.sqlite:sqlite-framework:2.3.0] /home/koda/.gradle/caches/transforms-4/1a2db40516735a8b00914c83813868b4/transformed/sqlite-framework-2.3.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.sqlite:sqlite-framework:2.3.0] /home/koda/.gradle/caches/transforms-4/1a2db40516735a8b00914c83813868b4/transformed/sqlite-framework-2.3.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.annotation:annotation-experimental:1.4.0] /home/koda/.gradle/caches/transforms-4/a68049f476bdec881b024da18b68410f/transformed/jetified-annotation-experimental-1.4.0/AndroidManifest.xml:5:5-44
-MERGED from [androidx.annotation:annotation-experimental:1.4.0] /home/koda/.gradle/caches/transforms-4/a68049f476bdec881b024da18b68410f/transformed/jetified-annotation-experimental-1.4.0/AndroidManifest.xml:5:5-44
-MERGED from [androidx.sqlite:sqlite:2.3.0] /home/koda/.gradle/caches/transforms-4/c0c73c87c5cf190477908c3b6cdba443/transformed/sqlite-2.3.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.sqlite:sqlite:2.3.0] /home/koda/.gradle/caches/transforms-4/c0c73c87c5cf190477908c3b6cdba443/transformed/sqlite-2.3.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /home/koda/.gradle/caches/transforms-4/e29bab75a5b3794c3e2b8d5bb74d5702/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /home/koda/.gradle/caches/transforms-4/e29bab75a5b3794c3e2b8d5bb74d5702/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.exifinterface:exifinterface:1.3.6] /home/koda/.gradle/caches/transforms-4/a9dca2be8f2bc36501f9c84a494635fb/transformed/exifinterface-1.3.6/AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.exifinterface:exifinterface:1.3.6] /home/koda/.gradle/caches/transforms-4/a9dca2be8f2bc36501f9c84a494635fb/transformed/exifinterface-1.3.6/AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.interpolator:interpolator:1.0.0] /home/koda/.gradle/caches/transforms-4/0a455b413f9bd7542309744242af60b3/transformed/interpolator-1.0.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.interpolator:interpolator:1.0.0] /home/koda/.gradle/caches/transforms-4/0a455b413f9bd7542309744242af60b3/transformed/interpolator-1.0.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.arch.core:core-runtime:2.2.0] /home/koda/.gradle/caches/transforms-4/74ce941fd3d33a2d684172b9520c5619/transformed/core-runtime-2.2.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.arch.core:core-runtime:2.2.0] /home/koda/.gradle/caches/transforms-4/74ce941fd3d33a2d684172b9520c5619/transformed/core-runtime-2.2.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:21:5-44
-MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:21:5-44
-MERGED from [androidx.startup:startup-runtime:1.1.1] /home/koda/.gradle/caches/transforms-4/c72f88799e216773ccba4e1097f2809b/transformed/jetified-startup-runtime-1.1.1/AndroidManifest.xml:21:5-23:41
-MERGED from [androidx.startup:startup-runtime:1.1.1] /home/koda/.gradle/caches/transforms-4/c72f88799e216773ccba4e1097f2809b/transformed/jetified-startup-runtime-1.1.1/AndroidManifest.xml:21:5-23:41
-MERGED from [androidx.tracing:tracing:1.0.0] /home/koda/.gradle/caches/transforms-4/b668ad940e3fa88c90f4d9cae6d3b6e1/transformed/jetified-tracing-1.0.0/AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.tracing:tracing:1.0.0] /home/koda/.gradle/caches/transforms-4/b668ad940e3fa88c90f4d9cae6d3b6e1/transformed/jetified-tracing-1.0.0/AndroidManifest.xml:20:5-22:41
-	android:targetSdkVersion
-		INJECTED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml
-	android:minSdkVersion
-		INJECTED from /home/koda/Documentos/frito-music-definitive/Frito-Music/app/src/main/AndroidManifest.xml
-activity#androidx.compose.ui.tooling.PreviewActivity
-ADDED from [androidx.compose.ui:ui-tooling-android:1.6.1] /home/koda/.gradle/caches/transforms-4/f27f129536f6fd2cb2981026f3e41d93/transformed/jetified-ui-tooling-release/AndroidManifest.xml:23:9-25:39
-	android:exported
-		ADDED from [androidx.compose.ui:ui-tooling-android:1.6.1] /home/koda/.gradle/caches/transforms-4/f27f129536f6fd2cb2981026f3e41d93/transformed/jetified-ui-tooling-release/AndroidManifest.xml:25:13-36
-	android:name
-		ADDED from [androidx.compose.ui:ui-tooling-android:1.6.1] /home/koda/.gradle/caches/transforms-4/f27f129536f6fd2cb2981026f3e41d93/transformed/jetified-ui-tooling-release/AndroidManifest.xml:24:13-71
-activity#androidx.activity.ComponentActivity
-ADDED from [androidx.compose.ui:ui-test-manifest:1.6.1] /home/koda/.gradle/caches/transforms-4/0efb1de3aa89a75d9b49d9ce5d11ed7d/transformed/jetified-ui-test-manifest-1.6.1/AndroidManifest.xml:23:9-25:39
-	android:exported
-		ADDED from [androidx.compose.ui:ui-test-manifest:1.6.1] /home/koda/.gradle/caches/transforms-4/0efb1de3aa89a75d9b49d9ce5d11ed7d/transformed/jetified-ui-test-manifest-1.6.1/AndroidManifest.xml:25:13-36
-	android:name
-		ADDED from [androidx.compose.ui:ui-test-manifest:1.6.1] /home/koda/.gradle/caches/transforms-4/0efb1de3aa89a75d9b49d9ce5d11ed7d/transformed/jetified-ui-test-manifest-1.6.1/AndroidManifest.xml:24:13-63
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:5:22-64
 uses-permission#android.permission.WAKE_LOCK
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:23:5-68
+ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:6:5-68
+MERGED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:23:5-68
+MERGED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:23:5-68
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:23:22-65
-uses-permission#android.permission.ACCESS_NETWORK_STATE
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:24:5-79
-MERGED from [androidx.media3:media3-exoplayer:1.2.1] /home/koda/.gradle/caches/transforms-4/2c01ae329e6b0276c06ae596e84e2f2e/transformed/jetified-media3-exoplayer-1.2.1/AndroidManifest.xml:22:5-79
-MERGED from [androidx.media3:media3-exoplayer:1.2.1] /home/koda/.gradle/caches/transforms-4/2c01ae329e6b0276c06ae596e84e2f2e/transformed/jetified-media3-exoplayer-1.2.1/AndroidManifest.xml:22:5-79
-MERGED from [androidx.media3:media3-common:1.2.1] /home/koda/.gradle/caches/transforms-4/58440cf95f50183a43fdf45f16bb2334/transformed/jetified-media3-common-1.2.1/AndroidManifest.xml:22:5-79
-MERGED from [androidx.media3:media3-common:1.2.1] /home/koda/.gradle/caches/transforms-4/58440cf95f50183a43fdf45f16bb2334/transformed/jetified-media3-common-1.2.1/AndroidManifest.xml:22:5-79
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:6:22-65
+uses-permission#android.permission.READ_EXTERNAL_STORAGE
+ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:7:5-107
+	android:maxSdkVersion
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:7:78-104
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:24:22-76
-uses-permission#android.permission.RECEIVE_BOOT_COMPLETED
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:25:5-81
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:7:22-77
+uses-permission#android.permission.READ_MEDIA_AUDIO
+ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:8:5-75
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:25:22-78
-provider#androidx.startup.InitializationProvider
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:29:9-37:20
-MERGED from [androidx.emoji2:emoji2:1.3.0] /home/koda/.gradle/caches/transforms-4/11f1c8cc4199395c97ff019f192afb91/transformed/jetified-emoji2-1.3.0/AndroidManifest.xml:24:9-32:20
-MERGED from [androidx.emoji2:emoji2:1.3.0] /home/koda/.gradle/caches/transforms-4/11f1c8cc4199395c97ff019f192afb91/transformed/jetified-emoji2-1.3.0/AndroidManifest.xml:24:9-32:20
-MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] /home/koda/.gradle/caches/transforms-4/055a716155e49742603f7ab467e6766f/transformed/jetified-lifecycle-process-2.7.0/AndroidManifest.xml:24:9-32:20
-MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] /home/koda/.gradle/caches/transforms-4/055a716155e49742603f7ab467e6766f/transformed/jetified-lifecycle-process-2.7.0/AndroidManifest.xml:24:9-32:20
-MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:24:9-32:20
-MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:24:9-32:20
-MERGED from [androidx.startup:startup-runtime:1.1.1] /home/koda/.gradle/caches/transforms-4/c72f88799e216773ccba4e1097f2809b/transformed/jetified-startup-runtime-1.1.1/AndroidManifest.xml:26:9-30:34
-MERGED from [androidx.startup:startup-runtime:1.1.1] /home/koda/.gradle/caches/transforms-4/c72f88799e216773ccba4e1097f2809b/transformed/jetified-startup-runtime-1.1.1/AndroidManifest.xml:26:9-30:34
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:8:22-72
+uses-permission#android.permission.FOREGROUND_SERVICE
+ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:9:5-77
+MERGED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:26:5-77
+MERGED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:26:5-77
+	android:name
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:9:22-74
+uses-permission#android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK
+ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:10:5-92
+	android:name
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:10:22-89
+uses-permission#android.permission.FOREGROUND_SERVICE_DATA_SYNC
+ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:11:5-87
+	android:name
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:11:22-84
+uses-permission#android.permission.POST_NOTIFICATIONS
+ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:12:5-77
+	android:name
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:12:22-74
+application
+ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:14:5-47:19
+INJECTED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:14:5-47:19
+MERGED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:28:5-143:19
+MERGED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:28:5-143:19
+MERGED from [androidx.compose.ui:ui-tooling-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4b927998a1df90b68ba4acebf0e59c50\transformed\jetified-ui-tooling-release\AndroidManifest.xml:22:5-26:19
+MERGED from [androidx.compose.ui:ui-tooling-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4b927998a1df90b68ba4acebf0e59c50\transformed\jetified-ui-tooling-release\AndroidManifest.xml:22:5-26:19
+MERGED from [androidx.compose.ui:ui-test-manifest:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\cc2e85246042036403ce00b69bd42861\transformed\jetified-ui-test-manifest-1.6.1\AndroidManifest.xml:22:5-26:19
+MERGED from [androidx.compose.ui:ui-test-manifest:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\cc2e85246042036403ce00b69bd42861\transformed\jetified-ui-test-manifest-1.6.1\AndroidManifest.xml:22:5-26:19
+MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\ec8b12cf19c55de022505d70da2df78e\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\ec8b12cf19c55de022505d70da2df78e\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\19c3a63ca66bba8803ad51b2f22fb750\transformed\jetified-lifecycle-process-2.7.0\AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\19c3a63ca66bba8803ad51b2f22fb750\transformed\jetified-lifecycle-process-2.7.0\AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.core:core:1.12.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\06efa49984d53b716d6cc938ab58f8a6\transformed\core-1.12.0\AndroidManifest.xml:28:5-89
+MERGED from [androidx.core:core:1.12.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\06efa49984d53b716d6cc938ab58f8a6\transformed\core-1.12.0\AndroidManifest.xml:28:5-89
+MERGED from [androidx.room:room-runtime:2.5.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\b97921766780669b144193987ce66809\transformed\room-runtime-2.5.0\AndroidManifest.xml:23:5-29:19
+MERGED from [androidx.room:room-runtime:2.5.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\b97921766780669b144193987ce66809\transformed\room-runtime-2.5.0\AndroidManifest.xml:23:5-29:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\152d7a9024425c853d1245fd8ef4559e\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:24:5-25:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\152d7a9024425c853d1245fd8ef4559e\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:24:5-25:19
+MERGED from [com.squareup.okhttp3:okhttp-android:5.3.2] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\894f1fd9c68c1e3c267fcb399d4a8fb4\transformed\jetified-okhttp-release\AndroidManifest.xml:10:5-20:19
+MERGED from [com.squareup.okhttp3:okhttp-android:5.3.2] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\894f1fd9c68c1e3c267fcb399d4a8fb4\transformed\jetified-okhttp-release\AndroidManifest.xml:10:5-20:19
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:23:5-53:19
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:23:5-53:19
+MERGED from [androidx.startup:startup-runtime:1.2.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\fb83e8ecee86db69538855ee7758555e\transformed\jetified-startup-runtime-1.2.0\AndroidManifest.xml:23:5-29:19
+MERGED from [androidx.startup:startup-runtime:1.2.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\fb83e8ecee86db69538855ee7758555e\transformed\jetified-startup-runtime-1.2.0\AndroidManifest.xml:23:5-29:19
+	android:extractNativeLibs
+		INJECTED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml
+	android:appComponentFactory
+		ADDED from [androidx.core:core:1.12.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\06efa49984d53b716d6cc938ab58f8a6\transformed\core-1.12.0\AndroidManifest.xml:28:18-86
+	android:supportsRtl
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:20:9-35
+	android:label
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:19:9-41
+	android:fullBackupContent
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:18:9-54
+	tools:targetApi
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:22:9-29
+	android:allowBackup
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:16:9-35
+	android:theme
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:21:9-48
+	android:dataExtractionRules
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:17:9-65
+	android:name
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:15:9-46
+activity#com.frito.music.MainActivity
+ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:23:9-32:20
+	android:exported
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:25:13-36
+	android:theme
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:26:13-52
+	android:name
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:24:13-41
+intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
+ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:27:13-31:29
+action#android.intent.action.MAIN
+ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:28:17-69
+	android:name
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:28:25-66
+category#android.intent.category.LAUNCHER
+ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:30:17-77
+	android:name
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:30:27-74
+service#androidx.work.impl.foreground.SystemForegroundService
+ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:34:9-37:34
+MERGED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:53:9-59:35
+MERGED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:53:9-59:35
+	android:enabled
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:56:13-77
 	tools:node
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:33:13-31
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:37:13-31
+	android:exported
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:57:13-37
+	tools:ignore
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:58:13-60
+	tools:targetApi
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:59:13-32
+	android:directBootAware
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:55:13-44
+	android:foregroundServiceType
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:36:13-53
+	android:name
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:35:13-81
+service#com.frito.music.service.MusicService
+ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:39:9-46:19
+	android:exported
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:42:13-36
+	android:foregroundServiceType
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:41:13-58
+	android:name
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:40:13-49
+intent-filter#action:name:androidx.media3.session.MediaSessionService
+ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:43:13-45:29
+action#androidx.media3.session.MediaSessionService
+ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:44:17-85
+	android:name
+		ADDED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml:44:25-83
+uses-sdk
+INJECTED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml
+INJECTED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml
+MERGED from [:innertube] C:\Users\kurtc\Documents\FritoM\FritoMusic\innertube\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:5:5-44
+MERGED from [:innertube] C:\Users\kurtc\Documents\FritoM\FritoMusic\innertube\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:5:5-44
+MERGED from [androidx.media3:media3-session:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\3b107819a63998286f4894f9091ca55c\transformed\jetified-media3-session-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-session:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\3b107819a63998286f4894f9091ca55c\transformed\jetified-media3-session-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-ui:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\173ea117a3dc94203a74ec2607ebccf2\transformed\jetified-media3-ui-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-ui:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\173ea117a3dc94203a74ec2607ebccf2\transformed\jetified-media3-ui-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-extractor:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\697369c0728e9352e0e639822c858864\transformed\jetified-media3-extractor-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-extractor:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\697369c0728e9352e0e639822c858864\transformed\jetified-media3-extractor-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-container:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\aabf39faaf85392fb9860e4adf57722b\transformed\jetified-media3-container-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-container:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\aabf39faaf85392fb9860e4adf57722b\transformed\jetified-media3-container-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-datasource:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\1d60fc815748692407f3186a23c57694\transformed\jetified-media3-datasource-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-datasource:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\1d60fc815748692407f3186a23c57694\transformed\jetified-media3-datasource-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-decoder:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\7cd41cd3bd6240b1f7b3b9bc5b57ada4\transformed\jetified-media3-decoder-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-decoder:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\7cd41cd3bd6240b1f7b3b9bc5b57ada4\transformed\jetified-media3-decoder-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-database:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\7118ef015d155f2471044c076d2fcf1c\transformed\jetified-media3-database-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-database:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\7118ef015d155f2471044c076d2fcf1c\transformed\jetified-media3-database-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-common:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4d4df8fb8ff4d584705d4549d309032b\transformed\jetified-media3-common-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-common:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4d4df8fb8ff4d584705d4549d309032b\transformed\jetified-media3-common-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-exoplayer:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\86923ceb7d4395a7c91b8d67344b1718\transformed\jetified-media3-exoplayer-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-exoplayer:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\86923ceb7d4395a7c91b8d67344b1718\transformed\jetified-media3-exoplayer-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.media:media:1.6.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\e05128f4be85bf1025d0f0fc6014efa1\transformed\media-1.6.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.media:media:1.6.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\e05128f4be85bf1025d0f0fc6014efa1\transformed\media-1.6.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.recyclerview:recyclerview:1.3.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\f01eecef89342a94d9d775b27c198734\transformed\recyclerview-1.3.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.recyclerview:recyclerview:1.3.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\f01eecef89342a94d9d775b27c198734\transformed\recyclerview-1.3.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.work:work-runtime-ktx:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\a01d9c7a8f0f68d618263f0ffcb96d20\transformed\work-runtime-ktx-2.9.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.work:work-runtime-ktx:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\a01d9c7a8f0f68d618263f0ffcb96d20\transformed\work-runtime-ktx-2.9.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.compose.material3:material3-android:1.2.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\a964b150e370c8193a2700ceee37984f\transformed\jetified-material3-release\AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.material3:material3-android:1.2.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\a964b150e370c8193a2700ceee37984f\transformed\jetified-material3-release\AndroidManifest.xml:20:5-44
+MERGED from [io.coil-kt:coil-compose:2.5.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\af3bc169505d8a158bd70777bf1ad111\transformed\jetified-coil-compose-2.5.0\AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt:coil-compose:2.5.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\af3bc169505d8a158bd70777bf1ad111\transformed\jetified-coil-compose-2.5.0\AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt:coil-compose-base:2.5.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\64739fce74622336efd6cb89ebdc5e8a\transformed\jetified-coil-compose-base-2.5.0\AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt:coil-compose-base:2.5.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\64739fce74622336efd6cb89ebdc5e8a\transformed\jetified-coil-compose-base-2.5.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\f4ca62addc622677d4f8987f4fce3a32\transformed\jetified-material-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\f4ca62addc622677d4f8987f4fce3a32\transformed\jetified-material-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-icons-core-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\617bc839066b6bfad7a4527187133847\transformed\jetified-material-icons-core-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-icons-core-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\617bc839066b6bfad7a4527187133847\transformed\jetified-material-icons-core-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-icons-extended-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\51d5948778894cf5baeed33acb31dc2a\transformed\jetified-material-icons-extended-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-icons-extended-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\51d5948778894cf5baeed33acb31dc2a\transformed\jetified-material-icons-extended-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-ripple-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\b259b7fb1426bb14cc391cac1a897315\transformed\jetified-material-ripple-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-ripple-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\b259b7fb1426bb14cc391cac1a897315\transformed\jetified-material-ripple-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-core-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4314031db6c5507c06cb72afae2afb08\transformed\jetified-animation-core-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-core-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4314031db6c5507c06cb72afae2afb08\transformed\jetified-animation-core-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\dd930b8117597d22f99b6837eace2605\transformed\jetified-animation-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\dd930b8117597d22f99b6837eace2605\transformed\jetified-animation-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\f1d55937575ddc82ac0e166a605cbebc\transformed\jetified-foundation-layout-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\f1d55937575ddc82ac0e166a605cbebc\transformed\jetified-foundation-layout-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\88fd8fb432f30bd41ca0c2466d832b8a\transformed\jetified-foundation-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\88fd8fb432f30bd41ca0c2466d832b8a\transformed\jetified-foundation-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\fc207c210507930a8f9a9dec51aa7eab\transformed\jetified-ui-tooling-data-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\fc207c210507930a8f9a9dec51aa7eab\transformed\jetified-ui-tooling-data-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-unit-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\299117345c51735bf1c91374ebb09a6d\transformed\jetified-ui-unit-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-unit-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\299117345c51735bf1c91374ebb09a6d\transformed\jetified-ui-unit-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-geometry-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\053c82cb90c471f0aff2f5cd671b5c47\transformed\jetified-ui-geometry-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-geometry-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\053c82cb90c471f0aff2f5cd671b5c47\transformed\jetified-ui-geometry-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-util-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\74516231b53820fd33ebbd25a42c9ee5\transformed\jetified-ui-util-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-util-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\74516231b53820fd33ebbd25a42c9ee5\transformed\jetified-ui-util-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-text-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6dff409187cf7a476c6f94766efb8fce\transformed\jetified-ui-text-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-text-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6dff409187cf7a476c6f94766efb8fce\transformed\jetified-ui-text-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\cad467b8aedbe909dfc44e4addb6d979\transformed\jetified-ui-tooling-preview-release\AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\cad467b8aedbe909dfc44e4addb6d979\transformed\jetified-ui-tooling-preview-release\AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-tooling-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4b927998a1df90b68ba4acebf0e59c50\transformed\jetified-ui-tooling-release\AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-tooling-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4b927998a1df90b68ba4acebf0e59c50\transformed\jetified-ui-tooling-release\AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-graphics-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\007e5255dc5d2021e93933e9b64df5eb\transformed\jetified-ui-graphics-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-graphics-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\007e5255dc5d2021e93933e9b64df5eb\transformed\jetified-ui-graphics-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-test-manifest:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\cc2e85246042036403ce00b69bd42861\transformed\jetified-ui-test-manifest-1.6.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-test-manifest:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\cc2e85246042036403ce00b69bd42861\transformed\jetified-ui-test-manifest-1.6.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity:1.8.2] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4e5dec3081d1fd70824c1714b2293d1f\transformed\jetified-activity-1.8.2\AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity:1.8.2] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4e5dec3081d1fd70824c1714b2293d1f\transformed\jetified-activity-1.8.2\AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity-ktx:1.8.2] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\5b5a8c929eefa610156f988c4fda7413\transformed\jetified-activity-ktx-1.8.2\AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-ktx:1.8.2] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\5b5a8c929eefa610156f988c4fda7413\transformed\jetified-activity-ktx-1.8.2\AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-compose:1.8.2] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\bb56784884ab229e747d8cfebfa77237\transformed\jetified-activity-compose-1.8.2\AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-compose:1.8.2] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\bb56784884ab229e747d8cfebfa77237\transformed\jetified-activity-compose-1.8.2\AndroidManifest.xml:5:5-44
+MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\ec8b12cf19c55de022505d70da2df78e\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\ec8b12cf19c55de022505d70da2df78e\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\19c3a63ca66bba8803ad51b2f22fb750\transformed\jetified-lifecycle-process-2.7.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\19c3a63ca66bba8803ad51b2f22fb750\transformed\jetified-lifecycle-process-2.7.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\f1782aa26c4ea873d7b7eb0a55384653\transformed\jetified-lifecycle-livedata-core-ktx-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\f1782aa26c4ea873d7b7eb0a55384653\transformed\jetified-lifecycle-livedata-core-ktx-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-service:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\24979028917fc0efcfc744c27bd09751\transformed\jetified-lifecycle-service-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-service:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\24979028917fc0efcfc744c27bd09751\transformed\jetified-lifecycle-service-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\be406df387bf1141ae97eb29a8b131c1\transformed\lifecycle-livedata-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\be406df387bf1141ae97eb29a8b131c1\transformed\lifecycle-livedata-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\04ebd309a5e0541cd8f9818f49aa4673\transformed\lifecycle-livedata-core-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\04ebd309a5e0541cd8f9818f49aa4673\transformed\lifecycle-livedata-core-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\3ebea775652a1edf3b0199e971f30fcc\transformed\jetified-savedstate-ktx-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\3ebea775652a1edf3b0199e971f30fcc\transformed\jetified-savedstate-ktx-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\44248c8f472d205232bb33d872328868\transformed\jetified-savedstate-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\44248c8f472d205232bb33d872328868\transformed\jetified-savedstate-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\f6a6b40a2b6690664b8c390c794704b9\transformed\jetified-lifecycle-viewmodel-savedstate-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\f6a6b40a2b6690664b8c390c794704b9\transformed\jetified-lifecycle-viewmodel-savedstate-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\aa227de5386af07c6f7915e8b872f953\transformed\jetified-lifecycle-viewmodel-ktx-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\aa227de5386af07c6f7915e8b872f953\transformed\jetified-lifecycle-viewmodel-ktx-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\de16bf58b0f65616363df575f2c420e5\transformed\lifecycle-viewmodel-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\de16bf58b0f65616363df575f2c420e5\transformed\lifecycle-viewmodel-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [io.coil-kt:coil:2.5.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\95da5dd75609033d22137e8a7fcea7d8\transformed\jetified-coil-2.5.0\AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt:coil:2.5.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\95da5dd75609033d22137e8a7fcea7d8\transformed\jetified-coil-2.5.0\AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt:coil-base:2.5.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\3f7a42f7d98e6ac86c3abba393b29435\transformed\jetified-coil-base-2.5.0\AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt:coil-base:2.5.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\3f7a42f7d98e6ac86c3abba393b29435\transformed\jetified-coil-base-2.5.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\41a1c835ddbf30ba9eb133b53aa3a17d\transformed\lifecycle-runtime-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\41a1c835ddbf30ba9eb133b53aa3a17d\transformed\lifecycle-runtime-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\1bcbbd9c5f0bb1e3c0d1cc45144792f6\transformed\jetified-lifecycle-runtime-ktx-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\1bcbbd9c5f0bb1e3c0d1cc45144792f6\transformed\jetified-lifecycle-runtime-ktx-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4856dabb7b589b717ba3de6ec95746ce\transformed\jetified-lifecycle-viewmodel-compose-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4856dabb7b589b717ba3de6ec95746ce\transformed\jetified-lifecycle-viewmodel-compose-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [com.google.accompanist:accompanist-drawablepainter:0.32.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\beba605afd2642443628134135e27ee8\transformed\jetified-accompanist-drawablepainter-0.32.0\AndroidManifest.xml:21:5-44
+MERGED from [com.google.accompanist:accompanist-drawablepainter:0.32.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\beba605afd2642443628134135e27ee8\transformed\jetified-accompanist-drawablepainter-0.32.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.compose.ui:ui-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\696f37892b17205d25ebf5bc67415e18\transformed\jetified-ui-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\696f37892b17205d25ebf5bc67415e18\transformed\jetified-ui-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.customview:customview:1.0.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\bc13114920450f01b575ab0143aafbb5\transformed\customview-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.customview:customview:1.0.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\bc13114920450f01b575ab0143aafbb5\transformed\customview-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.autofill:autofill:1.0.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\b3c9b4f7ee48625e411506eb54af3c47\transformed\jetified-autofill-1.0.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.autofill:autofill:1.0.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\b3c9b4f7ee48625e411506eb54af3c47\transformed\jetified-autofill-1.0.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.appcompat:appcompat-resources:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\3489a062084efdcbc7728d98d7631759\transformed\jetified-appcompat-resources-1.6.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.appcompat:appcompat-resources:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\3489a062084efdcbc7728d98d7631759\transformed\jetified-appcompat-resources-1.6.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\eb7407d40d5d6ff95ccf37ac57a8bc6a\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\eb7407d40d5d6ff95ccf37ac57a8bc6a\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\ea865cf58d3a653b316b9f0c079ef744\transformed\vectordrawable-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\ea865cf58d3a653b316b9f0c079ef744\transformed\vectordrawable-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.core:core:1.12.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\06efa49984d53b716d6cc938ab58f8a6\transformed\core-1.12.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.core:core:1.12.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\06efa49984d53b716d6cc938ab58f8a6\transformed\core-1.12.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\fdb07fc16e821269e364ecb20dbb531e\transformed\jetified-customview-poolingcontainer-1.0.0\AndroidManifest.xml:20:5-21:38
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\fdb07fc16e821269e364ecb20dbb531e\transformed\jetified-customview-poolingcontainer-1.0.0\AndroidManifest.xml:20:5-21:38
+MERGED from [androidx.core:core-ktx:1.12.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\dd7947696470bb45a3b4160a24d27c85\transformed\jetified-core-ktx-1.12.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.core:core-ktx:1.12.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\dd7947696470bb45a3b4160a24d27c85\transformed\jetified-core-ktx-1.12.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.room:room-ktx:2.5.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\3a0dd7d3ea1ed7356488d7f200598e26\transformed\jetified-room-ktx-2.5.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.room:room-ktx:2.5.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\3a0dd7d3ea1ed7356488d7f200598e26\transformed\jetified-room-ktx-2.5.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.room:room-runtime:2.5.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\b97921766780669b144193987ce66809\transformed\room-runtime-2.5.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.room:room-runtime:2.5.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\b97921766780669b144193987ce66809\transformed\room-runtime-2.5.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\71dd1e9295ad08b333de37fcc6230ca3\transformed\jetified-runtime-saveable-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\71dd1e9295ad08b333de37fcc6230ca3\transformed\jetified-runtime-saveable-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\879bb932dbca492b5b8230b55d152863\transformed\jetified-runtime-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\879bb932dbca492b5b8230b55d152863\transformed\jetified-runtime-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.sqlite:sqlite-framework:2.3.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\7de8813a31848d74b28db083e2284019\transformed\sqlite-framework-2.3.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.sqlite:sqlite-framework:2.3.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\7de8813a31848d74b28db083e2284019\transformed\sqlite-framework-2.3.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.4.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\a0fb3237edc51bef00b29c6149450759\transformed\jetified-annotation-experimental-1.4.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.4.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\a0fb3237edc51bef00b29c6149450759\transformed\jetified-annotation-experimental-1.4.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.sqlite:sqlite:2.3.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\fd0a728593cb5b1a09b239d8ebe218d1\transformed\sqlite-2.3.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.sqlite:sqlite:2.3.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\fd0a728593cb5b1a09b239d8ebe218d1\transformed\sqlite-2.3.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\152d7a9024425c853d1245fd8ef4559e\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\152d7a9024425c853d1245fd8ef4559e\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:20:5-22:41
+MERGED from [com.squareup.okhttp3:okhttp-android:5.3.2] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\894f1fd9c68c1e3c267fcb399d4a8fb4\transformed\jetified-okhttp-release\AndroidManifest.xml:6:5-44
+MERGED from [com.squareup.okhttp3:okhttp-android:5.3.2] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\894f1fd9c68c1e3c267fcb399d4a8fb4\transformed\jetified-okhttp-release\AndroidManifest.xml:6:5-44
+MERGED from [com.faendir.rhino:rhino-android:1.6.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\d9c3832accd8518303dc9c898edc512f\transformed\jetified-rhino-android-1.6.0\AndroidManifest.xml:6:5-8:41
+MERGED from [com.faendir.rhino:rhino-android:1.6.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\d9c3832accd8518303dc9c898edc512f\transformed\jetified-rhino-android-1.6.0\AndroidManifest.xml:6:5-8:41
+MERGED from [androidx.exifinterface:exifinterface:1.3.6] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\165b79558f0303f137f8209c02d63fca\transformed\exifinterface-1.3.6\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.exifinterface:exifinterface:1.3.6] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\165b79558f0303f137f8209c02d63fca\transformed\exifinterface-1.3.6\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\9d88baf5201611d89decab3178cf5cf0\transformed\interpolator-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\9d88baf5201611d89decab3178cf5cf0\transformed\interpolator-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\dd34c1bc1f5e296a4ce7f9795313b289\transformed\core-runtime-2.2.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\dd34c1bc1f5e296a4ce7f9795313b289\transformed\core-runtime-2.2.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:21:5-44
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:21:5-44
+MERGED from [androidx.startup:startup-runtime:1.2.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\fb83e8ecee86db69538855ee7758555e\transformed\jetified-startup-runtime-1.2.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.startup:startup-runtime:1.2.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\fb83e8ecee86db69538855ee7758555e\transformed\jetified-startup-runtime-1.2.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.tracing:tracing:1.0.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\89e78b1f2a856674bd84d990808bf098\transformed\jetified-tracing-1.0.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.tracing:tracing:1.0.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\89e78b1f2a856674bd84d990808bf098\transformed\jetified-tracing-1.0.0\AndroidManifest.xml:20:5-22:41
+	android:targetSdkVersion
+		INJECTED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidManifest.xml
+uses-permission#android.permission.ACCESS_NETWORK_STATE
+ADDED from [androidx.media3:media3-common:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4d4df8fb8ff4d584705d4549d309032b\transformed\jetified-media3-common-1.2.1\AndroidManifest.xml:22:5-79
+MERGED from [androidx.media3:media3-exoplayer:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\86923ceb7d4395a7c91b8d67344b1718\transformed\jetified-media3-exoplayer-1.2.1\AndroidManifest.xml:22:5-79
+MERGED from [androidx.media3:media3-exoplayer:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\86923ceb7d4395a7c91b8d67344b1718\transformed\jetified-media3-exoplayer-1.2.1\AndroidManifest.xml:22:5-79
+MERGED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:24:5-79
+MERGED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:24:5-79
+	android:name
+		ADDED from [androidx.media3:media3-common:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4d4df8fb8ff4d584705d4549d309032b\transformed\jetified-media3-common-1.2.1\AndroidManifest.xml:22:22-76
+uses-permission#android.permission.RECEIVE_BOOT_COMPLETED
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:25:5-81
+	android:name
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:25:22-78
+provider#androidx.startup.InitializationProvider
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:29:9-37:20
+MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\ec8b12cf19c55de022505d70da2df78e\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\ec8b12cf19c55de022505d70da2df78e\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\19c3a63ca66bba8803ad51b2f22fb750\transformed\jetified-lifecycle-process-2.7.0\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\19c3a63ca66bba8803ad51b2f22fb750\transformed\jetified-lifecycle-process-2.7.0\AndroidManifest.xml:24:9-32:20
+MERGED from [com.squareup.okhttp3:okhttp-android:5.3.2] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\894f1fd9c68c1e3c267fcb399d4a8fb4\transformed\jetified-okhttp-release\AndroidManifest.xml:11:9-19:20
+MERGED from [com.squareup.okhttp3:okhttp-android:5.3.2] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\894f1fd9c68c1e3c267fcb399d4a8fb4\transformed\jetified-okhttp-release\AndroidManifest.xml:11:9-19:20
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.startup:startup-runtime:1.2.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\fb83e8ecee86db69538855ee7758555e\transformed\jetified-startup-runtime-1.2.0\AndroidManifest.xml:24:9-28:34
+MERGED from [androidx.startup:startup-runtime:1.2.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\fb83e8ecee86db69538855ee7758555e\transformed\jetified-startup-runtime-1.2.0\AndroidManifest.xml:24:9-28:34
+	tools:node
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:33:13-31
 	android:authorities
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:31:13-68
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:31:13-68
 	android:exported
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:32:13-37
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:32:13-37
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:30:13-67
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:30:13-67
 meta-data#androidx.work.WorkManagerInitializer
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:34:13-36:52
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:34:13-36:52
 	android:value
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:36:17-49
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:36:17-49
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:35:17-68
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:35:17-68
 service#androidx.work.impl.background.systemalarm.SystemAlarmService
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:39:9-45:35
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:39:9-45:35
 	android:enabled
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:42:13-72
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:42:13-72
 	android:exported
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:43:13-37
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:43:13-37
 	tools:ignore
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:44:13-60
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:44:13-60
 	tools:targetApi
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:45:13-32
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:45:13-32
 	android:directBootAware
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:41:13-44
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:41:13-44
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:40:13-88
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:40:13-88
 service#androidx.work.impl.background.systemjob.SystemJobService
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:46:9-52:35
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:46:9-52:35
 	android:enabled
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:49:13-70
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:49:13-70
 	android:exported
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:50:13-36
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:50:13-36
 	android:permission
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:51:13-69
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:51:13-69
 	tools:targetApi
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:52:13-32
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:52:13-32
 	android:directBootAware
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:48:13-44
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:48:13-44
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:47:13-84
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:47:13-84
 receiver#androidx.work.impl.utils.ForceStopRunnable$BroadcastReceiver
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:61:9-66:35
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:61:9-66:35
 	android:enabled
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:64:13-35
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:64:13-35
 	android:exported
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:65:13-37
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:65:13-37
 	tools:targetApi
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:66:13-32
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:66:13-32
 	android:directBootAware
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:63:13-44
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:63:13-44
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:62:13-88
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:62:13-88
 receiver#androidx.work.impl.background.systemalarm.ConstraintProxy$BatteryChargingProxy
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:67:9-77:20
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:67:9-77:20
 	android:enabled
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:70:13-36
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:70:13-36
 	android:exported
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:71:13-37
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:71:13-37
 	tools:targetApi
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:72:13-32
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:72:13-32
 	android:directBootAware
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:69:13-44
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:69:13-44
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:68:13-106
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:68:13-106
 intent-filter#action:name:android.intent.action.ACTION_POWER_CONNECTED+action:name:android.intent.action.ACTION_POWER_DISCONNECTED
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:73:13-76:29
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:73:13-76:29
 action#android.intent.action.ACTION_POWER_CONNECTED
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:74:17-87
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:74:17-87
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:74:25-84
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:74:25-84
 action#android.intent.action.ACTION_POWER_DISCONNECTED
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:75:17-90
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:75:17-90
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:75:25-87
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:75:25-87
 receiver#androidx.work.impl.background.systemalarm.ConstraintProxy$BatteryNotLowProxy
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:78:9-88:20
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:78:9-88:20
 	android:enabled
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:81:13-36
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:81:13-36
 	android:exported
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:82:13-37
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:82:13-37
 	tools:targetApi
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:83:13-32
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:83:13-32
 	android:directBootAware
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:80:13-44
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:80:13-44
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:79:13-104
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:79:13-104
 intent-filter#action:name:android.intent.action.BATTERY_LOW+action:name:android.intent.action.BATTERY_OKAY
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:84:13-87:29
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:84:13-87:29
 action#android.intent.action.BATTERY_OKAY
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:85:17-77
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:85:17-77
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:85:25-74
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:85:25-74
 action#android.intent.action.BATTERY_LOW
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:86:17-76
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:86:17-76
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:86:25-73
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:86:25-73
 receiver#androidx.work.impl.background.systemalarm.ConstraintProxy$StorageNotLowProxy
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:89:9-99:20
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:89:9-99:20
 	android:enabled
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:92:13-36
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:92:13-36
 	android:exported
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:93:13-37
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:93:13-37
 	tools:targetApi
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:94:13-32
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:94:13-32
 	android:directBootAware
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:91:13-44
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:91:13-44
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:90:13-104
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:90:13-104
 intent-filter#action:name:android.intent.action.DEVICE_STORAGE_LOW+action:name:android.intent.action.DEVICE_STORAGE_OK
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:95:13-98:29
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:95:13-98:29
 action#android.intent.action.DEVICE_STORAGE_LOW
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:96:17-83
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:96:17-83
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:96:25-80
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:96:25-80
 action#android.intent.action.DEVICE_STORAGE_OK
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:97:17-82
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:97:17-82
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:97:25-79
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:97:25-79
 receiver#androidx.work.impl.background.systemalarm.ConstraintProxy$NetworkStateProxy
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:100:9-109:20
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:100:9-109:20
 	android:enabled
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:103:13-36
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:103:13-36
 	android:exported
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:104:13-37
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:104:13-37
 	tools:targetApi
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:105:13-32
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:105:13-32
 	android:directBootAware
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:102:13-44
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:102:13-44
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:101:13-103
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:101:13-103
 intent-filter#action:name:android.net.conn.CONNECTIVITY_CHANGE
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:106:13-108:29
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:106:13-108:29
 action#android.net.conn.CONNECTIVITY_CHANGE
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:107:17-79
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:107:17-79
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:107:25-76
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:107:25-76
 receiver#androidx.work.impl.background.systemalarm.RescheduleReceiver
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:110:9-121:20
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:110:9-121:20
 	android:enabled
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:113:13-36
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:113:13-36
 	android:exported
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:114:13-37
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:114:13-37
 	tools:targetApi
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:115:13-32
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:115:13-32
 	android:directBootAware
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:112:13-44
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:112:13-44
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:111:13-88
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:111:13-88
 intent-filter#action:name:android.intent.action.BOOT_COMPLETED+action:name:android.intent.action.TIMEZONE_CHANGED+action:name:android.intent.action.TIME_SET
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:116:13-120:29
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:116:13-120:29
 action#android.intent.action.BOOT_COMPLETED
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:117:17-79
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:117:17-79
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:117:25-76
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:117:25-76
 action#android.intent.action.TIME_SET
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:118:17-73
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:118:17-73
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:118:25-70
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:118:25-70
 action#android.intent.action.TIMEZONE_CHANGED
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:119:17-81
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:119:17-81
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:119:25-78
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:119:25-78
 receiver#androidx.work.impl.background.systemalarm.ConstraintProxyUpdateReceiver
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:122:9-131:20
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:122:9-131:20
 	android:enabled
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:125:13-72
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:125:13-72
 	android:exported
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:126:13-37
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:126:13-37
 	tools:targetApi
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:127:13-32
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:127:13-32
 	android:directBootAware
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:124:13-44
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:124:13-44
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:123:13-99
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:123:13-99
 intent-filter#action:name:androidx.work.impl.background.systemalarm.UpdateProxies
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:128:13-130:29
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:128:13-130:29
 action#androidx.work.impl.background.systemalarm.UpdateProxies
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:129:17-98
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:129:17-98
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:129:25-95
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:129:25-95
 receiver#androidx.work.impl.diagnostics.DiagnosticsReceiver
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:132:9-142:20
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:132:9-142:20
 	android:enabled
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:135:13-35
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:135:13-35
 	android:exported
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:136:13-36
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:136:13-36
 	android:permission
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:137:13-57
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:137:13-57
 	tools:targetApi
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:138:13-32
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:138:13-32
 	android:directBootAware
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:134:13-44
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:134:13-44
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:133:13-78
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:133:13-78
 intent-filter#action:name:androidx.work.diagnostics.REQUEST_DIAGNOSTICS
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:139:13-141:29
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:139:13-141:29
 action#androidx.work.diagnostics.REQUEST_DIAGNOSTICS
-ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:140:17-88
+ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:140:17-88
 	android:name
-		ADDED from [androidx.work:work-runtime:2.9.0] /home/koda/.gradle/caches/transforms-4/e332b8d1b918a9309e10c076b9c6706e/transformed/work-runtime-2.9.0/AndroidManifest.xml:140:25-85
+		ADDED from [androidx.work:work-runtime:2.9.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4799560595c75a45d9f10dea1d5d68c6\transformed\work-runtime-2.9.0\AndroidManifest.xml:140:25-85
+activity#androidx.compose.ui.tooling.PreviewActivity
+ADDED from [androidx.compose.ui:ui-tooling-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4b927998a1df90b68ba4acebf0e59c50\transformed\jetified-ui-tooling-release\AndroidManifest.xml:23:9-25:39
+	android:exported
+		ADDED from [androidx.compose.ui:ui-tooling-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4b927998a1df90b68ba4acebf0e59c50\transformed\jetified-ui-tooling-release\AndroidManifest.xml:25:13-36
+	android:name
+		ADDED from [androidx.compose.ui:ui-tooling-android:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\4b927998a1df90b68ba4acebf0e59c50\transformed\jetified-ui-tooling-release\AndroidManifest.xml:24:13-71
+activity#androidx.activity.ComponentActivity
+ADDED from [androidx.compose.ui:ui-test-manifest:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\cc2e85246042036403ce00b69bd42861\transformed\jetified-ui-test-manifest-1.6.1\AndroidManifest.xml:23:9-25:39
+	android:exported
+		ADDED from [androidx.compose.ui:ui-test-manifest:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\cc2e85246042036403ce00b69bd42861\transformed\jetified-ui-test-manifest-1.6.1\AndroidManifest.xml:25:13-36
+	android:name
+		ADDED from [androidx.compose.ui:ui-test-manifest:1.6.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\cc2e85246042036403ce00b69bd42861\transformed\jetified-ui-test-manifest-1.6.1\AndroidManifest.xml:24:13-63
 meta-data#androidx.emoji2.text.EmojiCompatInitializer
-ADDED from [androidx.emoji2:emoji2:1.3.0] /home/koda/.gradle/caches/transforms-4/11f1c8cc4199395c97ff019f192afb91/transformed/jetified-emoji2-1.3.0/AndroidManifest.xml:29:13-31:52
+ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\ec8b12cf19c55de022505d70da2df78e\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
 	android:value
-		ADDED from [androidx.emoji2:emoji2:1.3.0] /home/koda/.gradle/caches/transforms-4/11f1c8cc4199395c97ff019f192afb91/transformed/jetified-emoji2-1.3.0/AndroidManifest.xml:31:17-49
+		ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\ec8b12cf19c55de022505d70da2df78e\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:31:17-49
 	android:name
-		ADDED from [androidx.emoji2:emoji2:1.3.0] /home/koda/.gradle/caches/transforms-4/11f1c8cc4199395c97ff019f192afb91/transformed/jetified-emoji2-1.3.0/AndroidManifest.xml:30:17-75
+		ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\ec8b12cf19c55de022505d70da2df78e\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:30:17-75
 meta-data#androidx.lifecycle.ProcessLifecycleInitializer
-ADDED from [androidx.lifecycle:lifecycle-process:2.7.0] /home/koda/.gradle/caches/transforms-4/055a716155e49742603f7ab467e6766f/transformed/jetified-lifecycle-process-2.7.0/AndroidManifest.xml:29:13-31:52
+ADDED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\19c3a63ca66bba8803ad51b2f22fb750\transformed\jetified-lifecycle-process-2.7.0\AndroidManifest.xml:29:13-31:52
 	android:value
-		ADDED from [androidx.lifecycle:lifecycle-process:2.7.0] /home/koda/.gradle/caches/transforms-4/055a716155e49742603f7ab467e6766f/transformed/jetified-lifecycle-process-2.7.0/AndroidManifest.xml:31:17-49
+		ADDED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\19c3a63ca66bba8803ad51b2f22fb750\transformed\jetified-lifecycle-process-2.7.0\AndroidManifest.xml:31:17-49
 	android:name
-		ADDED from [androidx.lifecycle:lifecycle-process:2.7.0] /home/koda/.gradle/caches/transforms-4/055a716155e49742603f7ab467e6766f/transformed/jetified-lifecycle-process-2.7.0/AndroidManifest.xml:30:17-78
+		ADDED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\19c3a63ca66bba8803ad51b2f22fb750\transformed\jetified-lifecycle-process-2.7.0\AndroidManifest.xml:30:17-78
 permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
-ADDED from [androidx.core:core:1.12.0] /home/koda/.gradle/caches/transforms-4/ee95303aba46cd405cd517288d187148/transformed/core-1.12.0/AndroidManifest.xml:22:5-24:47
+ADDED from [androidx.core:core:1.12.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\06efa49984d53b716d6cc938ab58f8a6\transformed\core-1.12.0\AndroidManifest.xml:22:5-24:47
 	android:protectionLevel
-		ADDED from [androidx.core:core:1.12.0] /home/koda/.gradle/caches/transforms-4/ee95303aba46cd405cd517288d187148/transformed/core-1.12.0/AndroidManifest.xml:24:9-44
+		ADDED from [androidx.core:core:1.12.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\06efa49984d53b716d6cc938ab58f8a6\transformed\core-1.12.0\AndroidManifest.xml:24:9-44
 	android:name
-		ADDED from [androidx.core:core:1.12.0] /home/koda/.gradle/caches/transforms-4/ee95303aba46cd405cd517288d187148/transformed/core-1.12.0/AndroidManifest.xml:23:9-81
+		ADDED from [androidx.core:core:1.12.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\06efa49984d53b716d6cc938ab58f8a6\transformed\core-1.12.0\AndroidManifest.xml:23:9-81
 permission#com.frito.music.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
-ADDED from [androidx.core:core:1.12.0] /home/koda/.gradle/caches/transforms-4/ee95303aba46cd405cd517288d187148/transformed/core-1.12.0/AndroidManifest.xml:22:5-24:47
+ADDED from [androidx.core:core:1.12.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\06efa49984d53b716d6cc938ab58f8a6\transformed\core-1.12.0\AndroidManifest.xml:22:5-24:47
 	android:protectionLevel
-		ADDED from [androidx.core:core:1.12.0] /home/koda/.gradle/caches/transforms-4/ee95303aba46cd405cd517288d187148/transformed/core-1.12.0/AndroidManifest.xml:24:9-44
+		ADDED from [androidx.core:core:1.12.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\06efa49984d53b716d6cc938ab58f8a6\transformed\core-1.12.0\AndroidManifest.xml:24:9-44
 	android:name
-		ADDED from [androidx.core:core:1.12.0] /home/koda/.gradle/caches/transforms-4/ee95303aba46cd405cd517288d187148/transformed/core-1.12.0/AndroidManifest.xml:23:9-81
+		ADDED from [androidx.core:core:1.12.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\06efa49984d53b716d6cc938ab58f8a6\transformed\core-1.12.0\AndroidManifest.xml:23:9-81
 uses-permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
-ADDED from [androidx.core:core:1.12.0] /home/koda/.gradle/caches/transforms-4/ee95303aba46cd405cd517288d187148/transformed/core-1.12.0/AndroidManifest.xml:26:5-97
+ADDED from [androidx.core:core:1.12.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\06efa49984d53b716d6cc938ab58f8a6\transformed\core-1.12.0\AndroidManifest.xml:26:5-97
 	android:name
-		ADDED from [androidx.core:core:1.12.0] /home/koda/.gradle/caches/transforms-4/ee95303aba46cd405cd517288d187148/transformed/core-1.12.0/AndroidManifest.xml:26:22-94
+		ADDED from [androidx.core:core:1.12.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\06efa49984d53b716d6cc938ab58f8a6\transformed\core-1.12.0\AndroidManifest.xml:26:22-94
 uses-permission#com.frito.music.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
-ADDED from [androidx.core:core:1.12.0] /home/koda/.gradle/caches/transforms-4/ee95303aba46cd405cd517288d187148/transformed/core-1.12.0/AndroidManifest.xml:26:5-97
+ADDED from [androidx.core:core:1.12.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\06efa49984d53b716d6cc938ab58f8a6\transformed\core-1.12.0\AndroidManifest.xml:26:5-97
 	android:name
-		ADDED from [androidx.core:core:1.12.0] /home/koda/.gradle/caches/transforms-4/ee95303aba46cd405cd517288d187148/transformed/core-1.12.0/AndroidManifest.xml:26:22-94
+		ADDED from [androidx.core:core:1.12.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\06efa49984d53b716d6cc938ab58f8a6\transformed\core-1.12.0\AndroidManifest.xml:26:22-94
 service#androidx.room.MultiInstanceInvalidationService
-ADDED from [androidx.room:room-runtime:2.5.0] /home/koda/.gradle/caches/transforms-4/f08c754a2c8f0d2f59ef27ec07017fa2/transformed/room-runtime-2.5.0/AndroidManifest.xml:24:9-28:63
+ADDED from [androidx.room:room-runtime:2.5.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\b97921766780669b144193987ce66809\transformed\room-runtime-2.5.0\AndroidManifest.xml:24:9-28:63
 	android:exported
-		ADDED from [androidx.room:room-runtime:2.5.0] /home/koda/.gradle/caches/transforms-4/f08c754a2c8f0d2f59ef27ec07017fa2/transformed/room-runtime-2.5.0/AndroidManifest.xml:27:13-37
+		ADDED from [androidx.room:room-runtime:2.5.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\b97921766780669b144193987ce66809\transformed\room-runtime-2.5.0\AndroidManifest.xml:27:13-37
 	tools:ignore
-		ADDED from [androidx.room:room-runtime:2.5.0] /home/koda/.gradle/caches/transforms-4/f08c754a2c8f0d2f59ef27ec07017fa2/transformed/room-runtime-2.5.0/AndroidManifest.xml:28:13-60
+		ADDED from [androidx.room:room-runtime:2.5.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\b97921766780669b144193987ce66809\transformed\room-runtime-2.5.0\AndroidManifest.xml:28:13-60
 	android:directBootAware
-		ADDED from [androidx.room:room-runtime:2.5.0] /home/koda/.gradle/caches/transforms-4/f08c754a2c8f0d2f59ef27ec07017fa2/transformed/room-runtime-2.5.0/AndroidManifest.xml:26:13-43
+		ADDED from [androidx.room:room-runtime:2.5.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\b97921766780669b144193987ce66809\transformed\room-runtime-2.5.0\AndroidManifest.xml:26:13-43
 	android:name
-		ADDED from [androidx.room:room-runtime:2.5.0] /home/koda/.gradle/caches/transforms-4/f08c754a2c8f0d2f59ef27ec07017fa2/transformed/room-runtime-2.5.0/AndroidManifest.xml:25:13-74
-meta-data#androidx.profileinstaller.ProfileInstallerInitializer
-ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:29:13-31:52
+		ADDED from [androidx.room:room-runtime:2.5.0] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\b97921766780669b144193987ce66809\transformed\room-runtime-2.5.0\AndroidManifest.xml:25:13-74
+meta-data#okhttp3.internal.platform.PlatformInitializer
+ADDED from [com.squareup.okhttp3:okhttp-android:5.3.2] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\894f1fd9c68c1e3c267fcb399d4a8fb4\transformed\jetified-okhttp-release\AndroidManifest.xml:16:13-18:52
 	android:value
-		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:31:17-49
+		ADDED from [com.squareup.okhttp3:okhttp-android:5.3.2] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\894f1fd9c68c1e3c267fcb399d4a8fb4\transformed\jetified-okhttp-release\AndroidManifest.xml:18:17-49
 	android:name
-		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:30:17-85
+		ADDED from [com.squareup.okhttp3:okhttp-android:5.3.2] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\894f1fd9c68c1e3c267fcb399d4a8fb4\transformed\jetified-okhttp-release\AndroidManifest.xml:17:17-77
+meta-data#androidx.profileinstaller.ProfileInstallerInitializer
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
 receiver#androidx.profileinstaller.ProfileInstallReceiver
-ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:34:9-52:20
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
 	android:enabled
-		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:37:13-35
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
 	android:exported
-		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:38:13-36
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
 	android:permission
-		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:39:13-57
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
 	android:directBootAware
-		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:36:13-44
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
 	android:name
-		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:35:13-76
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
 intent-filter#action:name:androidx.profileinstaller.action.INSTALL_PROFILE
-ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:40:13-42:29
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
 action#androidx.profileinstaller.action.INSTALL_PROFILE
-ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:41:17-91
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
 	android:name
-		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:41:25-88
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
 intent-filter#action:name:androidx.profileinstaller.action.SKIP_FILE
-ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:43:13-45:29
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
 action#androidx.profileinstaller.action.SKIP_FILE
-ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:44:17-85
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
 	android:name
-		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:44:25-82
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
 intent-filter#action:name:androidx.profileinstaller.action.SAVE_PROFILE
-ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:46:13-48:29
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
 action#androidx.profileinstaller.action.SAVE_PROFILE
-ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:47:17-88
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
 	android:name
-		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:47:25-85
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
 intent-filter#action:name:androidx.profileinstaller.action.BENCHMARK_OPERATION
-ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:49:13-51:29
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
 action#androidx.profileinstaller.action.BENCHMARK_OPERATION
-ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:50:17-95
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
 	android:name
-		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] /home/koda/.gradle/caches/transforms-4/2de8533e0166fbc00cf13b17bf8b1f31/transformed/jetified-profileinstaller-1.3.1/AndroidManifest.xml:50:25-92
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\6f0ab4d07d15fe5a5641580e6453104e\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:50:25-92

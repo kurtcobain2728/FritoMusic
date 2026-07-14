@@ -1,0 +1,44 @@
+# Review package: 9bcc683..d0b2e5b
+
+## Commits
+d0b2e5b feat: extract innertube module from Echo-Music for YouTube streaming
+
+## Files changed
+ app/build.gradle.kts                               |   11 +-
+ build.gradle.kts                                   |    7 +-
+ gradle/libs.versions.toml                          |   19 +
+ gradle/wrapper/gradle-wrapper.properties           |    2 +-
+ innertube/build.gradle.kts                         |   37 +
+ innertube/src/main/AndroidManifest.xml             |    2 +
+ innertube/src/main/kotlin/com/music/innertube/InnerTube.kt   |  797 +++++++++
+ innertube/src/main/kotlin/com/music/innertube/NetworkConfig.kt    |  125 ++
+ innertube/src/main/kotlin/com/music/innertube/YouTube.kt | 1733 ++++++++++++++++++++
+ innertube/src/main/kotlin/com/music/innertube/YouTubeConstants.kt |    6 +
+ innertube/src/main/kotlin/com/music/innertube/models/AccountInfo.kt      |    8 +
+ ... (106 files total)
+ settings.gradle.kts                                |    2 +
+ 110 files changed, 8307 insertions(+), 8 deletions(-)
+
+## Diff Summary
+
+### New Files
+- `innertube/build.gradle.kts` - Module build configuration with Ktor 3.4.0, NewPipe v0.25.2
+- `innertube/src/main/AndroidManifest.xml` - Library manifest
+- `gradle/libs.versions.toml` - Version catalog with all dependency versions
+- 106 Kotlin source files from Echo-Music innertube module
+
+### Modified Files
+- `settings.gradle.kts` - Added `:innertube` module and JitPack repository
+- `build.gradle.kts` (root) - Updated Kotlin to 2.3.10, AGP to 8.9.0
+- `app/build.gradle.kts` - Added innertube dependency
+- `gradle/wrapper/gradle-wrapper.properties` - Updated Gradle to 8.11.1
+
+### Key Changes
+1. **Kotlin upgrade**: 1.9.0 → 2.3.10 (required by Ktor 3.4.0)
+2. **AGP upgrade**: 8.2.0 → 8.9.0 (required by Kotlin 2.3.x)
+3. **Gradle upgrade**: Updated to 8.11.1
+4. **New dependencies**: Ktor 3.4.0, NewPipeExtractor v0.25.2, Brotli 0.1.2
+
+### Compilation Status
+- `:innertube:compileDebugKotlin` - BUILD SUCCESSFUL
+- `:app:compileDebugKotlin` - NOT VERIFIED (potential issues from Kotlin upgrade)
