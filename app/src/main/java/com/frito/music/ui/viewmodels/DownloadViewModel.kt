@@ -105,7 +105,8 @@ class DownloadViewModel(application: Application) : AndroidViewModel(application
         _searchResults.value = null
         _searchQuery.value = ""
 
-        initEngine(id)
+        activeEngine?.destroy()
+        activeEngine = null
     }
 
     private var initEngineJob: kotlinx.coroutines.Job? = null
@@ -140,8 +141,11 @@ class DownloadViewModel(application: Application) : AndroidViewModel(application
 
         _searchQuery.value = query
         viewModelScope.launch {
-            // Wait for engine initialization to complete
-            initEngineJob?.join()
+            // Initialize engine lazily if needed
+            if (activeEngine == null) {
+                initEngine(_selectedServerId.value!!)
+                initEngineJob?.join()
+            }
             
             _isSearching.value = true
             _errorMessage.value = null

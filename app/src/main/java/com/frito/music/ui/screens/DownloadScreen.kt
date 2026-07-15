@@ -90,6 +90,12 @@ fun DownloadScreen(
         }
     }
 
+    LaunchedEffect(selectedServerId) {
+        if (searchQuery.length > 2) {
+            viewModel.search(searchQuery)
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize().background(appColors.background)) {
         // Header
         Row(

@@ -303,67 +303,8 @@ class ExtensionEngine(private val context: Context, private val extensionName: S
     }
 
     private fun preprocessES6(code: String): String {
-        return try {
-            var js = code
-            
-            // 1. Convert arrow functions to regular functions
-            // Pattern: (params) => { body } or (params) => expression
-            // Must be done BEFORE const->let conversion
-            
-            // Multi-line arrow functions with block body: (params) => { ... }
-            js = js.replace(Regex("""\(([^)]*)\)\s*=>\s*\{"""), "function($1) {")
-            
-            // Single param arrow functions: param => { body }
-            js = js.replace(Regex("""\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=>\s*\{"""), "function($1) {")
-            
-            // Arrow functions with expression body: (params) => expression
-            // This is tricky - we need to wrap the expression in { return ... }
-            js = js.replace(Regex("""\(([^)]*)\)\s*=>\s*([^{][^;,\n]*)"""), "function($1) { return $2; }")
-            
-            // Single param arrow with expression: param => expression
-            js = js.replace(Regex("""\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=>\s*([^{][^;,\n]*)"""), "function($1) { return $2; }")
-            
-            // 2. Convert async/await
-            // async function -> function (with wrapper)
-            js = js.replace(Regex("""\basync\s+function\b"""), "function")
-            // async (params) => already handled by arrow function conversion above
-            // await -> remove it (Rhino doesn't support it, but we can try)
-            // Actually, we need to handle this differently - wrap in a try/catch
-            
-            // 3. Convert const to let
-            js = js.replace(Regex("""for\s*\(\s*const\s+"""), "for (let ")
-            js = js.replace(Regex("""\bconst\s+"""), "let ")
-            
-            // 4. Polyfill padStart
-            if (js.contains(".padStart(")) {
-                val polyfill = """
-                    |if (!String.prototype.padStart) {
-                    |    String.prototype.padStart = function(targetLength, padString) {
-                    |        targetLength = targetLength >> 0;
-                    |        padString = String(padString || ' ');
-                    |        if (this.length >= targetLength) return String(this);
-                    |        targetLength = targetLength - this.length;
-                    |        if (targetLength > padString.length) {
-                    |            padString = padString.repeat(Math.ceil(targetLength / padString.length));
-                    |        }
-                    |        return padString.slice(0, targetLength) + String(this);
-                    |    };
-                    |}
-                """.trimMargin()
-                js = polyfill + "\n" + js
-            }
-            
-            // 5. Convert spread in push
-            js = js.replace(
-                Regex("""([a-zA-Z0-9_]+)\.push\(\.\.\.([a-zA-Z0-9_]+)\)"""),
-                "Array.prototype.push.apply($1, $2)"
-            )
-            
-            android.util.Log.d("ExtensionEngine", "ES6 preprocessor applied to $extensionName (${js.length} chars)")
-            js
-        } catch (e: Exception) {
-            android.util.Log.e("ExtensionEngine", "ES6 preprocessor error for $extensionName, using original", e)
-            code
-        }
+        // Rhino with VERSION_ES6 already supports ES6 natively
+        // No preprocessing needed - it was causing more problems than it solved
+        return code
     }
 }
