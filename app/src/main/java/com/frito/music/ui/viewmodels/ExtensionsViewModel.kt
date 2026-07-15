@@ -7,10 +7,12 @@ import com.frito.music.extensions.ExtensionInfo
 import com.frito.music.extensions.ExtensionManager
 import com.frito.music.extensions.ExtensionState
 import com.frito.music.extensions.ExtensionUIModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class ExtensionsViewModel(application: Application) : AndroidViewModel(application) {
     private val extensionManager = ExtensionManager(application)
@@ -29,7 +31,10 @@ class ExtensionsViewModel(application: Application) : AndroidViewModel(applicati
             _isLoading.value = true
             _errorMessage.value = null
             
-            val registry = extensionManager.fetchRegistry(url)
+            val registry = withContext(Dispatchers.IO) {
+                extensionManager.fetchRegistry(url)
+            }
+            
             if (registry != null) {
                 updateUIModels(registry.extensions)
             } else {
