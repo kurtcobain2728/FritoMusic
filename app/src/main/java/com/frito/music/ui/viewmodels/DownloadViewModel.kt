@@ -108,8 +108,11 @@ class DownloadViewModel(application: Application) : AndroidViewModel(application
         initEngine(id)
     }
 
+    private var initEngineJob: kotlinx.coroutines.Job? = null
+
     private fun initEngine(extensionId: String) {
-        viewModelScope.launch {
+        initEngineJob?.cancel()
+        initEngineJob = viewModelScope.launch {
             _errorMessage.value = null
             try {
                 withContext(Dispatchers.IO) {
@@ -137,6 +140,9 @@ class DownloadViewModel(application: Application) : AndroidViewModel(application
 
         _searchQuery.value = query
         viewModelScope.launch {
+            // Wait for engine initialization to complete
+            initEngineJob?.join()
+            
             _isSearching.value = true
             _errorMessage.value = null
             try {
@@ -147,15 +153,13 @@ class DownloadViewModel(application: Application) : AndroidViewModel(application
                             extResults = SearchResult(emptyList(), emptyList(), emptyList())
                         }
                         
-                        if (extResults.tracks.isEmpty() && extResults.albums.isEmpty() && extResults.artists.isEmpty()) {
-                            Log.d("DownloadViewModel", "Extension missing some results, merging with Deezer API")
-                            val deezerResults = searchNativeDeezer(query)
-                            extResults = SearchResult(
-                                tracks = extResults.tracks.ifEmpty { deezerResults.tracks },
-                                albums = extResults.albums.ifEmpty { deezerResults.albums },
-                                artists = extResults.artists.ifEmpty { deezerResults.artists }
-                            )
-                        }
+                        // Always try to fill missing categories from Deezer
+                        val deezerResults = searchNativeDeezer(query)
+                        extResults = SearchResult(
+                            tracks = extResults.tracks.ifEmpty { deezerResults.tracks },
+                            albums = extResults.albums.ifEmpty { deezerResults.albums },
+                            artists = extResults.artists.ifEmpty { deezerResults.artists }
+                        )
                         extResults
                     }
                 }
