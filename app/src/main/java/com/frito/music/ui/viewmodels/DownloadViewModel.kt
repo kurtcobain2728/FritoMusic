@@ -322,6 +322,11 @@ class DownloadViewModel(application: Application) : AndroidViewModel(application
                     return@withContext extResult
                 }
                 
+                val currentServer = _selectedServerId.value ?: ""
+                if (!currentServer.contains("deezer", ignoreCase = true)) {
+                    return@withContext extResult.takeIf { !it.isNullOrEmpty() }
+                }
+
                 // Fallback to native Deezer API
                 Log.d("DownloadViewModel", "Falling back to Deezer API for Album $albumId")
                 val url = URL("https://api.deezer.com/album/$albumId")
@@ -376,6 +381,11 @@ class DownloadViewModel(application: Application) : AndroidViewModel(application
                     return@withContext extResult
                 }
                 
+                val currentServer = _selectedServerId.value ?: ""
+                if (!currentServer.contains("deezer", ignoreCase = true)) {
+                    return@withContext extResult.takeIf { !it.isNullOrEmpty() }
+                }
+
                 // Fallback to native Deezer API
                 Log.d("DownloadViewModel", "Falling back to Deezer API for Artist $artistId")
                 

@@ -303,29 +303,56 @@ data class ArtistAlbum(
 
 private fun parseArtistDetail(jsonStr: String, artistId: String): ArtistDetail {
     val json = JSONObject(jsonStr)
-    val artistObj = if (json.has("artist")) json.getJSONObject("artist") else json
+    val artistObj = if (json.has("artist") && json.optJSONObject("artist") != null) json.getJSONObject("artist") else json
     
-    val name = artistObj.optString("name", "Unknown Artist")
-    val imageUrl = artistObj.optString("image_url", "").ifEmpty { artistObj.optString("images", "") }.ifEmpty { artistObj.optString("header_image", "") }
-    
+    val name = artistObj.optString("name")
+        .ifEmpty { artistObj.optString("title") }
+        .ifEmpty { artistObj.optString("artist") }
+        .ifEmpty { "Artista" }
+        
+    val imageUrl = artistObj.optString("image_url")
+        .ifEmpty { artistObj.optString("imageUrl") }
+        .ifEmpty { artistObj.optString("picture_xl") }
+        .ifEmpty { artistObj.optString("avatarUrl") }
+        .ifEmpty { artistObj.optString("images") }
+        .ifEmpty { artistObj.optString("header_image") }
+        .ifEmpty { artistObj.optString("thumbnail") }
+
     val topTracks = mutableListOf<ArtistTrack>()
     val tracksArr = artistObj.optJSONArray("top_tracks")
+        ?: artistObj.optJSONArray("tracks")
+        ?: artistObj.optJSONArray("songs")
+        ?: json.optJSONArray("top_tracks")
+        ?: json.optJSONArray("tracks")
+
     if (tracksArr != null) {
         for (i in 0 until tracksArr.length()) {
             val t = tracksArr.getJSONObject(i)
-            val img = t.optString("image_url", "").ifEmpty { t.optString("cover_url", "") }.ifEmpty { t.optJSONObject("album")?.optString("cover_url", "") ?: "" }
-            val albumName = t.optJSONObject("album")?.optString("name", "") ?: ""
-            
+            val tName = t.optString("title").ifEmpty { t.optString("name", "Track ${i + 1}") }
+            val img = t.optString("image_url")
+                .ifEmpty { t.optString("imageUrl") }
+                .ifEmpty { t.optString("cover_url") }
+                .ifEmpty { t.optString("images") }
+                .ifEmpty { t.optJSONObject("album")?.optString("cover_url") ?: "" }
+                .ifEmpty { t.optJSONObject("album")?.optString("cover_xl") ?: "" }
+            val albumName = t.optJSONObject("album")?.optString("name")
+                ?.ifEmpty { t.optJSONObject("album")?.optString("title") }
+                ?: t.optString("album")
+
             var artistsStr = t.optString("artists")
             val arrA = t.optJSONArray("artists")
             if (arrA != null && arrA.length() > 0) {
                 val names = mutableListOf<String>()
                 for (j in 0 until arrA.length()) {
-                    names.add(arrA.getJSONObject(j).optString("name"))
+                    val item = arrA.opt(j)
+                    if (item is JSONObject) names.add(item.optString("name"))
+                    else if (item is String) names.add(item)
                 }
                 artistsStr = names.joinToString(", ")
             }
-            topTracks.add(ArtistTrack(t.optString("id"), t.optString("name"), artistsStr, albumName, img))
+            if (artistsStr.isEmpty()) artistsStr = name
+
+            topTracks.add(ArtistTrack(t.optString("id"), tName, artistsStr, albumName, img))
         }
     }
 
@@ -334,25 +361,36 @@ private fun parseArtistDetail(jsonStr: String, artistId: String): ArtistDetail {
         if (arr == null) return list
         for (i in 0 until arr.length()) {
             val a = arr.getJSONObject(i)
-            val img = a.optString("image_url", "").ifEmpty { a.optString("cover_url", "") }
-            
+            val aName = a.optString("title").ifEmpty { a.optString("name", "Álbum ${i + 1}") }
+            val img = a.optString("image_url")
+                .ifEmpty { a.optString("imageUrl") }
+                .ifEmpty { a.optString("cover_url") }
+                .ifEmpty { a.optString("images") }
+
             var artistsStr = a.optString("artists")
             val arrA = a.optJSONArray("artists")
             if (arrA != null && arrA.length() > 0) {
                 val names = mutableListOf<String>()
                 for (j in 0 until arrA.length()) {
-                    names.add(arrA.getJSONObject(j).optString("name"))
+                    val item = arrA.opt(j)
+                    if (item is JSONObject) names.add(item.optString("name"))
+                    else if (item is String) names.add(item)
                 }
                 artistsStr = names.joinToString(", ")
             }
-            list.add(ArtistAlbum(a.optString("id"), a.optString("name"), artistsStr, img))
+            if (artistsStr.isEmpty()) artistsStr = name
+
+            list.add(ArtistAlbum(a.optString("id"), aName, artistsStr, img))
         }
         return list
     }
 
-    val albums = parseAlbums(artistObj.optJSONArray("albums"))
-    val singles = parseAlbums(artistObj.optJSONArray("singles"))
-    
+    val albumsArr = artistObj.optJSONArray("albums") ?: json.optJSONArray("albums")
+    val singlesArr = artistObj.optJSONArray("singles") ?: json.optJSONArray("singles")
+
+    val albums = parseAlbums(albumsArr)
+    val singles = parseAlbums(singlesArr)
+
     return ArtistDetail(artistId, name, imageUrl, topTracks, albums, singles)
 }
 

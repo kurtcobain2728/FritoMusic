@@ -122,6 +122,9 @@ class StreamViewModel : ViewModel() {
     }
 
     fun playTrack(track: StreamableTrack, playerViewModel: PlayerViewModel) {
+        val prepAudio = track.toAudioFile("")
+        playerViewModel.setPreparingAudio(prepAudio)
+
         viewModelScope.launch {
             _errorMessage.value = null
             
@@ -130,8 +133,8 @@ class StreamViewModel : ViewModel() {
             }
             result
                 .onSuccess { streamUrl ->
-                    val audioFile = track.toAudioFile(streamUrl)
-                    playerViewModel.playAudios(listOf(audioFile), 0)
+                    val fullAudioFile = track.toAudioFile(streamUrl)
+                    playerViewModel.playAudios(listOf(fullAudioFile), 0)
                     
                     // Load lyrics in background
                     loadLyrics(track.videoId)
@@ -186,25 +189,27 @@ class StreamViewModel : ViewModel() {
     }
 
     fun playArtistSong(song: SongItem, playerViewModel: PlayerViewModel) {
+        val streamableTrack = StreamableTrack(
+            videoId = song.id,
+            title = song.title,
+            artist = song.artists.joinToString(", ") { it.name },
+            album = song.album?.name,
+            durationMs = song.duration?.times(1000L) ?: 0L,
+            thumbnailUrl = song.thumbnail
+        )
+        val prepAudio = streamableTrack.toAudioFile("")
+        playerViewModel.setPreparingAudio(prepAudio)
+
         viewModelScope.launch {
             _errorMessage.value = null
-
-            val streamableTrack = StreamableTrack(
-                videoId = song.id,
-                title = song.title,
-                artist = song.artists.joinToString(", ") { it.name },
-                album = song.album?.name,
-                durationMs = song.duration?.times(1000L) ?: 0L,
-                thumbnailUrl = song.thumbnail
-            )
 
             val result = withContext(Dispatchers.IO) {
                 YouTubeRepository.getStreamUrl(song.id)
             }
             result
                 .onSuccess { streamUrl ->
-                    val audioFile = streamableTrack.toAudioFile(streamUrl)
-                    playerViewModel.playAudios(listOf(audioFile), 0)
+                    val fullAudioFile = streamableTrack.toAudioFile(streamUrl)
+                    playerViewModel.playAudios(listOf(fullAudioFile), 0)
                     loadLyrics(song.id)
                 }
                 .onFailure { error ->
@@ -239,25 +244,27 @@ class StreamViewModel : ViewModel() {
     }
 
     fun playAlbumSong(song: SongItem, playerViewModel: PlayerViewModel) {
+        val streamableTrack = StreamableTrack(
+            videoId = song.id,
+            title = song.title,
+            artist = song.artists.joinToString(", ") { it.name },
+            album = song.album?.name,
+            durationMs = song.duration?.times(1000L) ?: 0L,
+            thumbnailUrl = song.thumbnail
+        )
+        val prepAudio = streamableTrack.toAudioFile("")
+        playerViewModel.setPreparingAudio(prepAudio)
+
         viewModelScope.launch {
             _errorMessage.value = null
-
-            val streamableTrack = StreamableTrack(
-                videoId = song.id,
-                title = song.title,
-                artist = song.artists.joinToString(", ") { it.name },
-                album = song.album?.name,
-                durationMs = song.duration?.times(1000L) ?: 0L,
-                thumbnailUrl = song.thumbnail
-            )
 
             val result = withContext(Dispatchers.IO) {
                 YouTubeRepository.getStreamUrl(song.id)
             }
             result
                 .onSuccess { streamUrl ->
-                    val audioFile = streamableTrack.toAudioFile(streamUrl)
-                    playerViewModel.playAudios(listOf(audioFile), 0)
+                    val fullAudioFile = streamableTrack.toAudioFile(streamUrl)
+                    playerViewModel.playAudios(listOf(fullAudioFile), 0)
                     loadLyrics(song.id)
                 }
                 .onFailure { error ->

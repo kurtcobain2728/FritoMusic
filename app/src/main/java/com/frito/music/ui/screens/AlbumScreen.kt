@@ -344,11 +344,21 @@ data class AlbumTrack(
 
 private fun parseAlbumDetail(jsonStr: String, albumId: String): AlbumDetail {
     val json = JSONObject(jsonStr)
-    val name = json.optString("name", "Unknown Album")
-    val imageUrl = json.optString("image_url", "").ifEmpty { json.optString("cover_url", "") }.ifEmpty { json.optString("thumbnailUrl", "") }
+    val albumObj = if (json.has("album") && json.optJSONObject("album") != null) json.getJSONObject("album") else json
+
+    val name = albumObj.optString("name")
+        .ifEmpty { albumObj.optString("title") }
+        .ifEmpty { "Álbum" }
+
+    val imageUrl = albumObj.optString("image_url")
+        .ifEmpty { albumObj.optString("imageUrl") }
+        .ifEmpty { albumObj.optString("cover_url") }
+        .ifEmpty { albumObj.optString("cover_xl") }
+        .ifEmpty { albumObj.optString("images") }
+        .ifEmpty { albumObj.optString("thumbnailUrl") }
     
-    var artistsStr = json.optString("artists")
-    val arrA = json.optJSONArray("artists")
+    var artistsStr = albumObj.optString("artists").ifEmpty { albumObj.optString("artist") }
+    val arrA = albumObj.optJSONArray("artists")
     if (arrA != null && arrA.length() > 0) {
         val names = mutableListOf<String>()
         for (j in 0 until arrA.length()) {
@@ -359,15 +369,17 @@ private fun parseAlbumDetail(jsonStr: String, albumId: String): AlbumDetail {
                 names.add(a)
             }
         }
-        artistsStr = names.joinToString(", ")
+        if (names.isNotEmpty()) artistsStr = names.joinToString(", ")
     }
 
     val tracks = mutableListOf<AlbumTrack>()
-    val tracksArr = json.optJSONArray("tracks") ?: json.optJSONArray("songs")
+    val tracksArr = albumObj.optJSONArray("tracks") ?: albumObj.optJSONArray("songs") ?: json.optJSONArray("tracks") ?: json.optJSONArray("songs")
     if (tracksArr != null) {
         for (i in 0 until tracksArr.length()) {
             val t = tracksArr.getJSONObject(i)
-            var tArtistsStr = t.optString("artists")
+            val tName = t.optString("title").ifEmpty { t.optString("name", "Track ${i + 1}") }
+
+            var tArtistsStr = t.optString("artists").ifEmpty { t.optString("artist") }
             val tArrA = t.optJSONArray("artists")
             if (tArrA != null && tArrA.length() > 0) {
                 val names = mutableListOf<String>()
@@ -379,14 +391,15 @@ private fun parseAlbumDetail(jsonStr: String, albumId: String): AlbumDetail {
                         names.add(a)
                     }
                 }
-                tArtistsStr = names.joinToString(", ")
+                if (names.isNotEmpty()) tArtistsStr = names.joinToString(", ")
             }
             if (tArtistsStr.isEmpty()) tArtistsStr = artistsStr
 
             var durationMs = t.optLong("duration_ms", 0L)
+            if (durationMs == 0L) durationMs = t.optLong("durationMs", 0L)
             if (durationMs == 0L) durationMs = t.optLong("duration", 0L) * 1000L
 
-            tracks.add(AlbumTrack(t.optString("id"), t.optString("name", "Track ${i + 1}"), tArtistsStr, durationMs))
+            tracks.add(AlbumTrack(t.optString("id"), tName, tArtistsStr, durationMs))
         }
     }
 

@@ -34,6 +34,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val _currentAudio = MutableStateFlow<AudioFile?>(null)
     val currentAudio = _currentAudio.asStateFlow()
 
+    fun setPreparingAudio(audio: AudioFile) {
+        _currentAudio.value = audio
+    }
+
     private val _progress = MutableStateFlow(0f)
     val progress = _progress.asStateFlow()
     

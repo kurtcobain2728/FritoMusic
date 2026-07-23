@@ -107,32 +107,53 @@ class ExtensionEngine(private val context: Context, private val extensionName: S
         rhinoContext?.evaluateString(scope, jsCode, "index.js", 1, null)
     }
 
-    /** Evaluate JS and convert result to String safely (Rhino returns NativeObject, not Java String) */
+    /** Evaluate JS and convert result to String safely on an 8MB stack thread */
     private fun evalStr(js: String): String? {
-        return try {
-            val result = rhinoContext?.evaluateString(scope, js, "eval", 1, null)
-            val str = result?.toString()
-            android.util.Log.d("ExtensionEngine", "evalStr result (${str?.length ?: -1} chars): ${str?.take(200)}")
-            str
-        } catch (e: Exception) {
-            android.util.Log.e("ExtensionEngine", "evalStr failed: ${e.message}", e)
-            null
-        }
+        var resultStr: String? = null
+        var exception: Throwable? = null
+        val thread = Thread(null, {
+            try {
+                val cx = org.mozilla.javascript.Context.enter()
+                cx.optimizationLevel = -1
+                cx.languageVersion = org.mozilla.javascript.Context.VERSION_ES6
+                val result = cx.evaluateString(scope, js, "eval", 1, null)
+                resultStr = result?.toString()
+                android.util.Log.d("ExtensionEngine", "evalStr result (${resultStr?.length ?: -1} chars): ${resultStr?.take(200)}")
+            } catch (e: Throwable) {
+                exception = e
+                android.util.Log.e("ExtensionEngine", "evalStr failed: ${e.message}", e)
+            } finally {
+                runCatching { org.mozilla.javascript.Context.exit() }
+            }
+        }, "Rhino8MBThread", 8 * 1024 * 1024L)
+        thread.start()
+        thread.join()
+        return resultStr
     }
 
-    /** Evaluate JS and convert result to Boolean safely */
+    /** Evaluate JS and convert result to Boolean safely on an 8MB stack thread */
     private fun evalBool(js: String): Boolean {
-        return try {
-            val result = rhinoContext?.evaluateString(scope, js, "eval", 1, null)
-            when (result) {
-                is Boolean -> result
-                is Number -> result.toDouble() != 0.0
-                else -> result?.toString()?.lowercase()?.let { it == "true" || it != "null" && it.isNotEmpty() } ?: false
+        var resultBool = false
+        val thread = Thread(null, {
+            try {
+                val cx = org.mozilla.javascript.Context.enter()
+                cx.optimizationLevel = -1
+                cx.languageVersion = org.mozilla.javascript.Context.VERSION_ES6
+                val result = cx.evaluateString(scope, js, "eval", 1, null)
+                resultBool = when (result) {
+                    is Boolean -> result
+                    is Number -> result.toDouble() != 0.0
+                    else -> result?.toString()?.lowercase()?.let { it == "true" || it != "null" && it.isNotEmpty() } ?: false
+                }
+            } catch (e: Throwable) {
+                android.util.Log.e("ExtensionEngine", "evalBool failed: ${e.message}", e)
+            } finally {
+                runCatching { org.mozilla.javascript.Context.exit() }
             }
-        } catch (e: Exception) {
-            android.util.Log.e("ExtensionEngine", "evalBool failed: ${e.message}", e)
-            false
-        }
+        }, "Rhino8MBThread", 8 * 1024 * 1024L)
+        thread.start()
+        thread.join()
+        return resultBool
     }
 
     // --- Eliminated fetchHomeFeed and fetchBrowse logic as per RN architecture ---
@@ -278,25 +299,45 @@ class ExtensionEngine(private val context: Context, private val extensionName: S
     }
 
     fun fetchArtist(artistId: String): String {
-        val hasMethod = evalBool("typeof __extension.getArtist === 'function'")
+        val hasMethod = evalBool("typeof __extension !== 'undefined' && __extension !== null && (typeof __extension.getArtist === 'function' || typeof __extension.getArtistDetails === 'function')")
         if (!hasMethod) {
             return ""
         }
-        val result = evalStr("JSON.stringify(__extension.getArtist('$artistId'))")
-            ?: throw Exception("getArtist returned null")
-
-        return result
+        val escapedId = artistId.replace("\\", "\\\\").replace("'", "\\'")
+        val jsCode = """
+            (function() {
+                try {
+                    var fn = __extension.getArtist || __extension.getArtistDetails;
+                    var res = fn.call(__extension, '$escapedId');
+                    return (typeof res === 'string') ? res : JSON.stringify(res);
+                } catch(e) {
+                    return JSON.stringify({error: String(e)});
+                }
+            })()
+        """.trimIndent()
+        val result = evalStr(jsCode) ?: ""
+        return if (result == "null" || result == "undefined") "" else result
     }
 
     fun fetchAlbum(albumId: String): String {
-        val hasMethod = evalBool("typeof __extension.getAlbum === 'function'")
+        val hasMethod = evalBool("typeof __extension !== 'undefined' && __extension !== null && (typeof __extension.getAlbum === 'function' || typeof __extension.getAlbumDetails === 'function' || typeof __extension.getAlbumTracks === 'function')")
         if (!hasMethod) {
             return ""
         }
-        val result = evalStr("JSON.stringify(__extension.getAlbum('$albumId'))")
-            ?: throw Exception("getAlbum returned null")
-
-        return result
+        val escapedId = albumId.replace("\\", "\\\\").replace("'", "\\'")
+        val jsCode = """
+            (function() {
+                try {
+                    var fn = __extension.getAlbum || __extension.getAlbumDetails || __extension.getAlbumTracks;
+                    var res = fn.call(__extension, '$escapedId');
+                    return (typeof res === 'string') ? res : JSON.stringify(res);
+                } catch(e) {
+                    return JSON.stringify({error: String(e)});
+                }
+            })()
+        """.trimIndent()
+        val result = evalStr(jsCode) ?: ""
+        return if (result == "null" || result == "undefined") "" else result
     }
 
     fun getDownloadUrl(trackId: String, trackUrl: String? = null, quality: String = "320kbps"): String? {
