@@ -197,6 +197,21 @@ fun DownloadItem(workInfo: WorkInfo) {
                     )
                 }
             }
+
+            // Motivo real del fallo (lo escribe el worker en outputData)
+            if (workInfo.state == WorkInfo.State.FAILED) {
+                val errorDetail = workInfo.outputData.getString("error")
+                if (!errorDetail.isNullOrEmpty()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = errorDetail,
+                        color = Color(0xFFE57373),
+                        fontSize = 12.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
         }
     }
 }

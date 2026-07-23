@@ -18,12 +18,27 @@ import com.music.innertube.pages.ExplorePage
 import com.music.innertube.pages.HomePage
 import com.music.innertube.pages.PlaylistPage
 import com.frito.music.utils.potoken.PoTokenGenerator
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 
 object YouTubeRepository {
 
     private val poTokenGenerator = PoTokenGenerator()
+
+    private data class CachedUrl(val url: String, val timestamp: Long)
+    private val streamUrlCache = ConcurrentHashMap<String, CachedUrl>()
+    private const val STREAM_URL_TTL_MS = 4 * 60 * 60 * 1000L
+
+    private fun getCachedStreamUrl(videoId: String): String? {
+        val entry = streamUrlCache[videoId] ?: return null
+        return if (System.currentTimeMillis() - entry.timestamp < STREAM_URL_TTL_MS) entry.url
+        else { streamUrlCache.remove(videoId); null }
+    }
 
     // Clients that don't require PoToken (work without login)
     private val ANONYMOUS_CLIENTS = listOf(
@@ -74,103 +89,99 @@ object YouTubeRepository {
         YouTube.explore().getOrThrow()
     }
 
-    suspend fun getStreamUrl(videoId: String): Result<String> = withContext(Dispatchers.IO) {
-    runCatching {
-        var lastException: Exception? = null
-        val isLoggedIn = YouTube.cookie != null
-        val clients = if (isLoggedIn) AUTHENTICATED_CLIENTS else ANONYMOUS_CLIENTS
+    private suspend fun resolveWithClient(client: YouTubeClient, videoId: String): String? {
+        val poToken = if (client.useWebPoTokens) {
+            val sessionId = YouTube.dataSyncId ?: YouTube.visitorData
+            if (sessionId != null) poTokenGenerator.getWebClientPoToken(videoId, sessionId) else null
+        } else null
 
-        for (client in clients) {
-            try {
-                // Generate PoToken for clients that require it
-                val poToken = if (client.useWebPoTokens) {
-                    val sessionId = YouTube.dataSyncId ?: YouTube.visitorData
-                    if (sessionId != null) {
-                        poTokenGenerator.getWebClientPoToken(videoId, sessionId)
-                    } else {
-                        null
-                    }
-                } else {
-                    null
-                }
+        val playerResponse = YouTube.player(
+            videoId = videoId,
+            playlistId = null,
+            client = client,
+            poToken = poToken?.playerRequestPoToken
+        ).getOrNull() ?: return null
 
-                val playerResponse = YouTube.player(
-                    videoId = videoId,
-                    playlistId = null,
-                    client = client,
-                    poToken = poToken?.playerRequestPoToken
-                ).getOrThrow()
+        if (playerResponse.playabilityStatus.status != "OK") return null
 
-                // Check if playability status is OK
-                if (playerResponse.playabilityStatus.status != "OK") {
-                    lastException = Exception("Playability: ${playerResponse.playabilityStatus.reason}")
-                    continue
-                }
+        val format = playerResponse.streamingData?.adaptiveFormats
+            ?.filter { it.mimeType.startsWith("audio/") }
+            ?.maxByOrNull { it.bitrate } ?: return null
 
-                val format = playerResponse.streamingData?.adaptiveFormats
-                    ?.filter { it.mimeType.startsWith("audio/") }
-                    ?.maxByOrNull { it.bitrate }
+        val directUrl = format.url
+        if (!directUrl.isNullOrEmpty()) {
+            return if (poToken != null) "$directUrl&pot=${poToken.streamingDataPoToken}" else directUrl
+        }
 
-                if (format != null) {
-                    // 1. Try direct URL with PoToken
-                    val directUrl = format.url
-                    if (!directUrl.isNullOrEmpty()) {
-                        return@runCatching if (poToken != null) {
-                            "$directUrl&pot=${poToken.streamingDataPoToken}"
-                        } else {
-                            directUrl
-                        }
-                    }
-
-                    // 2. Try signatureCipher deobfuscation via NewPipe
-                    val sigCipher = format.signatureCipher
-                    val cipher = format.cipher
-                    if (!sigCipher.isNullOrEmpty() || !cipher.isNullOrEmpty()) {
-                        val deobfuscatedUrl = NewPipeExtractor.getStreamUrl(format, videoId)
-                        if (deobfuscatedUrl != null) {
-                            return@runCatching if (poToken != null) {
-                                "$deobfuscatedUrl&pot=${poToken.streamingDataPoToken}"
-                            } else {
-                                deobfuscatedUrl
-                            }
-                        }
-                    }
-
-                    // 3. Try NewPipe player as last resort for this client
-                    val newPipeUrls = NewPipeExtractor.newPipePlayer(videoId)
-                    if (newPipeUrls.isNotEmpty()) {
-                        // Find best audio stream
-                        val audioUrl = newPipeUrls.firstOrNull { (itag, _) ->
-                            playerResponse.streamingData?.adaptiveFormats
-                                ?.any { it.itag == itag && it.mimeType.startsWith("audio/") } == true
-                        }?.second ?: newPipeUrls.firstOrNull()?.second
-
-                        if (audioUrl != null) {
-                            return@runCatching audioUrl
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                lastException = e
-                continue
+        val sigCipher = format.signatureCipher
+        val cipher = format.cipher
+        if (!sigCipher.isNullOrEmpty() || !cipher.isNullOrEmpty()) {
+            val deobfuscatedUrl = NewPipeExtractor.getStreamUrl(format, videoId)
+            if (deobfuscatedUrl != null) {
+                return if (poToken != null) "$deobfuscatedUrl&pot=${poToken.streamingDataPoToken}" else deobfuscatedUrl
             }
         }
 
-        // Final fallback: try NewPipe directly without any client
-        try {
+        val newPipeUrls = NewPipeExtractor.newPipePlayer(videoId)
+        if (newPipeUrls.isNotEmpty()) {
+            val audioUrl = newPipeUrls.firstOrNull { (itag, _) ->
+                playerResponse.streamingData?.adaptiveFormats
+                    ?.any { it.itag == itag && it.mimeType.startsWith("audio/") } == true
+            }?.second ?: newPipeUrls.firstOrNull()?.second
+            if (audioUrl != null) return audioUrl
+        }
+
+        return null
+    }
+
+    private suspend fun raceClients(videoId: String, clients: List<YouTubeClient>): String? =
+        supervisorScope {
+            val first = CompletableDeferred<String>()
+            val remaining = AtomicInteger(clients.size)
+            val jobs = clients.map { client ->
+                async(Dispatchers.IO) {
+                    val url = runCatching { resolveWithClient(client, videoId) }.getOrNull()
+                    if (url != null) {
+                        first.complete(url)
+                    } else if (remaining.decrementAndGet() == 0) {
+                        first.completeExceptionally(Exception("Ningún cliente pudo resolver el stream"))
+                    }
+                }
+            }
+            try {
+                first.await()
+            } catch (e: Exception) {
+                null
+            } finally {
+                jobs.forEach { it.cancel() }
+            }
+        }
+
+    suspend fun getStreamUrl(videoId: String): Result<String> = withContext(Dispatchers.IO) {
+        runCatching {
+            getCachedStreamUrl(videoId)?.let { return@runCatching it }
+
+            val isLoggedIn = YouTube.cookie != null
+            val clients = if (isLoggedIn) AUTHENTICATED_CLIENTS else ANONYMOUS_CLIENTS
+
+            val url = raceClients(videoId, clients)
+            if (url != null) {
+                streamUrlCache[videoId] = CachedUrl(url, System.currentTimeMillis())
+                return@runCatching url
+            }
+
+            // Fallback final NewPipe directo
             val newPipeUrls = NewPipeExtractor.newPipePlayer(videoId)
             if (newPipeUrls.isNotEmpty()) {
                 val audioUrl = newPipeUrls.firstOrNull()?.second
                 if (audioUrl != null) {
+                    streamUrlCache[videoId] = CachedUrl(audioUrl, System.currentTimeMillis())
                     return@runCatching audioUrl
                 }
             }
-        } catch (e: Exception) {
-            // Ignore
-        }
 
-        throw lastException ?: Exception("Could not resolve stream URL with any client")
-    }
+            throw Exception("Could not resolve stream URL with any client")
+        }
     }
 
     suspend fun getLyrics(videoId: String): Result<String?> = runCatching {

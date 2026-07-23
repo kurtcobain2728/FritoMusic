@@ -38,6 +38,7 @@ import androidx.compose.ui.draw.blur
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import androidx.compose.ui.platform.LocalContext
+import com.frito.music.utils.ImageUtils
 import com.frito.music.ui.viewmodels.PlayerViewModel
 import com.frito.music.ui.viewmodels.StreamViewModel
 import androidx.media3.common.Player
@@ -200,7 +201,7 @@ fun PlayerScreen(viewModel: PlayerViewModel, streamViewModel: StreamViewModel, o
                 if (currentAudio?.albumUri != null) {
                     AsyncImage(
                         model = ImageRequest.Builder(context)
-                            .data(currentAudio?.albumUri)
+                            .data(ImageUtils.highRes(currentAudio?.albumUri))
                             .crossfade(400)
                             .build(),
                         contentDescription = null,
@@ -696,7 +697,7 @@ fun MiniPlayer(viewModel: PlayerViewModel, onClick: () -> Unit, onSwipeUp: () ->
                 val miniCtx = androidx.compose.ui.platform.LocalContext.current
                 AsyncImage(
                     model = ImageRequest.Builder(miniCtx)
-                        .data(currentAudio?.albumUri)
+                        .data(ImageUtils.highRes(currentAudio?.albumUri))
                         .crossfade(300)
                         .build(),
                     contentDescription = "Album Art",

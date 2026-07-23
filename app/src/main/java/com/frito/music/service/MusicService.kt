@@ -36,7 +36,17 @@ class MusicService : MediaSessionService() {
         val evictor = LeastRecentlyUsedCacheEvictor(500 * 1024 * 1024L) // 500MB
         cache = SimpleCache(cacheDir, evictor)
         
+        val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
+            .setBufferDurationsMs(
+                10_000,  // minBufferMs
+                30_000,  // maxBufferMs
+                700,     // bufferForPlaybackMs (default 2500ms -> arranque más rápido)
+                1_500    // bufferForPlaybackAfterRebufferMs
+            )
+            .build()
+
         val player = ExoPlayer.Builder(this)
+            .setLoadControl(loadControl)
             .setMediaSourceFactory(
                 DefaultMediaSourceFactory(createDataSourceFactory())
             )

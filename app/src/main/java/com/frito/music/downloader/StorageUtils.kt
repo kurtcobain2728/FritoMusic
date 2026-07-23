@@ -22,25 +22,30 @@ object StorageUtils {
      * Devuelve un par que contiene el Uri final donde escribir, y un OutputStream.
      * En Android 10+ (Q) usa MediaStore y el atributo RELATIVE_PATH.
      * En Android 9 e inferior usa File directo en Environment.getExternalStoragePublicDirectory.
+     *
+     * @param extension extensión real del archivo ("flac", "mp3", "m4a", "opus", "ogg").
      */
     fun createAudioFileStream(
         context: Context,
         artistName: String,
         albumName: String,
         trackName: String,
-        quality: String = "320kbps"
+        extension: String = "mp3"
     ): Pair<Uri, OutputStream>? {
         val safeArtist = sanitizeFilename(artistName).ifEmpty { "Desconocido" }
         val safeAlbum = sanitizeFilename(albumName)
         val safeTrack = sanitizeFilename(trackName).ifEmpty { "Pista Desconocida" }
-        
-        val (extension, mimeType) = when {
-            quality.contains("FLAC", ignoreCase = true) || 
-            quality.contains("Hi-Res", ignoreCase = true) -> "flac" to "audio/flac"
-            quality.startsWith("256") -> "m4a" to "audio/mp4"
-            else -> "mp3" to "audio/mpeg"
+
+        val cleanExtension = extension.removePrefix(".").lowercase().ifEmpty { "mp3" }
+        val mimeType = when (cleanExtension) {
+            "flac" -> "audio/flac"
+            "m4a", "aac", "mp4" -> "audio/mp4"
+            "opus" -> "audio/opus"
+            "ogg" -> "audio/ogg"
+            "wav" -> "audio/wav"
+            else -> "audio/mpeg"
         }
-        val fileName = "$safeTrack.$extension"
+        val fileName = "$safeTrack.$cleanExtension"
 
         // La estructura será: Music/FritoM/{Artist}/{Album}/
         val relativePath = if (safeAlbum.isNotEmpty()) {

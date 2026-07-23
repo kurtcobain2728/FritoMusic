@@ -48,6 +48,30 @@ import com.frito.music.ui.theme.ThemeViewModel
 import com.frito.music.ui.theme.LocalAppColors
 
 class MainActivity : ComponentActivity() {
+
+    /**
+     * Procesa el deep link spotiflac://session-grant?...&state={extensionId}&grant={grant}
+     * que llega tras la verificación de sesión firmada en el navegador.
+     */
+    private fun handleSessionGrantIntent(intent: android.content.Intent?) {
+        val uri = intent?.data ?: return
+        if (uri.scheme == "spotiflac" && uri.host == "session-grant") {
+            val extensionId = uri.getQueryParameter("state")
+            val grant = uri.getQueryParameter("grant")
+            if (!extensionId.isNullOrEmpty() && !grant.isNullOrEmpty()) {
+                com.frito.music.extensions.session.SignedSessionManager
+                    .setPendingGrant(this, extensionId, grant)
+            }
+            // Limpiar el data para no reprocesarlo en recreaciones
+            intent.data = null
+        }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        handleSessionGrantIntent(intent)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val prefs = getSharedPreferences("FritoMusicPrefs", android.content.Context.MODE_PRIVATE)
@@ -56,6 +80,9 @@ class MainActivity : ComponentActivity() {
         // Initialize YouTube Login Manager and load saved session
         com.frito.music.data.repository.YouTubeLoginManager.init(this)
         com.frito.music.data.repository.YouTubeLoginManager.loadLoginToYouTube()
+
+        // Deep link de verificación de sesión (si la app se abrió desde el navegador)
+        handleSessionGrantIntent(intent)
 
         setContent {
             var showOnboarding by remember { mutableStateOf(!hasCompletedOnboardingInitial) }
@@ -94,6 +121,7 @@ class MainActivity : ComponentActivity() {
                 var selectedStreamArtistId by remember { mutableStateOf<String?>(null) }
                 var selectedStreamAlbumId by remember { mutableStateOf<String?>(null) }
                 var selectedStreamPlaylistId by remember { mutableStateOf<String?>(null) }
+                var verificationTarget by remember { mutableStateOf<Pair<String, String>?>(null) }
                 var showYouTubeLogin by remember { mutableStateOf(false) }
 
                 val favorites by playerViewModel.favorites.collectAsState(initial = emptySet())
@@ -109,10 +137,11 @@ class MainActivity : ComponentActivity() {
                     } else if (currentSubScreen == "playlist_detail") {
                         currentSubScreen = "listas"
                         selectedPlaylist = null
-                    } else if (currentSubScreen == "artist_detail" || currentSubScreen == "album_detail") {
+                    } else if (currentSubScreen == "artist_detail" || currentSubScreen == "album_detail" || currentSubScreen == "session_verification") {
                         currentSubScreen = "descargar"
                         selectedArtistId = null
                         selectedAlbumId = null
+                        verificationTarget = null
                     } else if (currentSubScreen == "stream_artist_detail") {
                         currentSubScreen = null
                         selectedStreamArtistId = null
@@ -276,8 +305,25 @@ class MainActivity : ComponentActivity() {
                                                 selectedAlbumId = id
                                                 currentSubScreen = "album_detail"
                                             },
+                                            onNavigateToVerification = { extId, url ->
+                                                verificationTarget = extId to url
+                                                currentSubScreen = "session_verification"
+                                            },
                                             viewModel = downloadViewModel
                                         )
+                                        "session_verification" -> {
+                                            verificationTarget?.let { (extId, url) ->
+                                                com.frito.music.ui.screens.SessionVerificationScreen(
+                                                    extensionId = extId,
+                                                    authUrl = url,
+                                                    onBack = { currentSubScreen = "descargar" },
+                                                    onCompleted = {
+                                                        currentSubScreen = "descargar"
+                                                        downloadViewModel.refreshSessionState()
+                                                    }
+                                                )
+                                            }
+                                        }
                                         "gestor_descargas" -> DownloadsManagerScreen(onBack = { currentSubScreen = null })
                                         "artist_detail" -> {
                                             selectedArtistId?.let { id ->

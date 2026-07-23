@@ -131,6 +131,19 @@ class UtilsBridge {
         }
     }
 
+    fun sha256(input: String): String {
+        return try {
+            val md = java.security.MessageDigest.getInstance("SHA-256")
+            md.digest(input.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
+        } catch (e: Exception) {
+            ""
+        }
+    }
+
+    fun isDownloadCancelled(): Boolean {
+        return DownloadState.cancelRequested
+    }
+
     fun hmacSHA1(key: ByteArray, data: ByteArray): ByteArray {
         try {
             val mac = javax.crypto.Mac.getInstance("HmacSHA1")
@@ -217,8 +230,42 @@ class StorageBridge(private val context: Context, private val extensionId: Strin
     }
 }
 
+/** Estado de cancelación compartido entre el worker y las extensiones. */
+object DownloadState {
+    @Volatile var cancelRequested: Boolean = false
+}
+
+/** Bridge de progreso JS -> Kotlin (para reportes hacia el worker/UI). */
+class ProgressBridge(private val listener: (Int) -> Unit) {
+    fun report(value: Any?) {
+        val raw = when (value) {
+            is Number -> value.toDouble()
+            is String -> value.toDoubleOrNull() ?: return
+            else -> return
+        }
+        // Algunas extensiones reportan porcentaje (0-100) y otras ratio (0.0-1.0)
+        val percent = if (raw in 0.0..1.0 && raw <= 1.0) (raw * 100).toInt() else raw.toInt()
+        listener(percent.coerceIn(0, 100))
+    }
+}
+
 class FileBridge {
     var interceptedUrl: String? = null
+
+    // Referencias de Rhino para poder invocar callbacks JS (onProgress)
+    private var rhinoContext: org.mozilla.javascript.Context? = null
+    private var scope: Scriptable? = null
+
+    fun attach(cx: org.mozilla.javascript.Context?, scope: Scriptable?) {
+        this.rhinoContext = cx
+        this.scope = scope
+    }
+
+    private fun jsResult(vararg pairs: Pair<String, Any?>): org.mozilla.javascript.NativeObject {
+        val result = org.mozilla.javascript.NativeObject()
+        for ((k, v) in pairs) result.put(k, result, v)
+        return result
+    }
 
     fun exists(path: String): Boolean {
         return try { java.io.File(path).exists() } catch (e: Exception) { false }
@@ -231,27 +278,112 @@ class FileBridge {
     fun getSize(path: String): Any? {
         return try {
             val size = java.io.File(path).length()
-            val result = org.mozilla.javascript.NativeObject()
-            result.put("success", result, true)
-            result.put("size", result, size)
-            result
-        } catch (e: Exception) { null }
-    }
-
-    fun readBytes(path: String, options: Any?): Any? {
-        return null
-    }
-
-    fun writeBytes(path: String, data: String, options: Any?): Any? {
-        return null
-    }
-
-    fun download(url: String, path: String, options: Any?): Any? {
-        if (interceptedUrl == null) {
-            interceptedUrl = url
+            jsResult("success" to true, "size" to size)
+        } catch (e: Exception) {
+            jsResult("success" to false, "error" to (e.message ?: "getSize failed"))
         }
-        val result = org.mozilla.javascript.NativeObject()
-        result.put("success", result, true)
-        return result
+    }
+
+    /**
+     * Contrato SpotiFLAC: readBytes(path, {encoding:"base64"}) -> {success, data(base64)|error}
+     */
+    fun readBytes(path: String, options: Any?): Any? {
+        return try {
+            val bytes = java.io.File(path).readBytes()
+            val b64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+            jsResult("success" to true, "data" to b64)
+        } catch (e: Exception) {
+            jsResult("success" to false, "error" to (e.message ?: "readBytes failed"))
+        }
+    }
+
+    /**
+     * Contrato SpotiFLAC: writeBytes(path, dataBase64, {encoding:"base64", truncate:bool, append:bool})
+     * truncate=true -> sobrescribe; append=true -> añade al final.
+     */
+    fun writeBytes(path: String, data: String, options: Any?): Any? {
+        return try {
+            val file = java.io.File(path)
+            file.parentFile?.mkdirs()
+            var append = false
+            if (options is Scriptable) {
+                val appendVal = options.get("append", options)
+                if (appendVal is Boolean) append = appendVal
+                val truncateVal = options.get("truncate", options)
+                if (truncateVal is Boolean && truncateVal) append = false
+            }
+            val bytes = android.util.Base64.decode(data, android.util.Base64.DEFAULT)
+            if (append) {
+                java.io.FileOutputStream(file, true).use { it.write(bytes) }
+            } else {
+                file.writeBytes(bytes)
+            }
+            jsResult("success" to true)
+        } catch (e: Exception) {
+            jsResult("success" to false, "error" to (e.message ?: "writeBytes failed"))
+        }
+    }
+
+    /**
+     * Contrato SpotiFLAC: download(url, path, {headers:{}, onProgress:function(written,total)})
+     * Descarga REAL del archivo a disco.
+     */
+    fun download(url: String, path: String, options: Any?): Any? {
+        var connection: HttpURLConnection? = null
+        return try {
+            val file = java.io.File(path)
+            file.parentFile?.mkdirs()
+
+            connection = URL(url).openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.connectTimeout = 20000
+            connection.readTimeout = 60000
+
+            var onProgressFn: org.mozilla.javascript.Function? = null
+            if (options is Scriptable) {
+                val headersObj = options.get("headers", options)
+                if (headersObj is Scriptable) {
+                    for (id in headersObj.ids) {
+                        val key = id.toString()
+                        val value = headersObj.get(key, headersObj)?.toString()
+                        if (value != null) connection.setRequestProperty(key, value)
+                    }
+                }
+                val cb = options.get("onProgress", options)
+                if (cb is org.mozilla.javascript.Function) onProgressFn = cb
+            }
+
+            val code = connection.responseCode
+            if (code !in 200..299) {
+                return jsResult("success" to false, "error" to "HTTP $code")
+            }
+
+            val total = connection.contentLengthLong
+            val input = connection.inputStream
+            val buffer = ByteArray(64 * 1024)
+            var written = 0L
+            var read: Int
+
+            file.outputStream().use { out ->
+                while (input.read(buffer).also { read = it } != -1) {
+                    if (DownloadState.cancelRequested) {
+                        return jsResult("success" to false, "error" to "download cancelled")
+                    }
+                    out.write(buffer, 0, read)
+                    written += read
+                    if (onProgressFn != null && rhinoContext != null && scope != null) {
+                        runCatching {
+                            onProgressFn.call(rhinoContext, scope, onProgressFn, arrayOf(written, total))
+                        }
+                    }
+                }
+            }
+            jsResult("success" to true, "path" to path, "size" to written)
+        } catch (e: Exception) {
+            runCatching { java.io.File(path).delete() }
+            jsResult("success" to false, "error" to (e.message ?: "download failed"))
+        } finally {
+            connection?.disconnect()
+        }
     }
 }

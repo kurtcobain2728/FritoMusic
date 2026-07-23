@@ -73,6 +73,14 @@ class StreamViewModel : ViewModel() {
 
     private var searchJob: Job? = null
     
+    fun prefetchStreamUrls(videoIds: List<String>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            videoIds.take(3).forEach { id ->
+                runCatching { YouTubeRepository.getStreamUrl(id) }
+            }
+        }
+    }
+
     fun search(query: String) {
         searchJob?.cancel()
 
@@ -93,6 +101,7 @@ class StreamViewModel : ViewModel() {
             searchResult
                 .onSuccess { results ->
                     _searchResults.value = results
+                    prefetchStreamUrls(results.map { it.videoId })
                 }
                 .onFailure { error ->
                     _errorMessage.value = error.message ?: "Error searching"
@@ -111,7 +120,7 @@ class StreamViewModel : ViewModel() {
             _isSearching.value = false
         }
     }
-    
+
     fun playTrack(track: StreamableTrack, playerViewModel: PlayerViewModel) {
         viewModelScope.launch {
             _errorMessage.value = null
@@ -161,6 +170,8 @@ class StreamViewModel : ViewModel() {
             result
                 .onSuccess { artistPage ->
                     _selectedArtist.value = artistPage
+                    val songIds = artistPage.sections.flatMap { it.items }.filterIsInstance<SongItem>().map { it.id }
+                    prefetchStreamUrls(songIds)
                 }
                 .onFailure { error ->
                     _errorMessage.value = error.message ?: "Error loading artist"
@@ -213,6 +224,7 @@ class StreamViewModel : ViewModel() {
             result
                 .onSuccess { albumPage ->
                     _selectedAlbum.value = albumPage
+                    prefetchStreamUrls(albumPage.songs.map { it.id })
                 }
                 .onFailure { error ->
                     _errorMessage.value = error.message ?: "Error loading album"

@@ -24,6 +24,7 @@ import java.net.URL
 import java.net.URLEncoder
 import androidx.work.*
 import com.frito.music.downloader.MusicDownloadWorker
+import com.frito.music.extensions.session.SignedSessionManager
 
 class DownloadViewModel(application: Application) : AndroidViewModel(application) {
     private val extensionManager = ExtensionManager(application)
@@ -39,6 +40,19 @@ class DownloadViewModel(application: Application) : AndroidViewModel(application
 
     private val _availableQualities = MutableStateFlow(listOf("128kbps", "320kbps"))
     val availableQualities: StateFlow<List<String>> = _availableQualities.asStateFlow()
+
+    // Mapa etiqueta visible -> ID de calidad que espera la extensión
+    private var qualityLabelToId: Map<String, String> = emptyMap()
+
+    // Estado de verificación de sesión firmada (servidores tipo Tidal/Deezer/Qobuz)
+    private val _sessionRequired = MutableStateFlow(false)
+    val sessionRequired: StateFlow<Boolean> = _sessionRequired.asStateFlow()
+
+    private val _verificationUrl = MutableStateFlow<String?>(null)
+    val verificationUrl: StateFlow<String?> = _verificationUrl.asStateFlow()
+
+    private val _sessionMessage = MutableStateFlow<String?>(null)
+    val sessionMessage: StateFlow<String?> = _sessionMessage.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -63,50 +77,51 @@ class DownloadViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun loadServers() {
+        // Solo extensiones que realmente pueden descargar y son compatibles con el engine Rhino
         val servers = extensionManager.getInstalledExtensionNames()
+            .filter { (id, _) -> extensionManager.isDownloadProvider(id) && extensionManager.isCompatible(id) }
         _installedServers.value = servers
         if (servers.isNotEmpty() && _selectedServerId.value == null) {
             selectServer(servers.first().first)
+        } else if (_selectedServerId.value != null && servers.none { it.first == _selectedServerId.value }) {
+            selectServer(servers.firstOrNull()?.first ?: return)
         }
     }
 
     fun selectServer(id: String) {
         _selectedServerId.value = id
 
-        // Calidades según servidor
-        when {
-            id.contains("spotify", ignoreCase = true) -> {
-                _availableQualities.value = listOf("128kbps", "160kbps", "320kbps")
-                _selectedQuality.value = "320kbps"
+        // Calidades declaradas por la extensión en su manifest (qualityOptions)
+        val manifestQualities = extensionManager.getQualityOptions(id)
+        if (manifestQualities.isNotEmpty()) {
+            qualityLabelToId = manifestQualities.associate { (qid, label) -> label to qid }
+            _availableQualities.value = manifestQualities.map { it.second }
+            // Preferir LOSSLESS/FLAC como calidad por defecto si existe
+            val preferred = manifestQualities.firstOrNull { (qid, _) ->
+                qid.equals("LOSSLESS", ignoreCase = true)
+            } ?: manifestQualities.first()
+            _selectedQuality.value = preferred.second
+        } else {
+            // Fallback para extensiones sin qualityOptions en el manifest
+            val fallback = when {
+                id.contains("soundcloud", ignoreCase = true) -> listOf("mp3" to "MP3", "opus" to "Opus")
+                id.contains("youtube", ignoreCase = true) -> listOf("HIGH" to "256kbps", "LOW" to "128kbps")
+                else -> listOf("LOSSLESS" to "FLAC", "HIGH" to "320kbps", "LOW" to "128kbps")
             }
-            id.contains("youtube", ignoreCase = true) -> {
-                _availableQualities.value = listOf("128kbps", "256kbps")
-                _selectedQuality.value = "128kbps"
-            }
-            id.contains("deezer", ignoreCase = true) -> {
-                _availableQualities.value = listOf("128kbps", "320kbps")
-                _selectedQuality.value = "320kbps"
-            }
-            id.contains("tidal", ignoreCase = true) -> {
-                _availableQualities.value = listOf("128kbps", "320kbps", "FLAC", "Hi-Res")
-                _selectedQuality.value = "FLAC"
-            }
-            id.contains("qobuz", ignoreCase = true) -> {
-                _availableQualities.value = listOf("320kbps", "FLAC", "Hi-Res")
-                _selectedQuality.value = "FLAC"
-            }
-            else -> {
-                _availableQualities.value = listOf("128kbps", "320kbps")
-                _selectedQuality.value = "320kbps"
-            }
+            qualityLabelToId = fallback.associate { (qid, label) -> label to qid }
+            _availableQualities.value = fallback.map { it.second }
+            _selectedQuality.value = fallback.first().second
         }
 
         // Clear search when switching server
         _searchResults.value = null
         _searchQuery.value = ""
+        _sessionMessage.value = null
 
         activeEngine?.destroy()
         activeEngine = null
+
+        refreshSessionState()
     }
 
     private var initEngineJob: kotlinx.coroutines.Job? = null
@@ -156,14 +171,19 @@ class DownloadViewModel(application: Application) : AndroidViewModel(application
                         if (extResults == null) {
                             extResults = SearchResult(emptyList(), emptyList(), emptyList())
                         }
-                        
-                        // Always try to fill missing categories from Deezer
-                        val deezerResults = searchNativeDeezer(query)
-                        extResults = SearchResult(
-                            tracks = extResults.tracks.ifEmpty { deezerResults.tracks },
-                            albums = extResults.albums.ifEmpty { deezerResults.albums },
-                            artists = extResults.artists.ifEmpty { deezerResults.artists }
-                        )
+
+                        // El fallback nativo de Deezer SOLO se usa cuando el servidor
+                        // seleccionado es Deezer: los IDs deben pertenecer a la misma
+                        // plataforma que descargará, o la descarga fallará.
+                        val serverId = _selectedServerId.value ?: ""
+                        if (serverId.contains("deezer", ignoreCase = true)) {
+                            val deezerResults = searchNativeDeezer(query)
+                            extResults = SearchResult(
+                                tracks = extResults.tracks.ifEmpty { deezerResults.tracks },
+                                albums = extResults.albums.ifEmpty { deezerResults.albums },
+                                artists = extResults.artists.ifEmpty { deezerResults.artists }
+                            )
+                        }
                         extResults
                     }
                 }
@@ -434,16 +454,62 @@ class DownloadViewModel(application: Application) : AndroidViewModel(application
         _selectedQuality.value = quality
     }
 
+    /**
+     * Estado de sesión del servidor actual: completa grants pendientes (deep link),
+     * y expone si hace falta verificación y su URL.
+     */
+    fun refreshSessionState() {
+        val serverId = _selectedServerId.value ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val manager = SignedSessionManager(getApplication(), serverId)
+                if (!manager.isConfigured()) {
+                    _sessionRequired.value = false
+                    _verificationUrl.value = null
+                    return@launch
+                }
+                _sessionRequired.value = true
+
+                // Si volvemos del navegador con un grant, completar el intercambio
+                if (manager.hasPendingGrant()) {
+                    val grantResult = JSONObject(manager.completeGrant(null))
+                    if (grantResult.optBoolean("success")) {
+                        _sessionMessage.value = "Sesión verificada correctamente"
+                        _verificationUrl.value = null
+                        return@launch
+                    } else {
+                        _sessionMessage.value = "No se pudo completar la verificación"
+                    }
+                }
+
+                if (manager.isAuthenticated()) {
+                    _verificationUrl.value = null
+                } else {
+                    _verificationUrl.value = manager.ensureVerificationUrl()
+                }
+            } catch (e: Exception) {
+                Log.e("DownloadViewModel", "Error comprobando sesión de $serverId", e)
+            }
+        }
+    }
+
+    fun clearSessionMessage() {
+        _sessionMessage.value = null
+    }
+
     fun startDownload(
         trackId: String,
         trackName: String,
         artistName: String,
         albumName: String,
         imageUrl: String,
-        trackUrl: String? = null
+        trackUrl: String? = null,
+        quality: String = _selectedQuality.value
     ) {
         val extensionId = _selectedServerId.value ?: return
-        
+        // Traducir la etiqueta elegida en el modal al ID de calidad de la extensión
+        val qualityId = qualityLabelToId[quality] ?: quality
+
         val workData = workDataOf(
             "trackId" to trackId,
             "extensionId" to extensionId,
@@ -452,7 +518,7 @@ class DownloadViewModel(application: Application) : AndroidViewModel(application
             "albumName" to albumName,
             "imageUrl" to imageUrl,
             "trackUrl" to (trackUrl ?: ""),
-            "quality" to selectedQuality
+            "quality" to qualityId
         )
 
         val downloadRequest = OneTimeWorkRequestBuilder<MusicDownloadWorker>()

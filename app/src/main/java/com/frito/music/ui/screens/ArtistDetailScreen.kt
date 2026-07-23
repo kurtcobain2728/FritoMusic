@@ -259,7 +259,15 @@ fun ArtistDetailScreen(artistId: String, viewModel: DownloadViewModel, onNavigat
             availableQualities = availableQualities,
             initialQuality = selectedQuality,
             onDownload = { quality ->
-                // TODO: Implement actual download logic here
+                viewModel.startDownload(
+                    trackId = trackToDownload!!.id,
+                    trackName = trackToDownload!!.name,
+                    artistName = trackToDownload!!.artists.ifEmpty { artistDetail!!.name },
+                    albumName = trackToDownload!!.albumName,
+                    imageUrl = trackToDownload!!.imageUrl.ifEmpty { artistDetail!!.imageUrl },
+                    trackUrl = "",
+                    quality = quality
+                )
                 trackToDownload = null
             },
             onDismiss = {

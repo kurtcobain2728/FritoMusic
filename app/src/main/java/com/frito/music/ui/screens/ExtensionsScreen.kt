@@ -248,6 +248,14 @@ fun ExtensionCard(ext: ExtensionUIModel, appColors: AppColors, viewModel: Extens
                     Spacer(modifier = Modifier.height(8.dp))
                 }
 
+                val isDownload = viewModel.isDownloadProvider(info.id)
+                val isCompatible = viewModel.isCompatible(info.id)
+                val (badgeText, badgeBg, badgeFg) = when {
+                    !isCompatible -> Triple("No compatible", Color(0xFF4A1515), RedColor)
+                    isDownload -> Triple("Descarga", Color(0xFF1B382B), GreenColor)
+                    else -> Triple("Solo metadatos", TagBackground, appColors.textSecondary)
+                }
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = info.displayName,
@@ -255,6 +263,19 @@ fun ExtensionCard(ext: ExtensionUIModel, appColors: AppColors, viewModel: Extens
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .background(badgeBg, RoundedCornerShape(4.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = badgeText,
+                            color = badgeFg,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                     if (isInstalled) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Icon(

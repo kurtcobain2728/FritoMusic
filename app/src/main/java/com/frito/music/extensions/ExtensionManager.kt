@@ -9,6 +9,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.zip.ZipFile
 
 class ExtensionManager(private val context: Context) {
 
@@ -16,6 +17,9 @@ class ExtensionManager(private val context: Context) {
     private val extensionsDir = File(context.filesDir, "extensions").apply {
         if (!exists()) mkdirs()
     }
+
+    // Caché en memoria de los manifest.json leídos de cada extensión
+    private val manifestCache = mutableMapOf<String, JSONObject?>()
 
     suspend fun fetchRegistry(registryUrl: String): ExtensionRegistry? = withContext(Dispatchers.IO) {
         try {
@@ -86,7 +90,8 @@ class ExtensionManager(private val context: Context) {
             connection.connect()
 
             val fileLength = connection.contentLength
-            val outputFile = File(extensionsDir, "${extension.name}.spotiflac-ext")
+            // El archivo se guarda con el ID de la extensión (así lo busca ExtensionEngine)
+            val outputFile = File(extensionsDir, "${extension.id}.spotiflac-ext")
             
             val inputStream = connection.inputStream
             val outputStream = FileOutputStream(outputFile)
@@ -107,10 +112,12 @@ class ExtensionManager(private val context: Context) {
             outputStream.close()
             inputStream.close()
 
+            manifestCache.remove(extension.id)
             // Guardar la versión y el nombre en SharedPreferences
             prefs.edit()
                 .putString("ext_version_${extension.id}", extension.version)
                 .putString("ext_name_${extension.id}", extension.displayName)
+                .remove("ext_incompatible_${extension.id}")
                 .apply()
             return@withContext true
         } catch (e: Exception) {
@@ -132,9 +139,11 @@ class ExtensionManager(private val context: Context) {
         if (file.exists()) {
             file.delete()
         }
+        manifestCache.remove(extensionId)
         prefs.edit()
             .remove("ext_version_$extensionId")
             .remove("ext_name_$extensionId")
+            .remove("ext_incompatible_$extensionId")
             .apply()
     }
 
@@ -149,5 +158,93 @@ class ExtensionManager(private val context: Context) {
             }
         }
         return installed
+    }
+
+    /**
+     * Revisa si index.js contiene async/await/fetch que Mozilla Rhino no soporta.
+     */
+    fun isCompatible(extensionId: String): Boolean {
+        if (prefs.contains("ext_incompatible_$extensionId")) {
+            return !prefs.getBoolean("ext_incompatible_$extensionId", false)
+        }
+        val file = File(extensionsDir, "$extensionId.spotiflac-ext")
+        val incompatible = try {
+            if (!file.exists()) false
+            else {
+                ZipFile(file).use { zip ->
+                    val entry = zip.getEntry("index.js") ?: return@use false
+                    val js = zip.getInputStream(entry).bufferedReader().use { it.readText() }
+                    js.contains("async function") || js.contains("await ") || js.contains("fetch(")
+                }
+            }
+        } catch (e: Exception) { false }
+        prefs.edit().putBoolean("ext_incompatible_$extensionId", incompatible).apply()
+        return !incompatible
+    }
+
+    /**
+     * Lee el manifest.json del paquete de la extensión instalada (.spotiflac-ext / .sflx son ZIP).
+     * Devuelve null si no existe o no se puede leer.
+     */
+    fun getExtensionManifest(extensionId: String): JSONObject? {
+        if (manifestCache.containsKey(extensionId)) return manifestCache[extensionId]
+        val manifest: JSONObject? = try {
+            val extFile = File(extensionsDir, "$extensionId.spotiflac-ext")
+            if (!extFile.exists()) {
+                null
+            } else {
+                ZipFile(extFile).use { zip ->
+                    val entry = zip.getEntry("manifest.json")
+                    entry?.let { JSONObject(zip.getInputStream(it).bufferedReader().use { r -> r.readText() }) }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+        manifestCache[extensionId] = manifest
+        return manifest
+    }
+
+    /**
+     * true si la extensión declara el tipo "download_provider" en su manifest.
+     * Si no hay manifest legible, se asume true para no romper compatibilidad.
+     */
+    fun isDownloadProvider(extensionId: String): Boolean {
+        val manifest = getExtensionManifest(extensionId) ?: return true
+        val types = manifest.optJSONArray("type") ?: return true
+        for (i in 0 until types.length()) {
+            if (types.optString(i) == "download_provider") return true
+        }
+        return false
+    }
+
+    /**
+     * Calidades declaradas por la extensión en su manifest (qualityOptions).
+     * Devuelve pares (id -> label). Lista vacía si la extensión no las declara.
+     */
+    fun getQualityOptions(extensionId: String): List<Pair<String, String>> {
+        val manifest = getExtensionManifest(extensionId) ?: return emptyList()
+        val options = manifest.optJSONArray("qualityOptions") ?: return emptyList()
+        val result = mutableListOf<Pair<String, String>>()
+        for (i in 0 until options.length()) {
+            val opt = options.optJSONObject(i) ?: continue
+            val id = opt.optString("id")
+            val label = opt.optString("label").ifEmpty { id }
+            if (id.isNotEmpty()) result.add(id to label)
+        }
+        return result
+    }
+
+    /**
+     * Configuración "signedSession" del manifest, si la extensión la declara.
+     */
+    fun getSignedSessionConfig(extensionId: String): JSONObject? {
+        val manifest = getExtensionManifest(extensionId) ?: return null
+        return manifest.optJSONObject("signedSession")
+    }
+
+    fun getExtensionFile(extensionId: String): File {
+        return File(extensionsDir, "$extensionId.spotiflac-ext")
     }
 }

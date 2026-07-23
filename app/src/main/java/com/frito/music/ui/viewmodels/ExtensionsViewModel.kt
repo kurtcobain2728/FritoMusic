@@ -26,6 +26,9 @@ class ExtensionsViewModel(application: Application) : AndroidViewModel(applicati
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
+    fun isDownloadProvider(id: String): Boolean = extensionManager.isDownloadProvider(id)
+    fun isCompatible(id: String): Boolean = extensionManager.isCompatible(id)
+
     fun loadRegistry(url: String) {
         viewModelScope.launch {
             _isLoading.value = true

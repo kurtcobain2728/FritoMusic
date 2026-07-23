@@ -8,16 +8,21 @@ import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.work.*
-import com.frito.music.R
+import com.frito.music.extensions.engine.DownloadState
 import com.frito.music.extensions.engine.ExtensionEngine
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import java.io.InputStream
-import java.io.OutputStream
-import java.net.HttpURLConnection
-import java.net.URL
+import org.json.JSONObject
+import java.io.File
 
+/**
+ * Worker de descargas. Sigue la arquitectura de SpotiFLAC:
+ * la EXTENSIÓN ejecuta la descarga completa (resolución de URL, segmentos,
+ * escritura a disco vía FileBridge) y el worker orquesta: progreso,
+ * notificación, y traslado del archivo final a MediaStore (Music/FritoM/...).
+ */
 class MusicDownloadWorker(
     appContext: Context,
     workerParams: WorkerParameters
@@ -30,23 +35,25 @@ class MusicDownloadWorker(
         const val SPEED = "Speed"
         const val DOWNLOADED_MB = "DownloadedMB"
         const val TOTAL_MB = "TotalMB"
-        
+
         private const val CHANNEL_ID = "FritoMusicDownloads"
     }
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
-        val trackId = inputData.getString("trackId") ?: return@withContext Result.failure()
-        val extensionId = inputData.getString("extensionId") ?: return@withContext Result.failure()
+        val trackId = inputData.getString("trackId") ?: return@withContext failure("Falta trackId", "Desconocido")
+        val extensionId = inputData.getString("extensionId") ?: return@withContext failure("Falta extensionId", "Desconocido")
         val trackName = inputData.getString("trackName") ?: "Desconocido"
         val artistName = inputData.getString("artistName") ?: "Desconocido"
         val albumName = inputData.getString("albumName") ?: ""
-        val trackUrl = inputData.getString("trackUrl")
-        val quality = inputData.getString("quality") ?: "320kbps"
+        val quality = inputData.getString("quality") ?: "LOSSLESS"
+
+        // Sembrar trackName inmediatamente en progress para evitar ítems sin nombre
+        setProgressAsync(workDataOf("trackName" to trackName, PROGRESS to 0))
 
         val notificationId = trackId.hashCode()
         createChannel()
 
-        // Create foreground info immediately to satisfy Android 14+ requirements
+        // Foreground inmediato (requisito Android 14+)
         val initialNotification = createNotification(trackName, 0, 100, "Iniciando...", "")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             setForeground(ForegroundInfo(notificationId, initialNotification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC))
@@ -54,117 +61,175 @@ class MusicDownloadWorker(
             setForeground(ForegroundInfo(notificationId, initialNotification))
         }
 
-        try {
-            // 1. Instanciar el motor y obtener URL real
-            Log.d("MusicDownloadWorker", "Fetching download URL for $trackName ($trackId)")
-            val engine = ExtensionEngine(applicationContext, extensionId)
-            val downloadUrl = engine.getDownloadUrl(trackId, trackUrl, quality)
-            engine.destroy()
+        DownloadState.cancelRequested = false
+        var engine: ExtensionEngine? = null
+        val tempDir = File(applicationContext.cacheDir, "downloads").apply { mkdirs() }
+        val tempBase = File(tempDir, "track_${trackId.replace(Regex("[^A-Za-z0-9_-]"), "_")}.part")
 
-            if (downloadUrl.isNullOrEmpty()) {
-                Log.e("MusicDownloadWorker", "No se pudo obtener URL de descarga")
-                updateNotification(notificationId, trackName, 0, 100, "Error: Enlace no encontrado", "")
-                return@withContext Result.failure(workDataOf("error" to "No download URL available"))
+        try {
+            Log.d("MusicDownloadWorker", "Iniciando descarga: $trackName ($trackId) vía $extensionId [$quality]")
+            engine = ExtensionEngine(applicationContext, extensionId)
+
+            if (!engine.hasDownloadCapability()) {
+                updateNotification(notificationId, trackName, 0, 100, "Error: servidor sin descargas", "")
+                return@withContext failure("Este servidor no soporta descargas", trackName)
             }
 
-            Log.d("MusicDownloadWorker", "Download URL obtained: $downloadUrl")
+            var lastUpdate = 0L
+            val resultJson = engine.downloadTrack(trackId, quality, tempBase.absolutePath) { percent ->
+                val now = System.currentTimeMillis()
+                if (now - lastUpdate > 800 && percent < 100) {
+                    lastUpdate = now
+                    val downloadedMB = tempBase.length() / (1024f * 1024f)
+                    setProgressAsync(
+                        workDataOf(
+                            PROGRESS to percent,
+                            DOWNLOADED_MB to downloadedMB,
+                            TOTAL_MB to 0f,
+                            SPEED to "",
+                            "trackName" to trackName
+                        )
+                    )
+                    updateNotification(notificationId, trackName, percent, 100, String.format("%.1f MB", downloadedMB), "")
+                }
+            }
+            engine.destroy()
+            engine = null
 
-            // 2. Crear archivo local usando StorageUtils
+            if (resultJson.isNullOrEmpty()) {
+                updateNotification(notificationId, trackName, 0, 100, "Error: sin respuesta", "")
+                return@withContext failure("La extensión no devolvió resultado", trackName)
+            }
+
+            val result = try { JSONObject(resultJson) } catch (e: Exception) {
+                Log.e("MusicDownloadWorker", "Respuesta no-JSON de la extensión: ${resultJson.take(200)}")
+                return@withContext failure("Respuesta inválida de la extensión", trackName)
+            }
+
+            if (!result.optBoolean("success", false)) {
+                val errorMessage = result.optString("error_message").ifEmpty { "Error desconocido de la extensión" }
+                Log.e("MusicDownloadWorker", "Descarga fallida: $errorMessage")
+                cleanupTemp(tempDir, tempBase)
+                val userMessage = humanizeError(errorMessage)
+                updateNotification(notificationId, trackName, 0, 100, "Error: $userMessage", "")
+                return@withContext failure(userMessage, trackName)
+            }
+
+            // Archivo descargado por la extensión (puede haber cambiado la extensión/ruta)
+            val resultPath = result.optString("file_path").ifEmpty { tempBase.absolutePath }
+            val downloadedFile = File(resultPath)
+            if (!downloadedFile.exists() || downloadedFile.length() == 0L) {
+                cleanupTemp(tempDir, tempBase)
+                updateNotification(notificationId, trackName, 0, 100, "Error: archivo vacío", "")
+                return@withContext failure("El archivo descargado no existe o está vacío", trackName)
+            }
+
+            // Extensión real del archivo (la reporta la extensión o se deduce del path)
+            val realExtension = result.optString("actual_extension")
+                .ifEmpty { result.optString("output_extension") }
+                .ifEmpty { downloadedFile.extension.let { if (it.isNotEmpty()) ".$it" else "" } }
+                .removePrefix(".")
+                .ifEmpty { extensionForQuality(quality) }
+
+            // Trasladar a MediaStore: Music/FritoM/{Artista}/{Álbum}/Título.ext
+            val finalTitle = result.optString("title").ifEmpty { trackName }
+            val finalArtist = result.optString("artist").ifEmpty { artistName }
+            val finalAlbum = result.optString("album").ifEmpty { albumName }
+
             val fileStreamPair = StorageUtils.createAudioFileStream(
-                applicationContext, artistName, albumName, trackName, quality
+                applicationContext, finalArtist, finalAlbum, finalTitle, realExtension
             )
-            
             if (fileStreamPair == null) {
-                Log.e("MusicDownloadWorker", "No se pudo crear archivo de destino")
+                cleanupTemp(tempDir, tempBase)
                 updateNotification(notificationId, trackName, 0, 100, "Error: Sistema de archivos", "")
-                return@withContext Result.failure(workDataOf("error" to "File creation failed"))
+                return@withContext failure("No se pudo crear el archivo de destino", trackName)
             }
 
             val (uri, outputStream) = fileStreamPair
-            var success = false
-
             try {
-                val connection = URL(downloadUrl).openConnection() as HttpURLConnection
-                connection.requestMethod = "GET"
-                connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
-                connection.connectTimeout = 15000
-                connection.readTimeout = 30000
-
-                if (connection.responseCode !in 200..299) {
-                    throw Exception("HTTP Error ${connection.responseCode}")
+                downloadedFile.inputStream().use { input ->
+                    outputStream.use { out -> input.copyTo(out) }
                 }
-
-                val totalBytes = connection.contentLength.toLong()
-                val inputStream: InputStream = connection.inputStream
-                
-                val buffer = ByteArray(8 * 1024)
-                var bytesRead: Int
-                var downloadedBytes = 0L
-                var lastUpdate = System.currentTimeMillis()
-                var speedStr = ""
-
-                var bytesSinceLastUpdate = 0L
-
-                outputStream.use { out ->
-                    while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                        out.write(buffer, 0, bytesRead)
-                        downloadedBytes += bytesRead
-                        bytesSinceLastUpdate += bytesRead
-
-                        val now = System.currentTimeMillis()
-                        if (now - lastUpdate > 1000) {
-                            val diffSec = (now - lastUpdate) / 1000f
-                            val speedMBps = (bytesSinceLastUpdate / (1024f * 1024f)) / diffSec
-                            speedStr = String.format("%.1f MB/s", speedMBps)
-
-                            val progressPercent = if (totalBytes > 0) (downloadedBytes * 100 / totalBytes).toInt() else 0
-                            val downloadedMB = downloadedBytes / (1024f * 1024f)
-                            val totalMB = totalBytes / (1024f * 1024f)
-
-                            setProgressAsync(
-                                workDataOf(
-                                    PROGRESS to progressPercent,
-                                    DOWNLOADED_MB to downloadedMB,
-                                    TOTAL_MB to totalMB,
-                                    SPEED to speedStr,
-                                    "trackName" to trackName
-                                )
-                            )
-
-                            val detailText = if (totalBytes > 0) {
-                                String.format("%.1f MB / %.1f MB", downloadedMB, totalMB)
-                            } else {
-                                String.format("%.1f MB", downloadedMB)
-                            }
-                            
-                            updateNotification(notificationId, trackName, progressPercent, 100, detailText, "")
-                            
-                            lastUpdate = now
-                            bytesSinceLastUpdate = 0L
-                        }
-                    }
-                }
-                success = true
-                
+                StorageUtils.commitAudioFile(applicationContext, uri)
             } catch (e: Exception) {
-                Log.e("MusicDownloadWorker", "Stream download failed", e)
+                Log.e("MusicDownloadWorker", "Error guardando en MediaStore", e)
                 StorageUtils.deleteAudioFile(applicationContext, uri)
+                cleanupTemp(tempDir, tempBase)
                 updateNotification(notificationId, trackName, 0, 100, "Error: ${e.message}", "")
-                return@withContext Result.failure(workDataOf("error" to e.message))
-            } finally {
-                if (success) {
-                    StorageUtils.commitAudioFile(applicationContext, uri)
-                }
+                return@withContext failure("Error al guardar: ${e.message}", trackName)
             }
 
-            updateNotification(notificationId, trackName, 100, 100, "Descarga completada", "✔")
+            cleanupTemp(tempDir, tempBase)
+            Log.d("MusicDownloadWorker", "Descarga completada: $finalTitle -> $uri")
+            updateNotification(notificationId, finalTitle, 100, 100, "Descarga completada", "✔")
+            setProgressAsync(workDataOf(PROGRESS to 100, "trackName" to finalTitle))
             delay(1000) // Mostrar el completado un segundo antes de que muera el worker
-            
-            Result.success(workDataOf("uri" to uri.toString()))
-            
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Result.failure(workDataOf("error" to e.localizedMessage))
+
+            Result.success(
+                workDataOf(
+                    "uri" to uri.toString(),
+                    "trackName" to finalTitle,
+                    "artistName" to finalArtist
+                )
+            )
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            Log.e("MusicDownloadWorker", "Error inesperado en descarga", e)
+            runCatching { engine?.destroy() }
+            cleanupTemp(tempDir, tempBase)
+            updateNotification(notificationId, trackName, 0, 100, "Error: ${e.message}", "")
+            failure(e.localizedMessage ?: e.javaClass.simpleName, trackName)
+        }
+    }
+
+    private fun failure(message: String, trackName: String): Result {
+        return Result.failure(
+            workDataOf(
+                "error" to message,
+                "trackName" to trackName
+            )
+        )
+    }
+
+    /** Traduce errores técnicos de la extensión a mensajes entendibles. */
+    private fun humanizeError(raw: String): String {
+        return when {
+            raw.contains("VERIFY_REQUIRED", ignoreCase = true) ||
+            raw.contains("verification_required", ignoreCase = true) ||
+            raw.contains("signed session", ignoreCase = true) ->
+                "Verificación requerida: abre Descargar Música y verifica la sesión del servidor"
+            raw.contains("PREVIEW", ignoreCase = true) ->
+                "El servidor solo devolvió una vista previa"
+            raw.contains("HTTP 403", ignoreCase = true) ->
+                "Acceso denegado por el servidor (403)"
+            raw.contains("HTTP 404", ignoreCase = true) ->
+                "La canción no se encontró en el servidor (404)"
+            raw.contains("HTTP 429", ignoreCase = true) ->
+                "Límite de peticiones alcanzado, inténtalo más tarde"
+            else -> raw.take(120)
+        }
+    }
+
+    private fun extensionForQuality(quality: String): String {
+        return when {
+            quality.contains("FLAC", ignoreCase = true) ||
+                quality.contains("HI_RES", ignoreCase = true) ||
+                quality.contains("LOSSLESS", ignoreCase = true) ||
+                quality.contains("Hi-Res", ignoreCase = true) -> "flac"
+            quality.contains("opus", ignoreCase = true) -> "opus"
+            quality.contains("ogg", ignoreCase = true) -> "ogg"
+            quality.startsWith("256") -> "m4a"
+            else -> "mp3"
+        }
+    }
+
+    private fun cleanupTemp(tempDir: File, tempBase: File) {
+        runCatching {
+            tempDir.listFiles()?.forEach { f ->
+                if (f.name.startsWith(tempBase.nameWithoutExtension)) f.delete()
+            }
+            tempBase.delete()
         }
     }
 
@@ -191,8 +256,6 @@ class MusicDownloadWorker(
             .setContentTitle("Descargando: $title")
             .setContentText(content)
             .setSubText(subText.ifEmpty { null })
-            // Reusando algún icono general, ya que no puedo saber el R.drawable exacto sin buscar,
-            // pero normalmente R.drawable.ic_launcher_foreground o un icono nativo sirve.
             .setSmallIcon(android.R.drawable.stat_sys_download)
             .setOngoing(progress < max)
             .setProgress(max, progress, max == 0)

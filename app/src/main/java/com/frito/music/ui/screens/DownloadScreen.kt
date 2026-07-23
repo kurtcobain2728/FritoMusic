@@ -29,11 +29,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.frito.music.extensions.engine.AlbumResult
@@ -58,6 +62,7 @@ fun DownloadScreen(
     onBack: () -> Unit,
     onNavigateToArtist: (String) -> Unit = {},
     onNavigateToAlbum: (String) -> Unit = {},
+    onNavigateToVerification: (String, String) -> Unit = { _, _ -> },
     viewModel: DownloadViewModel = viewModel()
 ) {
     val appColors = LocalAppColors.current
@@ -70,6 +75,11 @@ fun DownloadScreen(
     val isSearching by viewModel.isSearching.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     val initialQuery by viewModel.searchQuery.collectAsState()
+    val sessionRequired by viewModel.sessionRequired.collectAsState()
+    val verificationUrl by viewModel.verificationUrl.collectAsState()
+    val sessionMessage by viewModel.sessionMessage.collectAsState()
+
+    val context = LocalContext.current
 
     var searchQuery by remember { mutableStateOf(initialQuery) }
     var selectedTab by remember { mutableStateOf(SearchTab.CANCIONES) }
@@ -77,6 +87,26 @@ fun DownloadScreen(
 
     LaunchedEffect(Unit) {
         viewModel.loadServers()
+    }
+
+    // Al volver del navegador (verificación), reintentar completar la sesión
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshSessionState()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    // Auto-ocultar el mensaje de sesión verificada
+    LaunchedEffect(sessionMessage) {
+        if (sessionMessage != null) {
+            kotlinx.coroutines.delay(4000)
+            viewModel.clearSessionMessage()
+        }
     }
 
     LaunchedEffect(searchQuery) {
@@ -166,6 +196,76 @@ fun DownloadScreen(
                             onClick = { viewModel.selectServer(id) }
                         )
                     }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "Spotify Web y Apple Music son solo de metadatos; YouTube Music aún no es compatible con el motor de descargas.",
+                color = appColors.textSecondary,
+                fontSize = 11.sp
+            )
+
+            // Banner de verificación de sesión firmada (Tidal, Deezer, Qobuz...)
+            if (sessionRequired && verificationUrl != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFF3D2E00))
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Verificación requerida",
+                            color = Color(0xFFFFD54F),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Este servidor necesita una verificación única en el navegador para poder descargar.",
+                            color = Color(0xFFFFECB3),
+                            fontSize = 12.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            val url = verificationUrl
+                            val extId = selectedServerId
+                            if (url != null && extId != null) {
+                                onNavigateToVerification(extId, url)
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD54F)),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                    ) {
+                        Text("Verificar", color = Color.Black, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
+            // Confirmación de sesión verificada
+            if (sessionMessage != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFF1B5E20))
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = sessionMessage ?: "",
+                        color = Color(0xFFA5D6A7),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
             }
 
@@ -368,14 +468,14 @@ fun DownloadScreen(
             availableQualities = availableQualities,
             initialQuality = selectedQuality,
             onDownload = { quality ->
-                viewModel.selectQuality(quality)
                 viewModel.startDownload(
                     trackId = trackToDownload!!.id,
                     trackName = trackToDownload!!.name,
                     artistName = trackToDownload!!.artists,
                     albumName = trackToDownload!!.album,
                     imageUrl = trackToDownload!!.imageUrl,
-                    trackUrl = trackToDownload!!.external_url
+                    trackUrl = trackToDownload!!.external_url,
+                    quality = quality
                 )
                 trackToDownload = null
             },

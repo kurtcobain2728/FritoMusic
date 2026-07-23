@@ -29,6 +29,7 @@ import coil.compose.AsyncImage
 import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.ui.viewmodels.PlayerViewModel
 import com.frito.music.ui.viewmodels.StreamViewModel
+import com.frito.music.utils.ImageUtils
 import com.music.innertube.models.AlbumItem
 import com.music.innertube.models.SongItem
 
@@ -106,7 +107,7 @@ fun StreamArtistDetailScreen(
                         Box(modifier = Modifier.fillMaxSize().background(Color.DarkGray)) {
                             if (artist.thumbnail != null && artist.thumbnail!!.isNotEmpty()) {
                                 AsyncImage(
-                                    model = artist.thumbnail,
+                                    model = ImageUtils.highRes(artist.thumbnail),
                                     contentDescription = artist.title,
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop

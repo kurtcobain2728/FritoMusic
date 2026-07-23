@@ -235,7 +235,6 @@ fun AlbumScreen(albumId: String, viewModel: DownloadViewModel, onBack: () -> Uni
             availableQualities = availableQualities,
             initialQuality = selectedQuality,
             onDownload = { quality ->
-                viewModel.selectQuality(quality)
                 if (downloadingFullAlbum) {
                     albumDetail!!.tracks.forEach { track ->
                         viewModel.startDownload(
@@ -244,7 +243,8 @@ fun AlbumScreen(albumId: String, viewModel: DownloadViewModel, onBack: () -> Uni
                             artistName = track.artists,
                             albumName = albumDetail!!.name,
                             imageUrl = albumDetail!!.imageUrl,
-                            trackUrl = ""
+                            trackUrl = "",
+                            quality = quality
                         )
                     }
                 } else {
@@ -254,7 +254,8 @@ fun AlbumScreen(albumId: String, viewModel: DownloadViewModel, onBack: () -> Uni
                         artistName = trackToDownload!!.artists,
                         albumName = albumDetail!!.name,
                         imageUrl = albumDetail!!.imageUrl,
-                        trackUrl = ""
+                        trackUrl = "",
+                        quality = quality
                     )
                 }
                 trackToDownload = null
