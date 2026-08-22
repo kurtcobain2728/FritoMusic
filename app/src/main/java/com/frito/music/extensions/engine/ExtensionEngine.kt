@@ -156,8 +156,6 @@ class ExtensionEngine(private val context: Context, private val extensionName: S
         return resultBool
     }
 
-    // --- Eliminated fetchHomeFeed and fetchBrowse logic as per RN architecture ---
-
     fun performSearch(query: String): SearchResult {
         val hasSearch = evalBool("typeof __extension !== 'undefined' && __extension !== null && (typeof __extension.customSearch === 'function' || typeof __extension.search === 'function' || typeof __extension.searchTracks === 'function')")
         if (!hasSearch) {
@@ -168,23 +166,75 @@ class ExtensionEngine(private val context: Context, private val extensionName: S
         val escapedQuery = query.replace("\\", "\\\\").replace("'", "\\'")
         var result: String? = null
 
-        // Intenta customSearch (SpotiFLAC), search, y luego searchTracks (como en RN musicSearch.ts)
         val hasCustomSearch = evalBool("typeof __extension.customSearch === 'function'")
         if (hasCustomSearch) {
-            val jsCode = "JSON.stringify(__extension.customSearch('$escapedQuery', {types: ['track', 'album', 'artist'], limit: 20}))"
+            val jsCode = """
+                (function() {
+                    try {
+                        var res = __extension.customSearch('$escapedQuery', {types: ['track', 'album', 'artist'], limit: 20});
+                        if (res && typeof res.then === 'function') {
+                            var resolvedVal = null;
+                            var done = false;
+                            res.then(function(v) { resolvedVal = v; done = true; })['catch'](function() { done = true; });
+                            var start = Date.now();
+                            while (!done && (Date.now() - start < 30000)) {
+                                java.lang.Thread.sleep(50);
+                            }
+                            return (typeof resolvedVal === 'string') ? resolvedVal : JSON.stringify(resolvedVal);
+                        } else {
+                            return (typeof res === 'string') ? res : JSON.stringify(res);
+                        }
+                    } catch(e) { return null; }
+                })()
+            """.trimIndent()
             result = evalStr(jsCode)
         } else {
             val hasNormalSearch = evalBool("typeof __extension.search === 'function'")
             if (hasNormalSearch) {
-                val jsCode = "JSON.stringify(__extension.search('$escapedQuery', 'track,album,artist', 20))"
+                val jsCode = """
+                    (function() {
+                        try {
+                            var res = __extension.search('$escapedQuery', 'track,album,artist', 20);
+                            if (res && typeof res.then === 'function') {
+                                var resolvedVal = null;
+                                var done = false;
+                                res.then(function(v) { resolvedVal = v; done = true; })['catch'](function() { done = true; });
+                                var start = Date.now();
+                                while (!done && (Date.now() - start < 30000)) {
+                                    java.lang.Thread.sleep(50);
+                                }
+                                return (typeof resolvedVal === 'string') ? resolvedVal : JSON.stringify(resolvedVal);
+                            } else {
+                                return (typeof res === 'string') ? res : JSON.stringify(res);
+                            }
+                        } catch(e) { return null; }
+                    })()
+                """.trimIndent()
                 result = evalStr(jsCode)
             } else {
                 val hasSearchTracks = evalBool("typeof __extension.searchTracks === 'function'")
                 if (hasSearchTracks) {
-                    val jsCode = "JSON.stringify(__extension.searchTracks('$escapedQuery', 20))"
+                    val jsCode = """
+                        (function() {
+                            try {
+                                var res = __extension.searchTracks('$escapedQuery', 20);
+                                if (res && typeof res.then === 'function') {
+                                    var resolvedVal = null;
+                                    var done = false;
+                                    res.then(function(v) { resolvedVal = v; done = true; })['catch'](function() { done = true; });
+                                    var start = Date.now();
+                                    while (!done && (Date.now() - start < 30000)) {
+                                        java.lang.Thread.sleep(50);
+                                    }
+                                    return (typeof resolvedVal === 'string') ? resolvedVal : JSON.stringify(resolvedVal);
+                                } else {
+                                    return (typeof res === 'string') ? res : JSON.stringify(res);
+                                }
+                            } catch(e) { return null; }
+                        })()
+                    """.trimIndent()
                     val tracksResult = evalStr(jsCode)
                     if (!tracksResult.isNullOrEmpty() && tracksResult != "null" && tracksResult != "undefined") {
-                        // Envolver en objeto para parseSearchResults
                         result = "{\"tracks\": $tracksResult, \"albums\": [], \"artists\": []}"
                     }
                 }
@@ -204,7 +254,6 @@ class ExtensionEngine(private val context: Context, private val extensionName: S
         val artists = mutableListOf<ArtistResult>()
 
         try {
-            // En React Native, el customSearch de SpotiFLAC puede devolver un Array mezclado o un Objeto { tracks, albums, artists }
             if (result.trim().startsWith("[")) {
                 val arr = JSONArray(result)
                 for (i in 0 until arr.length()) {
@@ -308,10 +357,22 @@ class ExtensionEngine(private val context: Context, private val extensionName: S
             (function() {
                 try {
                     var fn = __extension.getArtist || __extension.getArtistDetails;
+                    if (typeof fn !== 'function') return "";
                     var res = fn.call(__extension, '$escapedId');
-                    return (typeof res === 'string') ? res : JSON.stringify(res);
+                    if (res && typeof res.then === 'function') {
+                        var resolvedVal = null;
+                        var done = false;
+                        res.then(function(v) { resolvedVal = v; done = true; })['catch'](function() { done = true; });
+                        var start = Date.now();
+                        while (!done && (Date.now() - start < 30000)) {
+                            java.lang.Thread.sleep(50);
+                        }
+                        return (typeof resolvedVal === 'string') ? resolvedVal : JSON.stringify(resolvedVal);
+                    } else {
+                        return (typeof res === 'string') ? res : JSON.stringify(res);
+                    }
                 } catch(e) {
-                    return JSON.stringify({error: String(e)});
+                    return "";
                 }
             })()
         """.trimIndent()
@@ -329,10 +390,22 @@ class ExtensionEngine(private val context: Context, private val extensionName: S
             (function() {
                 try {
                     var fn = __extension.getAlbum || __extension.getAlbumDetails || __extension.getAlbumTracks;
+                    if (typeof fn !== 'function') return "";
                     var res = fn.call(__extension, '$escapedId');
-                    return (typeof res === 'string') ? res : JSON.stringify(res);
+                    if (res && typeof res.then === 'function') {
+                        var resolvedVal = null;
+                        var done = false;
+                        res.then(function(v) { resolvedVal = v; done = true; })['catch'](function() { done = true; });
+                        var start = Date.now();
+                        while (!done && (Date.now() - start < 30000)) {
+                            java.lang.Thread.sleep(50);
+                        }
+                        return (typeof resolvedVal === 'string') ? resolvedVal : JSON.stringify(resolvedVal);
+                    } else {
+                        return (typeof res === 'string') ? res : JSON.stringify(res);
+                    }
                 } catch(e) {
-                    return JSON.stringify({error: String(e)});
+                    return "";
                 }
             })()
         """.trimIndent()
@@ -431,8 +504,35 @@ class ExtensionEngine(private val context: Context, private val extensionName: S
                         return JSON.stringify({success: false, error_message: 'La extensión no soporta descargas', error_type: 'unsupported'});
                     }
                     var cb = (typeof progress !== 'undefined' && progress) ? function(p) { progress.report(p); } : null;
-                    var result = __extension.download('$escapedId', '$escapedQuality', '$escapedPath', cb);
-                    return JSON.stringify(result);
+                    var res = __extension.download('$escapedId', '$escapedQuality', '$escapedPath', cb);
+                    
+                    if (res && typeof res.then === 'function') {
+                        var resolvedVal = null;
+                        var resolvedErr = null;
+                        var done = false;
+                        
+                        res.then(function(val) {
+                            resolvedVal = val;
+                            done = true;
+                        })['catch'](function(err) {
+                            resolvedErr = err;
+                            done = true;
+                        });
+                        
+                        var start = Date.now();
+                        while (!done && (Date.now() - start < 300000)) {
+                            java.lang.Thread.sleep(50);
+                        }
+                        if (!done) {
+                            return JSON.stringify({success: false, error_message: 'Tiempo de espera agotado (Timeout) en descarga', error_type: 'timeout'});
+                        }
+                        if (resolvedErr) {
+                            return JSON.stringify({success: false, error_message: String(resolvedErr.message || resolvedErr), error_type: 'runtime_error'});
+                        }
+                        return (typeof resolvedVal === 'string') ? resolvedVal : JSON.stringify(resolvedVal);
+                    } else {
+                        return (typeof res === 'string') ? res : JSON.stringify(res);
+                    }
                 } catch (e) {
                     return JSON.stringify({success: false, error_message: String(e && e.message ? e.message : e), error_type: 'runtime_error'});
                 }
