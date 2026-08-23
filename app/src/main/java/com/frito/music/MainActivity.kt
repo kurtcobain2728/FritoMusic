@@ -3,6 +3,7 @@ package com.frito.music
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -13,6 +14,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
@@ -21,6 +24,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -46,6 +50,7 @@ import com.frito.music.ui.viewmodels.DownloadViewModel
 import com.frito.music.ui.viewmodels.StreamViewModel
 import com.frito.music.ui.theme.ThemeViewModel
 import com.frito.music.ui.theme.LocalAppColors
+import com.frito.music.ui.theme.AppAnimations
 
 class MainActivity : ComponentActivity() {
 
@@ -73,6 +78,9 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Edge-to-edge: dibuja bajo status/navigation bar. Los insets se manejan
+        // con WindowInsets en Compose (ver padding de headers en pantallas).
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         val prefs = getSharedPreferences("FritoMusicPrefs", android.content.Context.MODE_PRIVATE)
         val hasCompletedOnboardingInitial = prefs.getBoolean("has_completed_onboarding", false)
@@ -112,17 +120,18 @@ class MainActivity : ComponentActivity() {
                         }
                     )
                 } else {
-                var currentTab by remember { mutableStateOf("inicio") }
-                var currentSubScreen by remember { mutableStateOf<String?>(null) }
-                var showPlayerScreen by remember { mutableStateOf(false) }
-                var selectedPlaylist by remember { mutableStateOf<Playlist?>(null) }
-                var selectedArtistId by remember { mutableStateOf<String?>(null) }
-                var selectedAlbumId by remember { mutableStateOf<String?>(null) }
-                var selectedStreamArtistId by remember { mutableStateOf<String?>(null) }
-                var selectedStreamAlbumId by remember { mutableStateOf<String?>(null) }
-                var selectedStreamPlaylistId by remember { mutableStateOf<String?>(null) }
-                var verificationTarget by remember { mutableStateOf<Pair<String, String>?>(null) }
-                var showYouTubeLogin by remember { mutableStateOf(false) }
+                // rememberSaveable: el estado de navegación sobrevive rotaciones
+                var currentTab by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("inicio") }
+                var currentSubScreen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+                var showPlayerScreen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+                var selectedPlaylist by remember { mutableStateOf<Playlist?>(null) } // no parcelable: se pierde con rotación (aceptable)
+                var selectedArtistId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+                var selectedAlbumId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+                var selectedStreamArtistId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+                var selectedStreamAlbumId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+                var selectedStreamPlaylistId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+                var verificationTarget by remember { mutableStateOf<Pair<String, String>?>(null) } // se reconstruye vía deep link / banner
+                var showYouTubeLogin by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
 
                 val favorites by playerViewModel.favorites.collectAsState(initial = emptySet())
                 val playlists by playerViewModel.playlists.collectAsState(initial = emptyList())
@@ -130,6 +139,26 @@ class MainActivity : ComponentActivity() {
 
                 val context = androidx.compose.ui.platform.LocalContext.current
                 var backPressedTime by remember { mutableStateOf(0L) }
+
+                // Re-escanear la biblioteca cuando una descarga termina con éxito,
+                // para que la canción nueva aparezca sin reiniciar la app.
+                androidx.compose.runtime.DisposableEffect(homeViewModel, context) {
+                    val seenSucceeded = HashSet<String>()
+                    val observer = object : androidx.lifecycle.Observer<MutableList<androidx.work.WorkInfo>> {
+                        override fun onChanged(infos: MutableList<androidx.work.WorkInfo>) {
+                            infos.filter { it.state == androidx.work.WorkInfo.State.SUCCEEDED }
+                                .forEach { info ->
+                                    if (seenSucceeded.add(info.id.toString())) {
+                                        homeViewModel.rescan()
+                                    }
+                                }
+                        }
+                    }
+                    val liveData = androidx.work.WorkManager.getInstance(context)
+                        .getWorkInfosByTagLiveData("download")
+                    liveData.observeForever(observer)
+                    onDispose { liveData.removeObserver(observer) }
+                }
 
                 androidx.activity.compose.BackHandler(enabled = true) {
                     if (showPlayerScreen) {
@@ -195,6 +224,11 @@ class MainActivity : ComponentActivity() {
                         )
                     } else {
                     Scaffold(
+                        // Con edge-to-edge activo, el fondo (color o imagen) se dibuja
+                        // bajo las barras del sistema. Las pantallas ya traen su propio
+                        // margen superior (48dp >= altura de la status bar), así que
+                        // desactivamos el inset por defecto del Scaffold para no duplicar.
+                        contentWindowInsets = WindowInsets(0, 0, 0, 0),
                         bottomBar = {
                             Column {
                                 // MiniPlayer con animación suave de aparición/desaparición
@@ -211,17 +245,19 @@ class MainActivity : ComponentActivity() {
                                         onSwipeUp = { showPlayerScreen = true }
                                     )
                                 }
-                                if (currentSubScreen == null) {
-                                    AnimatedVisibility(
-                                        visible = true,
-                                        enter = fadeIn(tween(200)),
-                                        exit = fadeOut(tween(150))
-                                    ) {
-                                        BottomNavBar(
-                                            currentTab = currentTab,
-                                            onTabSelected = { currentTab = it }
-                                        )
-                                    }
+                                // La barra inferior se oculta/muestra con animación
+                                // real según haya subpantalla abierta
+                                AnimatedVisibility(
+                                    visible = currentSubScreen == null,
+                                    enter = fadeIn(tween(AppAnimations.DURATION_FAST)) +
+                                            expandVertically(tween(AppAnimations.DURATION_MEDIUM, easing = FastOutSlowInEasing)),
+                                    exit = fadeOut(tween(150)) +
+                                            shrinkVertically(tween(AppAnimations.DURATION_FAST, easing = FastOutSlowInEasing))
+                                ) {
+                                    BottomNavBar(
+                                        currentTab = currentTab,
+                                        onTabSelected = { currentTab = it }
+                                    )
                                 }
                             }
                         },
@@ -232,33 +268,48 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier.padding(innerPadding).fillMaxSize(),
                             color = Color.Transparent
                         ) {
-                            // Animación de subpantallas (Más → Favoritos, Ecualizador, etc.)
+                            // ── Animación de subpantallas (Más → Favoritos, Ecualizador…) ──
+                            // Slide lateral + escala de profundidad: la pantalla entra
+                            // "creciendo" desde 0.97 y al volver se aleja suavemente.
                             AnimatedContent(
                                 targetState = currentSubScreen,
                                 transitionSpec = {
+                                    val slideSpec = AppAnimations.screenSlideOffsetTween()
+                                    val scaleSpec = tween<Float>(
+                                        AppAnimations.DURATION_MEDIUM,
+                                        easing = FastOutSlowInEasing
+                                    )
                                     if (targetState != null) {
-                                        // Entrando a una subpantalla: slide desde la derecha + fade in
+                                        // Entrando a una subpantalla: crece desde la derecha
                                         (slideInHorizontally(
-                                            initialOffsetX = { fullWidth -> (fullWidth * 0.35f).toInt() },
-                                            animationSpec = tween(300, easing = FastOutSlowInEasing)
-                                        ) + fadeIn(tween(250, easing = FastOutSlowInEasing)))
+                                            initialOffsetX = { fullWidth -> (fullWidth * 0.45f).toInt() },
+                                            animationSpec = slideSpec
+                                        ) +
+                                            scaleIn(initialScale = 0.97f, animationSpec = scaleSpec) +
+                                            fadeIn(AppAnimations.quickFadeTween()))
                                             .togetherWith(
                                                 slideOutHorizontally(
-                                                    targetOffsetX = { fullWidth -> -(fullWidth * 0.15f).toInt() },
-                                                    animationSpec = tween(300, easing = FastOutSlowInEasing)
-                                                ) + fadeOut(tween(200, easing = FastOutSlowInEasing))
+                                                    targetOffsetX = { fullWidth -> -(fullWidth * 0.18f).toInt() },
+                                                    animationSpec = slideSpec
+                                                ) +
+                                                    scaleOut(targetScale = 0.96f, animationSpec = scaleSpec) +
+                                                    fadeOut(tween(200, easing = FastOutSlowInEasing))
                                             )
                                     } else {
-                                        // Volviendo a tabs: slide desde la izquierda + fade in
+                                        // Volviendo a tabs: se aleja hacia la izquierda
                                         (slideInHorizontally(
-                                            initialOffsetX = { fullWidth -> -(fullWidth * 0.35f).toInt() },
-                                            animationSpec = tween(300, easing = FastOutSlowInEasing)
-                                        ) + fadeIn(tween(250, easing = FastOutSlowInEasing)))
+                                            initialOffsetX = { fullWidth -> -(fullWidth * 0.45f).toInt() },
+                                            animationSpec = slideSpec
+                                        ) +
+                                            scaleIn(initialScale = 0.97f, animationSpec = scaleSpec) +
+                                            fadeIn(AppAnimations.quickFadeTween()))
                                             .togetherWith(
                                                 slideOutHorizontally(
-                                                    targetOffsetX = { fullWidth -> (fullWidth * 0.15f).toInt() },
-                                                    animationSpec = tween(300, easing = FastOutSlowInEasing)
-                                                ) + fadeOut(tween(200, easing = FastOutSlowInEasing))
+                                                    targetOffsetX = { fullWidth -> (fullWidth * 0.18f).toInt() },
+                                                    animationSpec = slideSpec
+                                                ) +
+                                                    scaleOut(targetScale = 0.95f, animationSpec = scaleSpec) +
+                                                    fadeOut(tween(200, easing = FastOutSlowInEasing))
                                             )
                                     }
                                 },
@@ -402,17 +453,44 @@ class MainActivity : ComponentActivity() {
                                         "extensiones" -> ExtensionsScreen(onBack = { currentSubScreen = null })
                                         else -> {
                                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                                Text("Pantalla en construcción", color = Color.White)
+                                                Text("Pantalla en construcción", color = appColors.textPrimary)
                                             }
                                         }
                                     }
                                 } else {
-                                    // Animación entre tabs principales con fade suave
+                                    // ── Transición entre tabs principal ──
+                                    // Desliza según la dirección real del cambio
+                                    // (inicio→mas desliza a la izquierda, y viceversa)
+                                    // + escala sutil de profundidad.
+                                    val tabOrder = remember {
+                                        listOf("inicio", "biblioteca", "buscar", "stream", "mas")
+                                    }
                                     AnimatedContent(
                                         targetState = currentTab,
                                         transitionSpec = {
-                                            fadeIn(tween(220, easing = FastOutSlowInEasing))
-                                                .togetherWith(fadeOut(tween(150, easing = FastOutSlowInEasing)))
+                                            val from = tabOrder.indexOf(initialState).let { if (it < 0) 0 else it }
+                                            val to = tabOrder.indexOf(targetState).let { if (it < 0) 0 else it }
+                                            val forward = to >= from
+                                            val slideSpec = AppAnimations.screenSlideOffsetTween()
+                                            val scaleSpec = tween<Float>(
+                                                AppAnimations.DURATION_MEDIUM,
+                                                easing = FastOutSlowInEasing
+                                            )
+                                            (
+                                                slideInHorizontally(
+                                                    initialOffsetX = { w -> (if (forward) w else -w) / 5 },
+                                                    animationSpec = slideSpec
+                                                ) +
+                                                    scaleIn(initialScale = 0.94f, animationSpec = scaleSpec) +
+                                                    fadeIn(AppAnimations.quickFadeTween())
+                                                ).togetherWith(
+                                                slideOutHorizontally(
+                                                    targetOffsetX = { w -> (if (forward) -w else w) / 7 },
+                                                    animationSpec = slideSpec
+                                                ) +
+                                                    scaleOut(targetScale = 0.96f, animationSpec = scaleSpec) +
+                                                    fadeOut(tween(150, easing = FastOutSlowInEasing))
+                                            )
                                         },
                                         label = "TabAnimation"
                                     ) { tab ->
@@ -458,7 +536,7 @@ class MainActivity : ComponentActivity() {
                     }
                 } // End if(showOnboarding) else
 
-                    // Player Overlay — spring + fade para sensación física
+                    // Player Overlay — sube con spring físico y se va con easing suave
                     AnimatedVisibility(
                         visible = showPlayerScreen,
                         enter = slideInVertically(
@@ -467,10 +545,10 @@ class MainActivity : ComponentActivity() {
                                 dampingRatio = Spring.DampingRatioNoBouncy,
                                 stiffness = Spring.StiffnessMediumLow
                             )
-                        ) + fadeIn(tween(250, easing = FastOutSlowInEasing)),
+                        ) + fadeIn(AppAnimations.fadeTween()),
                         exit = slideOutVertically(
                             targetOffsetY = { fullHeight -> fullHeight },
-                            animationSpec = tween(360, easing = FastOutSlowInEasing)
+                            animationSpec = AppAnimations.playerSlideTween()
                         ) + fadeOut(tween(250, easing = FastOutSlowInEasing))
                     ) {
                         PlayerScreen(

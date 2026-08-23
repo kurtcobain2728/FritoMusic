@@ -50,13 +50,24 @@ class ExtensionManager(private val context: Context) {
         if (extensionsArray != null) {
             for (i in 0 until extensionsArray.length()) {
                 val extObj = extensionsArray.getJSONObject(i)
-                
+
                 val tagsArray = extObj.optJSONArray("tags")
                 val tagsList = mutableListOf<String>()
                 if (tagsArray != null) {
                     for (j in 0 until tagsArray.length()) {
                         tagsList.add(tagsArray.getString(j))
                     }
+                }
+
+                // Guardar el "type" declarado en el registry (p. ej.
+                // ["metadata_provider"] o ["download_provider"]) para poder
+                // clasificar la extensión ANTES de instalarla.
+                val typesArray = extObj.optJSONArray("type")
+                if (typesArray != null && typesArray.length() > 0) {
+                    val joined = (0 until typesArray.length()).joinToString(",") { typesArray.optString(it) }
+                    prefs.edit().putString("ext_type_${extObj.optString("id")}", joined).apply()
+                } else {
+                    prefs.edit().remove("ext_type_${extObj.optString("id")}").apply()
                 }
 
                 extensionsList.add(
@@ -207,16 +218,39 @@ class ExtensionManager(private val context: Context) {
     }
 
     /**
-     * true si la extensión declara el tipo "download_provider" en su manifest.
-     * Si no hay manifest legible, se asume true para no romper compatibilidad.
+     * true si la extensión declara el tipo "download_provider".
+     * Orden de resolución:
+     *  1. manifest.json de la extensión instalada (fuente de verdad)
+     *  2. "type" guardado del registry (para extensiones NO instaladas)
+     *  3. default true (no romper compatibilidad si no hay datos)
      */
     fun isDownloadProvider(extensionId: String): Boolean {
-        val manifest = getExtensionManifest(extensionId) ?: return true
-        val types = manifest.optJSONArray("type") ?: return true
-        for (i in 0 until types.length()) {
-            if (types.optString(i) == "download_provider") return true
+        val manifest = getExtensionManifest(extensionId)
+        if (manifest != null) {
+            val types = manifest.optJSONArray("type") ?: return true
+            for (i in 0 until types.length()) {
+                if (types.optString(i) == "download_provider") return true
+            }
+            return false
         }
-        return false
+        // No instalada: usar el type del registry si lo tenemos cacheado
+        val regTypes = prefs.getString("ext_type_$extensionId", null)
+        if (regTypes != null) {
+            return regTypes.split(",").any { it.trim() == "download_provider" }
+        }
+        return true
+    }
+
+    /**
+     * Motivo por el que una extensión NO puede usarse como servidor de descarga,
+     * o null si sí es utilizable. Para mensajes explicativos en la UI.
+     */
+    fun getServerExclusionReason(extensionId: String): String? {
+        return when {
+            !isCompatible(extensionId) -> "incompatible con el motor"
+            !isDownloadProvider(extensionId) -> "solo metadatos, sin descargas"
+            else -> null
+        }
     }
 
     /**

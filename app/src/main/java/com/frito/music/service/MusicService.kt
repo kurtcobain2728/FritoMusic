@@ -19,22 +19,39 @@ class MusicService : MediaSessionService() {
 
     private fun createDataSourceFactory(): androidx.media3.datasource.DataSource.Factory {
         val defaultDataSource = DefaultDataSource.Factory(this)
-        
+
         return cache?.let { cacheInstance ->
             CacheDataSource.Factory()
                 .setCache(cacheInstance)
                 .setUpstreamDataSourceFactory(defaultDataSource)
                 .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+                // Clave de caché estable: el videoId en vez de la URL completa
+                // (las URLs de YouTube expiran; con videoId la caché sirve entre sesiones)
+                .setCacheKeyFactory { dataSpec ->
+                    val url = dataSpec.uri.toString()
+                    val vParam = Regex("[?&]v=([A-Za-z0-9_-]{6,})").find(url)?.groupValues?.get(1)
+                    when {
+                        !vParam.isNullOrEmpty() -> "audio_$vParam"
+                        !dataSpec.key.isNullOrEmpty() -> dataSpec.key!!
+                        else -> url
+                    }
+                }
         } ?: defaultDataSource
     }
 
     override fun onCreate() {
         super.onCreate()
         
-        // Initialize cache
-        val cacheDir = File(cacheDir, "stream-cache")
-        val evictor = LeastRecentlyUsedCacheEvictor(500 * 1024 * 1024L) // 500MB
-        cache = SimpleCache(cacheDir, evictor)
+        // Initialize cache (con protección: si el directorio está bloqueado por
+        // otra instancia, no crashear el servicio)
+        cache = try {
+            val cacheDir = File(cacheDir, "stream-cache")
+            val evictor = LeastRecentlyUsedCacheEvictor(500 * 1024 * 1024L) // 500MB
+            SimpleCache(cacheDir, evictor)
+        } catch (e: Exception) {
+            android.util.Log.w("MusicService", "No se pudo iniciar la caché de streams", e)
+            null
+        }
         
         val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
             .setBufferDurationsMs(

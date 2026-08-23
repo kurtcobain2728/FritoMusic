@@ -153,7 +153,7 @@ fun EqualizerScreen(playerViewModel: PlayerViewModel, onBack: () -> Unit) {
                     ) {
                         Text(
                             text = preset.name,
-                            color = if (isSelected) Color.White else appColors.textSecondary,
+                            color = if (isSelected) com.frito.music.ui.theme.textColorForBackground(appColors.accent) else appColors.textSecondary,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             fontSize = 14.sp
                         )

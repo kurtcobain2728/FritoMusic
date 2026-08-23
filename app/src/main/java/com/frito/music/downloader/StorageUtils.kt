@@ -65,7 +65,12 @@ object StorageUtils {
             val collection = MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
             val uri = context.contentResolver.insert(collection, contentValues) ?: return null
 
-            val outStream = context.contentResolver.openOutputStream(uri, "w") ?: return null
+            val outStream = context.contentResolver.openOutputStream(uri, "w")
+            if (outStream == null) {
+                // No dejar filas IS_PENDING huérfanas en MediaStore
+                runCatching { context.contentResolver.delete(uri, null, null) }
+                return null
+            }
             return Pair(uri, outStream)
         } else {
             // Legacy storage (requiere WRITE_EXTERNAL_STORAGE)

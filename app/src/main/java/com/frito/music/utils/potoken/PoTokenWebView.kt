@@ -362,6 +362,11 @@ class PoTokenWebView private constructor(
             return withContext(Dispatchers.Main) {
                 suspendCancellableCoroutine { cont ->
                     val potWv = PoTokenWebView(context, cont)
+                    // Si la coroutine esperando el generador se cancela (p. ej. la
+                    // carrera de clientes aborta), cerrar el WebView para no filtrarlo.
+                    cont.invokeOnCancellation {
+                        runCatching { potWv.close() }
+                    }
                     potWv.loadHtmlAndObtainBotguard()
                 }
             }

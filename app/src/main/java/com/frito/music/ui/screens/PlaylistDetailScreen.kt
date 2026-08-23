@@ -39,7 +39,8 @@ fun PlaylistDetailScreen(
     playerViewModel: PlayerViewModel,
     onBack: () -> Unit
 ) {
-    val allAudios = remember(homeViewModel) { homeViewModel.getAllAudios() }
+    // Reactivo: se actualiza solo cuando el escaneo o un rescan (descarga nueva) termina
+    val allAudios by homeViewModel.allAudios.collectAsState()
     val favorites by playerViewModel.favorites.collectAsState()
     // Cachear el filtrado para evitar recalcular en cada recomposición
     val playlistSongs = remember(allAudios, playlist.audioPaths) {
@@ -144,7 +145,7 @@ fun PlaylistDetailScreen(
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = Color.White, modifier = Modifier.size(32.dp))
+                    Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = com.frito.music.ui.theme.textColorForBackground(appColors.accent), modifier = Modifier.size(32.dp))
                 }
             }
         }

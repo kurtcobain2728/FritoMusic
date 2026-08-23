@@ -1,5 +1,6 @@
 package com.frito.music.ui.screens
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -36,10 +37,11 @@ import com.frito.music.ui.theme.LocalAppColors
 
 enum class SortOption { TITLE, ARTIST, ALBUM, RECENT }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LibraryScreen(homeViewModel: HomeViewModel, playerViewModel: PlayerViewModel) {
-    // Envuelto en remember para evitar recomputación en cada recomposición
-    val allSongs = remember(homeViewModel) { homeViewModel.getAllAudios() }
+    // Reactivo: se actualiza solo cuando el escaneo o un rescan (descarga nueva) termina
+    val allSongs by homeViewModel.allAudios.collectAsState()
     val favorites by playerViewModel.favorites.collectAsState()
     var selectedFilter by remember { mutableStateOf(SortOption.TITLE) }
     val appColors = LocalAppColors.current
@@ -128,7 +130,7 @@ fun LibraryScreen(homeViewModel: HomeViewModel, playerViewModel: PlayerViewModel
                                 },
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = Color.White, modifier = Modifier.size(32.dp))
+                            Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = com.frito.music.ui.theme.textColorForBackground(appColors.accent), modifier = Modifier.size(32.dp))
                         }
                     }
                 }
@@ -139,8 +141,10 @@ fun LibraryScreen(homeViewModel: HomeViewModel, playerViewModel: PlayerViewModel
                 key = { _, song -> song.path }
             ) { index, song ->
                 val isFavorite = favorites.contains(song.path)
-                AudioFileRowUI(song = song, isFavorite = isFavorite, appColors = appColors) {
-                    playerViewModel.playAudios(sortedSongs, index)
+                Box(modifier = Modifier.animateItemPlacement()) {
+                    AudioFileRowUI(song = song, isFavorite = isFavorite, appColors = appColors) {
+                        playerViewModel.playAudios(sortedSongs, index)
+                    }
                 }
             }
         }
@@ -158,7 +162,7 @@ fun FilterChipUI(text: String, isSelected: Boolean, appColors: com.frito.music.u
     ) {
         Text(
             text = text,
-            color = if (isSelected) Color.White else appColors.textPrimary,
+            color = if (isSelected) com.frito.music.ui.theme.textColorForBackground(appColors.accent) else appColors.textPrimary,
             fontSize = 14.sp,
             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
         )

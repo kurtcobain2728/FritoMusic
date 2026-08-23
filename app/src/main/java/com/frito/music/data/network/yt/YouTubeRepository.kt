@@ -34,6 +34,25 @@ object YouTubeRepository {
     private val streamUrlCache = ConcurrentHashMap<String, CachedUrl>()
     private const val STREAM_URL_TTL_MS = 4 * 60 * 60 * 1000L
 
+    /**
+     * signatureTimestamp global de la sesión (viene del player JS de YouTube y
+     * cambia con poca frecuencia). Los clientes con useSignatureTimestamp lo
+     * requieren en /player o devuelven 403.
+     */
+    @Volatile
+    private var signatureTimestampCache: Int? = null
+
+    private fun getSignatureTimestamp(videoId: String): Int? {
+        signatureTimestampCache?.let { return it }
+        return try {
+            NewPipeExtractor.getSignatureTimestamp(videoId).getOrNull()?.also {
+                signatureTimestampCache = it
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     private fun getCachedStreamUrl(videoId: String): String? {
         val entry = streamUrlCache[videoId] ?: return null
         return if (System.currentTimeMillis() - entry.timestamp < STREAM_URL_TTL_MS) entry.url
@@ -89,6 +108,18 @@ object YouTubeRepository {
         YouTube.explore().getOrThrow()
     }
 
+    /**
+     * Historial de reproducción de la cuenta (requiere sesión).
+     * Devuelve las canciones escuchadas recientemente, aplanadas y sin duplicados.
+     * Es la base de la sección "Escuchado recientemente" del home de Stream.
+     */
+    suspend fun getMusicHistory(): Result<List<SongItem>> = runCatching {
+        val page = YouTube.musicHistory().getOrThrow()
+        page.sections.orEmpty()
+            .flatMap { it.songs }
+            .distinctBy { it.id }
+    }
+
     private suspend fun resolveWithClient(client: YouTubeClient, videoId: String): String? {
         val poToken = if (client.useWebPoTokens) {
             val sessionId = YouTube.dataSyncId ?: YouTube.visitorData
@@ -99,6 +130,7 @@ object YouTubeRepository {
             videoId = videoId,
             playlistId = null,
             client = client,
+            signatureTimestamp = getSignatureTimestamp(videoId),
             poToken = poToken?.playerRequestPoToken
         ).getOrNull() ?: return null
 

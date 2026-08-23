@@ -247,7 +247,7 @@ private fun playPlaylistSongs(
     playerViewModel: PlayerViewModel
 ) {
     val song = songs[startIndex]
-    streamViewModel.playAlbumSong(song, playerViewModel)
+    streamViewModel.playAlbumSong(song, playerViewModel, queueSongs = songs)
 }
 
 @Composable

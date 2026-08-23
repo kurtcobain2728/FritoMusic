@@ -144,6 +144,78 @@ class UtilsBridge {
         return DownloadState.cancelRequested
     }
 
+    /**
+     * Escáner iterativo de etiquetas <S ...> de manifiestos MPD.
+     *
+     * El regex /<S\s+[^>]*d="(\d+)"(?:\s+r="(-?\d+)")?[^>]*\/?>/gi que usan las
+     * extensiones sobre manifiestos enormes provoca backtracking catastórfico en
+     * java.util.regex (que matchea RECURSIVAMENTE los cuantificadores) y revienta
+     * con StackOverflowError. Este escáner hace el mismo trabajo con indexOf
+     * puro: sin regex y sin recursión, coste lineal garantizado.
+     *
+     * @return JSON array de [{full, end, d, r}] donde "end" es la posición
+     *         siguiente al tag (para simular RegExp.lastIndex).
+     */
+    fun mpdScan(text: String?): String {
+        if (text.isNullOrEmpty()) return "[]"
+        return try {
+            val out = org.json.JSONArray()
+            var i = 0
+            val n = text.length
+            while (i < n - 2) {
+                val start = text.indexOf("<S", i)
+                if (start < 0 || start + 2 > n) break
+                val afterTag = text.getOrNull(start + 2)
+                // Debe ser <S seguido de espacio/atributo (no <Segment... etc.)
+                if (afterTag == null || !(afterTag.isWhitespace() || afterTag == '/')) {
+                    i = start + 2
+                    continue
+                }
+                val tagEnd = text.indexOf('>', start)
+                if (tagEnd < 0) break
+                val tag = text.substring(start, tagEnd + 1)
+
+                // Extraer atributos d="N" y r="N" escaneando por índices
+                var dVal = ""
+                var rVal = ""
+                var j = 2
+                while (j < tag.length - 1) {
+                    val eq = tag.indexOf("=\"", j)
+                    if (eq < 0) break
+                    val name = tag.substring(j, eq).trim()
+                    val close = tag.indexOf('"', eq + 2)
+                    if (close < 0) break
+                    val value = tag.substring(eq + 2, close)
+                    when {
+                        name == "d" && dVal.isEmpty() -> dVal = value
+                        name == "r" && rVal.isEmpty() -> rVal = value
+                    }
+                    j = close + 1
+                }
+
+                // El regex original exige d="\d+" (uno o más DÍGITOS): un tag sin d
+                // o con valor no numérico NO matchearía. Omitirlo para semántica idéntica.
+                val dNum = dVal.toLongOrNull()
+                if (dNum == null || dNum < 0) {
+                    i = tagEnd + 1
+                    continue
+                }
+
+                val obj = org.json.JSONObject()
+                    .put("full", tag)
+                    .put("end", (tagEnd + 1).toLong())
+                    .put("d", dNum)
+                    .put("r", rVal.toLongOrNull() ?: 0L)
+                out.put(obj)
+
+                i = tagEnd + 1
+            }
+            out.toString()
+        } catch (e: Exception) {
+            "[]"
+        }
+    }
+
     fun hmacSHA1(key: ByteArray, data: ByteArray): ByteArray {
         try {
             val mac = javax.crypto.Mac.getInstance("HmacSHA1")
@@ -250,16 +322,13 @@ class ProgressBridge(private val listener: (Int) -> Unit) {
 }
 
 class FileBridge {
-    var interceptedUrl: String? = null
-
-    // Referencias de Rhino para poder invocar callbacks JS (onProgress)
-    private var rhinoContext: org.mozilla.javascript.Context? = null
-    private var scope: Scriptable? = null
-
-    fun attach(cx: org.mozilla.javascript.Context?, scope: Scriptable?) {
-        this.rhinoContext = cx
-        this.scope = scope
-    }
+    /**
+     * Reporter de progreso POR BYTES en Kotlin puro (sin re-entrar a JS).
+     * Antes se invocaba un callback JS por cada bloque de 64KB leídos:
+     * esa re-entrada Java→JS dentro del bucle de streaming era el camino
+     * directo al StackOverflowError del hilo de Rhino.
+     */
+    var byteProgressReporter: ((Int) -> Unit)? = null
 
     private fun jsResult(vararg pairs: Pair<String, Any?>): org.mozilla.javascript.NativeObject {
         val result = org.mozilla.javascript.NativeObject()
@@ -339,7 +408,6 @@ class FileBridge {
             connection.connectTimeout = 20000
             connection.readTimeout = 60000
 
-            var onProgressFn: org.mozilla.javascript.Function? = null
             if (options is Scriptable) {
                 val headersObj = options.get("headers", options)
                 if (headersObj is Scriptable) {
@@ -349,8 +417,8 @@ class FileBridge {
                         if (value != null) connection.setRequestProperty(key, value)
                     }
                 }
-                val cb = options.get("onProgress", options)
-                if (cb is org.mozilla.javascript.Function) onProgressFn = cb
+                // NOTA: el callback JS onProgress de options se IGNORA a propósito.
+                // El progreso real sale por byteProgressReporter (Kotlin puro).
             }
 
             val code = connection.responseCode
@@ -363,6 +431,7 @@ class FileBridge {
             val buffer = ByteArray(64 * 1024)
             var written = 0L
             var read: Int
+            var lastPct = -1
 
             file.outputStream().use { out ->
                 while (input.read(buffer).also { read = it } != -1) {
@@ -371,9 +440,14 @@ class FileBridge {
                     }
                     out.write(buffer, 0, read)
                     written += read
-                    if (onProgressFn != null && rhinoContext != null && scope != null) {
-                        runCatching {
-                            onProgressFn.call(rhinoContext, scope, onProgressFn, arrayOf(written, total))
+
+                    // Progreso por bytes SIN re-entrar a JavaScript (0-100%).
+                    // Solo notificamos cuando cambia el porcentaje entero.
+                    if (total > 0) {
+                        val pct = ((written * 100) / total).toInt().coerceIn(0, 100)
+                        if (pct != lastPct) {
+                            lastPct = pct
+                            byteProgressReporter?.let { rep -> runCatching { rep(pct) } }
                         }
                     }
                 }

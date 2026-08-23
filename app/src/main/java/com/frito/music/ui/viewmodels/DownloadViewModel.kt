@@ -32,6 +32,14 @@ class DownloadViewModel(application: Application) : AndroidViewModel(application
     private val _installedServers = MutableStateFlow<List<Pair<String, String>>>(emptyList())
     val installedServers: StateFlow<List<Pair<String, String>>> = _installedServers.asStateFlow()
 
+    /**
+     * Nota explicativa sobre extensiones instaladas que NO aparecen como
+     * servidores (metadata-only o incompatibles), con nombres y motivo.
+     * null si no hay nada oculto.
+     */
+    private val _hiddenServerNote = MutableStateFlow<String?>(null)
+    val hiddenServerNote: StateFlow<String?> = _hiddenServerNote.asStateFlow()
+
     private val _selectedServerId = MutableStateFlow<String?>(null)
     val selectedServerId: StateFlow<String?> = _selectedServerId.asStateFlow()
 
@@ -54,8 +62,9 @@ class DownloadViewModel(application: Application) : AndroidViewModel(application
     private val _sessionMessage = MutableStateFlow<String?>(null)
     val sessionMessage: StateFlow<String?> = _sessionMessage.asStateFlow()
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    // true cuando sessionMessage es un fallo (rojo) y false cuando es confirmación (verde)
+    private val _sessionMessageIsError = MutableStateFlow(false)
+    val sessionMessageIsError: StateFlow<Boolean> = _sessionMessageIsError.asStateFlow()
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
@@ -78,9 +87,25 @@ class DownloadViewModel(application: Application) : AndroidViewModel(application
 
     fun loadServers() {
         // Solo extensiones que realmente pueden descargar y son compatibles con el engine Rhino
-        val servers = extensionManager.getInstalledExtensionNames()
+        val installed = extensionManager.getInstalledExtensionNames()
+        val servers = installed
             .filter { (id, _) -> extensionManager.isDownloadProvider(id) && extensionManager.isCompatible(id) }
         _installedServers.value = servers
+
+        // Nota dinámica: solo si hay instaladas que quedan fuera, con motivo real
+        val hidden = installed.filter { (id, _) ->
+            !(extensionManager.isDownloadProvider(id) && extensionManager.isCompatible(id))
+        }
+        _hiddenServerNote.value = if (hidden.isEmpty()) {
+            null
+        } else {
+            val parts = hidden.map { (id, name) ->
+                val reason = extensionManager.getServerExclusionReason(id) ?: "no disponible"
+                "$name ($reason)"
+            }
+            "No aparecen como servidor porque no pueden descargar: ${parts.joinToString(", ")}."
+        }
+
         if (servers.isNotEmpty() && _selectedServerId.value == null) {
             selectServer(servers.first().first)
         } else if (_selectedServerId.value != null && servers.none { it.first == _selectedServerId.value }) {
@@ -156,9 +181,18 @@ class DownloadViewModel(application: Application) : AndroidViewModel(application
 
         _searchQuery.value = query
         viewModelScope.launch {
+            // Guard: sin servidor seleccionado no hay motor ni búsqueda posible.
+            // Antes se usaba `_selectedServerId.value!!` aquí y eso crasheaba la app
+            // cuando no había extensiones compatibles instaladas.
+            val serverId = _selectedServerId.value ?: run {
+                _searchResults.value = null
+                _errorMessage.value = "Selecciona un servidor de descarga primero."
+                return@launch
+            }
+
             // Initialize engine lazily if needed
             if (activeEngine == null) {
-                initEngine(_selectedServerId.value!!)
+                initEngine(serverId)
                 initEngineJob?.join()
             }
             
@@ -484,10 +518,12 @@ class DownloadViewModel(application: Application) : AndroidViewModel(application
                 if (manager.hasPendingGrant()) {
                     val grantResult = JSONObject(manager.completeGrant(null))
                     if (grantResult.optBoolean("success")) {
+                        _sessionMessageIsError.value = false
                         _sessionMessage.value = "Sesión verificada correctamente"
                         _verificationUrl.value = null
                         return@launch
                     } else {
+                        _sessionMessageIsError.value = true
                         _sessionMessage.value = "No se pudo completar la verificación"
                     }
                 }
@@ -541,6 +577,14 @@ class DownloadViewModel(application: Application) : AndroidViewModel(application
             ExistingWorkPolicy.REPLACE,
             downloadRequest
         )
+
+        // Feedback inmediato: el diálogo se cierra sin confirmación y el usuario
+        // no sabía si la descarga arrancó.
+        android.widget.Toast.makeText(
+            getApplication(),
+            "Descarga en cola: $trackName",
+            android.widget.Toast.LENGTH_SHORT
+        ).show()
     }
 
     override fun onCleared() {

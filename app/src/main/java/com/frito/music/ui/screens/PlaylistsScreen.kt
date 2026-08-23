@@ -125,7 +125,7 @@ fun PlaylistsScreen(playerViewModel: PlayerViewModel, onBack: () -> Unit, onPlay
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.FormatListBulleted,
                     contentDescription = "Playlist",
-                    tint = Color.White,
+                    tint = com.frito.music.ui.theme.textColorForBackground(appColors.accent),
                     modifier = Modifier.size(64.dp)
                 )
             }
@@ -156,13 +156,13 @@ fun PlaylistsScreen(playerViewModel: PlayerViewModel, onBack: () -> Unit, onPlay
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = "Add",
-                        tint = Color.White,
+                        tint = com.frito.music.ui.theme.textColorForBackground(appColors.accent),
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Crear lista",
-                        color = Color.White,
+                        color = com.frito.music.ui.theme.textColorForBackground(appColors.accent),
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 16.sp
                     )

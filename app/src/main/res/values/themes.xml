@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.FritoMusic" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Tema base oscuro (la app arranca en oscuro por defecto): evita el flash
+         blanco al inicio y deja status/navigation bar transparentes para edge-to-edge. -->
+    <style name="Theme.FritoMusic" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#121212</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
 </resources>

@@ -43,6 +43,18 @@ fun YouTubeLoginScreen(
 
     var webView: WebView? = null
 
+    // Destruir el WebView al salir de la pantalla (antes quedaba vivo en memoria)
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        onDispose {
+            webView?.apply {
+                runCatching { stopLoading() }
+                runCatching { loadUrl("about:blank") }
+                runCatching { destroy() }
+            }
+            webView = null
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(

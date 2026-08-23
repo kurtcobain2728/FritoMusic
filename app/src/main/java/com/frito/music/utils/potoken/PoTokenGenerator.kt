@@ -51,14 +51,20 @@ class PoTokenGenerator {
                 if (shouldRecreate) {
                     withContext(Dispatchers.Main) {
                         webPoTokenGenerator?.close()
+                        webPoTokenGenerator = null
                     }
 
-                    val newGenerator = PoTokenWebView.getNewPoTokenGenerator(context)
-
-                    val newStreamingPot = try {
-                        newGenerator.generatePoToken(sessionId)
-                    } catch (e: Exception) {
-                        withContext(Dispatchers.Main) { newGenerator.close() }
+                    val newGenerator: PoTokenWebView
+                    val newStreamingPot: String
+                    try {
+                        newGenerator = PoTokenWebView.getNewPoTokenGenerator(context)
+                        try {
+                            newStreamingPot = newGenerator.generatePoToken(sessionId)
+                        } catch (e: Exception) {
+                            withContext(Dispatchers.Main) { runCatching { newGenerator.close() } }
+                            throw e
+                        }
+                    } catch (e: kotlinx.coroutines.CancellationException) {
                         throw e
                     }
 

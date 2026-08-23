@@ -248,12 +248,18 @@ fun ExtensionCard(ext: ExtensionUIModel, appColors: AppColors, viewModel: Extens
                     Spacer(modifier = Modifier.height(8.dp))
                 }
 
-                val isDownload = viewModel.isDownloadProvider(info.id)
-                val isCompatible = viewModel.isCompatible(info.id)
+                // Insignias precalculadas en el ViewModel (sin I/O de ZIP en composición)
+                val isDownload = ext.isDownloadProvider
+                val isCompatible = ext.isCompatible
                 val (badgeText, badgeBg, badgeFg) = when {
                     !isCompatible -> Triple("No compatible", Color(0xFF4A1515), RedColor)
                     isDownload -> Triple("Descarga", Color(0xFF1B382B), GreenColor)
                     else -> Triple("Solo metadatos", TagBackground, appColors.textSecondary)
+                }
+                val notServerNote = when {
+                    !isCompatible -> "No aparece como servidor: su código usa funciones que el motor no soporta."
+                    !isDownload -> "No aparece como servidor: solo aporta metadatos, no puede descargar."
+                    else -> null
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -303,7 +309,18 @@ fun ExtensionCard(ext: ExtensionUIModel, appColors: AppColors, viewModel: Extens
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                
+
+                // Explica por qué esta extensión no aparece en "Descargar Música"
+                if (notServerNote != null) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = notServerNote,
+                        color = appColors.textSecondary.copy(alpha = 0.8f),
+                        fontSize = 11.sp,
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(12.dp))
                 
                 Row(

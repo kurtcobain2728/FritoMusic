@@ -56,9 +56,11 @@ fun StreamScreen(
     val artistResults by streamViewModel.artistResults.collectAsState()
     val isSearching by streamViewModel.isSearching.collectAsState()
     val errorMessage by streamViewModel.errorMessage.collectAsState()
+    val playbackError by streamViewModel.playbackError.collectAsState()
     val homePage by streamViewModel.homePage.collectAsState()
     val explorePage by streamViewModel.explorePage.collectAsState()
     val isLoadingHome by streamViewModel.isLoadingHome.collectAsState()
+    val recentlyPlayed by streamViewModel.recentlyPlayed.collectAsState()
 
     var searchQuery by remember { mutableStateOf("") }
     var selectedTab by remember { mutableStateOf(StreamTab.CANCIONES) }
@@ -221,7 +223,29 @@ fun StreamScreen(
         )
         
         Spacer(modifier = Modifier.height(16.dp))
-        
+
+        // Error de reproducción (resolución de URL): banner discreto, no bloquea la pantalla
+        if (playbackError != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color(0xFF3D1010))
+                    .clickable { streamViewModel.clearPlaybackError() }
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "No se pudo reproducir: ${playbackError}. Toca para cerrar.",
+                    color = Color(0xFFEF9A9A),
+                    fontSize = 12.sp,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
         // Content
         when {
             isSearching -> {
@@ -260,11 +284,15 @@ fun StreamScreen(
                         homePage = homePage,
                         explorePage = explorePage,
                         isLoading = isLoadingHome,
-                        onPlaySong = { song ->
-                            streamViewModel.playArtistSong(song, playerViewModel)
+                        recentlyPlayed = recentlyPlayed,
+                        onPlaySong = { song, sectionSongs ->
+                            streamViewModel.playArtistSong(song, playerViewModel, queueSongs = sectionSongs)
                         },
                         onAlbumClick = { browseId ->
                             streamViewModel.loadAlbumDetails(browseId)
+                        },
+                        onArtistClick = { browseId ->
+                            onNavigateToArtist(browseId)
                         },
                         modifier = Modifier.weight(1f)
                     )
@@ -369,7 +397,7 @@ fun StreamScreen(
                         items(results) { track ->
                             StreamTrackItem(
                                 track = track,
-                                onClick = { streamViewModel.playTrack(track, playerViewModel) }
+                                onClick = { streamViewModel.playTrack(track, playerViewModel, queue = results) }
                             )
                         }
                     }

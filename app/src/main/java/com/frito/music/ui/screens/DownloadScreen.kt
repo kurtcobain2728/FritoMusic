@@ -78,6 +78,8 @@ fun DownloadScreen(
     val sessionRequired by viewModel.sessionRequired.collectAsState()
     val verificationUrl by viewModel.verificationUrl.collectAsState()
     val sessionMessage by viewModel.sessionMessage.collectAsState()
+    val sessionMessageIsError by viewModel.sessionMessageIsError.collectAsState()
+    val hiddenServerNote by viewModel.hiddenServerNote.collectAsState()
 
     val context = LocalContext.current
 
@@ -200,11 +202,15 @@ fun DownloadScreen(
             }
 
             Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = "Spotify Web y Apple Music son solo de metadatos; YouTube Music aún no es compatible con el motor de descargas.",
-                color = appColors.textSecondary,
-                fontSize = 11.sp
-            )
+            // Nota dinámica: solo se muestra si hay extensiones instaladas que
+            // quedan fuera de la lista de servidores, con nombres y motivo reales
+            if (hiddenServerNote != null) {
+                Text(
+                    text = hiddenServerNote ?: "",
+                    color = appColors.textSecondary,
+                    fontSize = 11.sp
+                )
+            }
 
             // Banner de verificación de sesión firmada (Tidal, Deezer, Qobuz...)
             if (sessionRequired && verificationUrl != null) {
@@ -249,20 +255,20 @@ fun DownloadScreen(
                 }
             }
 
-            // Confirmación de sesión verificada
+            // Confirmación o error de sesión verificada (color según resultado real)
             if (sessionMessage != null) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFF1B5E20))
+                        .background(if (sessionMessageIsError) Color(0xFF5C1212) else Color(0xFF1B5E20))
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = sessionMessage ?: "",
-                        color = Color(0xFFA5D6A7),
+                        color = if (sessionMessageIsError) Color(0xFFEF9A9A) else Color(0xFFA5D6A7),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -336,6 +342,7 @@ fun DownloadScreen(
                 } else null,
                 textStyle = LocalTextStyle.current.copy(color = appColors.textPrimary, fontSize = 14.sp),
                 singleLine = true,
+                enabled = installedServers.isNotEmpty(),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = ChipBgColor,
                     unfocusedContainerColor = ChipBgColor,

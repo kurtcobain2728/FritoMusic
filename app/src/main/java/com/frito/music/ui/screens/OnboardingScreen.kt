@@ -4,6 +4,7 @@ import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -27,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.frito.music.ui.theme.AppAnimations
 import com.frito.music.ui.theme.LocalAppColors
 import kotlinx.coroutines.launch
 
@@ -63,7 +65,7 @@ fun OnboardingScreen(
             }
         }
         
-        // Indicador de Paginación
+        // Indicador de Paginación (ancho animado: 8dp ↔ 24dp)
         Row(
             modifier = Modifier
                 .padding(bottom = 32.dp, top = 16.dp)
@@ -71,8 +73,17 @@ fun OnboardingScreen(
             horizontalArrangement = Arrangement.Center
         ) {
             repeat(4) { iteration ->
-                val color = if (pagerState.currentPage == iteration) appColors.accent else appColors.textSecondary.copy(alpha = 0.5f)
-                val width = if (pagerState.currentPage == iteration) 24.dp else 8.dp
+                val isSelected = pagerState.currentPage == iteration
+                val color by animateColorAsState(
+                    targetValue = if (isSelected) appColors.accent else appColors.textSecondary.copy(alpha = 0.5f),
+                    animationSpec = tween(AppAnimations.DURATION_MEDIUM),
+                    label = "dotColor_$iteration"
+                )
+                val width by animateDpAsState(
+                    targetValue = if (isSelected) 24.dp else 8.dp,
+                    animationSpec = tween(AppAnimations.DURATION_MEDIUM),
+                    label = "dotWidth_$iteration"
+                )
                 Box(
                     modifier = Modifier
                         .padding(2.dp)
@@ -117,7 +128,7 @@ fun WelcomePage() {
         )
         Spacer(modifier = Modifier.height(48.dp))
         Text(
-            text = "Bienvenido a MusicFrito",
+            text = "Bienvenido a Frito Music",
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             color = appColors.textPrimary,
@@ -231,7 +242,7 @@ fun FinalPage(onFinish: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "MusicFrito está preparado para darte la mejor experiencia musical.",
+            text = "Frito Music está preparado para darte la mejor experiencia musical.",
             fontSize = 16.sp,
             color = appColors.textSecondary,
             textAlign = TextAlign.Center

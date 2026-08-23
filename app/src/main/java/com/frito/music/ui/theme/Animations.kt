@@ -39,7 +39,16 @@ object AppAnimations {
 
     // --- Int variants (para offsets de pantalla) ---
     fun screenSlideTween() = tween<Int>(DURATION_MEDIUM, easing = FastOutSlowInEasing)
-    fun playerSlideTween() = tween<Int>(DURATION_PLAYER, easing = FastOutSlowInEasing)
+
+    /**
+     * Para slideInHorizontally/slideOutHorizontally, que animan un IntOffset
+     * (no un Int): usar ESTA variante o el compilador rechazará el spec.
+     */
+    fun screenSlideOffsetTween() =
+        tween<androidx.compose.ui.unit.IntOffset>(DURATION_MEDIUM, easing = FastOutSlowInEasing)
+
+    fun playerSlideTween() =
+        tween<androidx.compose.ui.unit.IntOffset>(DURATION_PLAYER, easing = FastOutSlowInEasing)
 
     // --- Float variants para alpha/scale ---
     fun fadeTween() = tween<Float>(DURATION_MEDIUM, easing = FastOutSlowInEasing)

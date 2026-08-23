@@ -9,10 +9,54 @@ import java.io.File
 import java.util.zip.ZipFile
 
 class ExtensionEngine(private val context: Context, private val extensionName: String) {
+    companion object {
+        /** Timeout de seguridad para cada evaluación JS (evita bloqueos eternos). */
+        private const val EVAL_TIMEOUT_MS = 300_000L
+    }
+
     private var rhinoContext: org.mozilla.javascript.Context? = null
     private var scope: ScriptableObject? = null
     private val fileBridge = FileBridge()
     private var progressBridge: ProgressBridge? = null
+
+    /**
+     * Log COMPLETO del último error del motor (clase, mensaje, hasta 120 frames
+     * y causas anidadas). El Gestor de Descargas lo muestra en un modal con
+     * botón de copiar cuando una descarga falla por error del motor.
+     */
+    var lastEngineErrorLog: String? = null
+        private set
+
+    /**
+     * HILO PERSISTENTE de Rhino (uno solo por motor, pila de 16MB).
+     *
+     * Antes CADA evaluación creaba un hilo nuevo de 8MB: en una descarga se
+     * encadenaban varios (hasDownloadCapability + downloadTrack + búsquedas),
+     * y con descargas simultáneas eso agotaba la memoria del proceso
+     * ("pthread_create ... stack ... failed" / StackOverflowError) además de
+     * violar el confinamiento de hilos que exige Rhino.
+     * Ahora TODO corre secuencialmente en este mismo hilo.
+     */
+    private val rhinoExecutor: java.util.concurrent.ExecutorService =
+        java.util.concurrent.Executors.newSingleThreadExecutor { r ->
+            // 32MB de pila: las extensiones escritas para goja pueden consumir
+            // mucha más pila Java por frame JS en modo intérprete de Rhino.
+            // (La reserva es memoria virtual; lo físico solo se toca al usarla.)
+            Thread(null, r, "RhinoEngine-$extensionName", 32L * 1024 * 1024)
+        }
+
+    /** Ejecuta [block] en el hilo de Rhino con timeout; propaga el error real. */
+    private fun <T> evalWithTimeout(timeoutMs: Long, block: () -> T): T {
+        val future = rhinoExecutor.submit(block)
+        return try {
+            future.get(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)
+        } catch (e: java.util.concurrent.TimeoutException) {
+            future.cancel(true)
+            throw IllegalStateException("La extensión tardó demasiado en responder (timeout ${timeoutMs / 1000}s)")
+        } catch (e: java.util.concurrent.ExecutionException) {
+            throw (e.cause ?: e)
+        }
+    }
 
     /** Manifest.json de la extensión (si el paquete lo incluye). */
     var manifestJson: JSONObject? = null
@@ -23,10 +67,18 @@ class ExtensionEngine(private val context: Context, private val extensionName: S
         private set
 
     init {
-        initEngine()
+        // Construir el motor DENTRO del hilo del executor: así Context.enter(),
+        // los bridges y la evaluación de index.js quedan confinados a ese hilo,
+        // igual que todas las evaluaciones posteriores.
+        try {
+            evalWithTimeout(60_000L) { initEngineInternal() }
+        } catch (e: Throwable) {
+            android.util.Log.e("ExtensionEngine", "Fallo inicializando extensión $extensionName", e)
+            throw e
+        }
     }
 
-    private fun initEngine() {
+    private fun initEngineInternal() {
         val extFile = File(context.filesDir, "extensions/$extensionName.spotiflac-ext")
         if (!extFile.exists()) throw Exception("Extension file not found")
 
@@ -49,8 +101,6 @@ class ExtensionEngine(private val context: Context, private val extensionName: S
         rhinoContext?.languageVersion = org.mozilla.javascript.Context.VERSION_ES6
 
         scope = rhinoContext?.initStandardObjects()
-
-        fileBridge.attach(rhinoContext, scope)
 
         ScriptableObject.putProperty(scope, "http", org.mozilla.javascript.Context.javaToJS(HttpBridge(), scope))
         ScriptableObject.putProperty(scope, "log", org.mozilla.javascript.Context.javaToJS(LogBridge(), scope))
@@ -104,37 +154,87 @@ class ExtensionEngine(private val context: Context, private val extensionName: S
             rhinoContext?.evaluateString(scope, sessionShim, "sessionShim", 1, null)
         }
 
+        // ─── Shim anti-catastrofic-backtracking para manifiestos MPD ───
+        // El regex /<S\s+[^>]*d="(\d+)"(?:\s+r="(-?\d+)")?[^>]*\/?>/gi que las
+        // extensiones ejecutan sobre manifiestos enormes hace que java.util.regex
+        // (recursivo por diseño) reviente con StackOverflowError. Este shim
+        // enruta SOLO ese patrón al escáner iterativo nativo (utils.mpdScan),
+        // preservando la semántica de exec(): match[1], match[2], lastIndex y
+        // null al terminar. Todos los demás regex pasan intactos.
+        val mpdShim = """
+            (function() {
+                if (typeof utils === 'undefined' || typeof utils.mpdScan !== 'function') return;
+                var origExec = RegExp.prototype.exec;
+                RegExp.prototype.exec = function(str) {
+                    try {
+                        var src = this && this.source ? String(this.source) : '';
+                        var isKiller = src.length > 10 &&
+                            src.charAt(0) === '<' && src.charAt(1) === 'S' &&
+                            src.indexOf('[^>]') !== -1 &&
+                            src.indexOf('d=') !== -1;
+                        if (isKiller && str !== null && str !== undefined && String(str).indexOf('<S') !== -1) {
+                            var s = String(str);
+                            var all;
+                            if (this.__mpdKey === s) {
+                                all = this.__mpdAll;
+                            } else {
+                                all = JSON.parse(utils.mpdScan(s));
+                            }
+                            // SOLO tomamos el control si el escáner encontró tags.
+                            // Si devolvió vacío, dejamos pasar al original para no
+                            // ocultar matches que nuestro parser pudiera perder.
+                            if (all && all.length > 0) {
+                                if (this.__mpdKey !== s) {
+                                    this.__mpdKey = s;
+                                    this.__mpdIdx = 0;
+                                }
+                                this.__mpdAll = all;
+                                if (this.__mpdIdx >= all.length) {
+                                    this.lastIndex = 0;
+                                    this.__mpdKey = null;
+                                    return null;
+                                }
+                                var m = all[this.__mpdIdx++];
+                                this.lastIndex = m.end;
+                                var arr = [m.full, String(m.d), String(m.r)];
+                                arr.index = m.end;
+                                return arr;
+                            }
+                        }
+                    } catch (e) { /* cualquier problema: caer al exec original */ }
+                    return origExec.call(this, str);
+                };
+            })();
+        """.trimIndent()
+        rhinoContext?.evaluateString(scope, mpdShim, "mpdSafeShim", 1, null)
+
         rhinoContext?.evaluateString(scope, jsCode, "index.js", 1, null)
     }
 
-    /** Evaluate JS and convert result to String safely on an 8MB stack thread */
-    private fun evalStr(js: String): String? {
+    /** Evaluate JS and convert result to String safely on the persistent Rhino thread */
+    private fun evalStr(js: String): String? = evalWithTimeout(EVAL_TIMEOUT_MS) {
         var resultStr: String? = null
-        var exception: Throwable? = null
-        val thread = Thread(null, {
-            try {
-                val cx = org.mozilla.javascript.Context.enter()
-                cx.optimizationLevel = -1
-                cx.languageVersion = org.mozilla.javascript.Context.VERSION_ES6
-                val result = cx.evaluateString(scope, js, "eval", 1, null)
-                resultStr = result?.toString()
-                android.util.Log.d("ExtensionEngine", "evalStr result (${resultStr?.length ?: -1} chars): ${resultStr?.take(200)}")
-            } catch (e: Throwable) {
-                exception = e
-                android.util.Log.e("ExtensionEngine", "evalStr failed: ${e.message}", e)
-            } finally {
-                runCatching { org.mozilla.javascript.Context.exit() }
-            }
-        }, "Rhino8MBThread", 8 * 1024 * 1024L)
-        thread.start()
-        thread.join()
-        return resultStr
+        try {
+            // Ya estamos en el hilo del executor: enter/exit anidan correctamente
+            val cx = org.mozilla.javascript.Context.enter()
+            cx.optimizationLevel = -1
+            cx.languageVersion = org.mozilla.javascript.Context.VERSION_ES6
+            val result = cx.evaluateString(scope, js, "eval", 1, null)
+            resultStr = result?.toString()
+            android.util.Log.d("ExtensionEngine", "evalStr result (${resultStr?.length ?: -1} chars): ${resultStr?.take(200)}")
+        } catch (e: Throwable) {
+            android.util.Log.e("ExtensionEngine", "evalStr failed: ${e.javaClass.simpleName}: ${e.message}", e)
+            throw e
+        } finally {
+            runCatching { org.mozilla.javascript.Context.exit() }
+        }
+        resultStr
     }
 
-    /** Evaluate JS and convert result to Boolean safely on an 8MB stack thread */
-    private fun evalBool(js: String): Boolean {
-        var resultBool = false
-        val thread = Thread(null, {
+    /** Evaluate JS and convert result to Boolean safely on the persistent Rhino thread */
+    private fun evalBool(js: String): Boolean = try {
+        evalWithTimeout(EVAL_TIMEOUT_MS) {
+            var resultBool = false
             try {
                 val cx = org.mozilla.javascript.Context.enter()
                 cx.optimizationLevel = -1
@@ -146,14 +246,15 @@ class ExtensionEngine(private val context: Context, private val extensionName: S
                     else -> result?.toString()?.lowercase()?.let { it == "true" || it != "null" && it.isNotEmpty() } ?: false
                 }
             } catch (e: Throwable) {
-                android.util.Log.e("ExtensionEngine", "evalBool failed: ${e.message}", e)
+                android.util.Log.e("ExtensionEngine", "evalBool failed: ${e.javaClass.simpleName}: ${e.message}", e)
             } finally {
                 runCatching { org.mozilla.javascript.Context.exit() }
             }
-        }, "Rhino8MBThread", 8 * 1024 * 1024L)
-        thread.start()
-        thread.join()
-        return resultBool
+            resultBool
+        }
+    } catch (e: Throwable) {
+        android.util.Log.e("ExtensionEngine", "evalBool timeout/error: ${e.message}")
+        false
     }
 
     fun performSearch(query: String): SearchResult {
@@ -413,63 +514,6 @@ class ExtensionEngine(private val context: Context, private val extensionName: S
         return if (result == "null" || result == "undefined") "" else result
     }
 
-    fun getDownloadUrl(trackId: String, trackUrl: String? = null, quality: String = "320kbps"): String? {
-        val escapedId = trackId.replace("\\", "\\\\").replace("'", "\\'")
-        val escapedUrl = trackUrl?.replace("\\", "\\\\")?.replace("'", "\\'") ?: ""
-        val escapedQuality = quality.replace("\\", "\\\\").replace("'", "\'")
-
-        // Intentar getDownloadUrl primero (SpotiFLAC o similar directo)
-        val hasGetDownloadUrl = evalBool("typeof __extension.getDownloadUrl === 'function'")
-        if (hasGetDownloadUrl) {
-            val jsCode = "JSON.stringify(__extension.getDownloadUrl('$escapedId', '$escapedUrl', '$escapedQuality'))"
-            val result = evalStr(jsCode)
-            if (!result.isNullOrEmpty() && result != "null" && result != "undefined") {
-                return try {
-                    val obj = JSONObject(result)
-                    obj.optString("url").takeIf { it.isNotEmpty() }
-                } catch (e: Exception) {
-                    // Si el resultado es directamente un string plano
-                    if (result.startsWith("\"")) result.removeSurrounding("\"") else result
-                }
-            }
-        }
-
-        // Si no hay getDownloadUrl, intentar con la función 'download' con flag urlOnly: true
-        val hasDownload = evalBool("typeof __extension.download === 'function'")
-        if (hasDownload) {
-            // First, clear the intercepted URL
-            fileBridge.interceptedUrl = null
-
-            // Try to force the extension to run its download logic with a dummy path, 
-            // so we can intercept the URL when it calls file.download
-            val interceptCode = """
-                try {
-                    __extension.download('$escapedId', '$escapedQuality', '/tmp/dummy.m4a', null);
-                } catch(e) { log.error("Intercept error: " + e); }
-            """.trimIndent()
-            evalStr(interceptCode)
-
-            val intercepted = fileBridge.interceptedUrl
-            if (!intercepted.isNullOrEmpty()) {
-                return intercepted
-            }
-
-            // Fallback for extensions that DO return an object
-            val jsCode = "JSON.stringify(__extension.download('$escapedId', '$escapedQuality', {urlOnly: true, fetchUrlOnly: true}))"
-            val result = evalStr(jsCode)
-            if (!result.isNullOrEmpty() && result != "null" && result != "undefined") {
-                return try {
-                    val obj = JSONObject(result)
-                    obj.optString("url").takeIf { it.isNotEmpty() } ?: obj.optString("file_path").takeIf { it.isNotEmpty() }
-                } catch (e: Exception) {
-                    null
-                }
-            }
-        }
-
-        return null
-    }
-
     /** true si la extensión registra una función download() (download_provider). */
     fun hasDownloadCapability(): Boolean {
         return evalBool("typeof __extension !== 'undefined' && __extension !== null && typeof __extension.download === 'function'")
@@ -492,10 +536,10 @@ class ExtensionEngine(private val context: Context, private val extensionName: S
         val escapedQuality = quality.replace("\\", "\\\\").replace("'", "\\'")
         val escapedPath = outputPath.replace("\\", "\\\\").replace("'", "\\'")
 
-        if (onProgress != null) {
-            progressBridge = ProgressBridge(onProgress)
-            ScriptableObject.putProperty(scope, "progress", org.mozilla.javascript.Context.javaToJS(progressBridge, scope))
-        }
+        // El bridge se crea aquí, pero se INYECTA dentro del hilo de Rhino
+        // (antes se inyectaba en el hilo llamador: violación de confinamiento).
+        progressBridge = onProgress?.let { ProgressBridge(it) }
+        lastEngineErrorLog = null
 
         val jsCode = """
             (function() {
@@ -538,11 +582,86 @@ class ExtensionEngine(private val context: Context, private val extensionName: S
                 }
             })()
         """.trimIndent()
-        return evalStr(jsCode)
+
+        // OJO: no usar evalStr aquí (anidaríamos dos timeouts sobre el MISMO
+        // executor y nos daría deadlock). Este bloque corre directamente en el
+        // hilo de Rhino: inyecta el bridge, evalúa, y si el motor revienta
+        // (StackOverflowError, OOM...) devuelve el error REAL con su clase para
+        // que el Gestor de Descargas muestre la causa exacta.
+        return try {
+            evalWithTimeout(EVAL_TIMEOUT_MS) {
+                var resultStr: String? = null
+                try {
+                    val pb = progressBridge
+                    if (pb != null && scope != null) {
+                        ScriptableObject.putProperty(
+                            scope,
+                            "progress",
+                            org.mozilla.javascript.Context.javaToJS(pb, scope)
+                        )
+                    }
+                    // Progreso POR BYTES real (0-100) desde FileBridge, sin re-entrar a JS
+                    fileBridge.byteProgressReporter = onProgress
+
+                    val cx = org.mozilla.javascript.Context.enter()
+                    cx.optimizationLevel = -1
+                    cx.languageVersion = org.mozilla.javascript.Context.VERSION_ES6
+                    val result = cx.evaluateString(scope, jsCode, "downloadTrack", 1, null)
+                    resultStr = result?.toString()
+                } catch (e: Throwable) {
+                    android.util.Log.e(
+                        "ExtensionEngine",
+                        "downloadTrack failed: ${e.javaClass.simpleName}: ${e.message}", e
+                    )
+                    // Guardar la traza COMPLETA para el modal del Gestor
+                    lastEngineErrorLog = buildErrorLog(e)
+                    resultStr = JSONObject()
+                        .put("success", false)
+                        .put("error_message", "${e.javaClass.simpleName}: ${e.message ?: "error desconocido del motor"}")
+                        .put("error_type", "engine_error")
+                        .toString()
+                } finally {
+                    runCatching { org.mozilla.javascript.Context.exit() }
+                    fileBridge.byteProgressReporter = null
+                }
+                resultStr
+            }
+        } catch (e: Throwable) {
+            // Timeout del executor u otro fallo externo
+            android.util.Log.e("ExtensionEngine", "downloadTrack engine timeout/error", e)
+            lastEngineErrorLog = buildErrorLog(e)
+            JSONObject()
+                .put("success", false)
+                .put("error_message", "${e.javaClass.simpleName}: ${e.message ?: "error desconocido"}")
+                .put("error_type", "engine_error")
+                .toString()
+        }
+    }
+
+    /** Traza completa (hasta 150 frames + hasta 5 causas anidadas). */
+    private fun buildErrorLog(e: Throwable): String = buildString {
+        appendLine("${e.javaClass.name}: ${e.message ?: "(sin mensaje)"}")
+        appendLine("  (hilo: ${Thread.currentThread().name})")
+        e.stackTrace.take(150).forEach { st ->
+            appendLine("  at ${st.className}.${st.methodName}(${st.fileName}:${st.lineNumber})")
+        }
+        if (e.stackTrace.size > 150) appendLine("  ... (${e.stackTrace.size - 150} frames más)")
+        var cause = e.cause
+        var depth = 0
+        while (cause != null && depth < 5) {
+            appendLine()
+            appendLine("Caused by: ${cause.javaClass.name}: ${cause.message ?: "(sin mensaje)"}")
+            cause.stackTrace.take(60).forEach { st ->
+                appendLine("  at ${st.className}.${st.methodName}(${st.fileName}:${st.lineNumber})")
+            }
+            cause = cause.cause
+            depth++
+        }
     }
 
     fun destroy() {
-        runCatching { org.mozilla.javascript.Context.exit() }
+        // Apagar el hilo persistente (interrumpe busy-waits dormidos)
+        runCatching { rhinoExecutor.shutdownNow() }
         rhinoContext = null
         scope = null
     }

@@ -13,6 +13,8 @@ import com.frito.music.extensions.engine.ExtensionEngine
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.File
@@ -66,8 +68,22 @@ class MusicDownloadWorker(
         val tempDir = File(applicationContext.cacheDir, "downloads").apply { mkdirs() }
         val tempBase = File(tempDir, "track_${trackId.replace(Regex("[^A-Za-z0-9_-]"), "_")}.part")
 
+        // Vigilante de cancelación: cuando WorkManager cancela este trabajo marca
+        // isStopped=true; propagamos esa señal al bridge JS (FileBridge consulta
+        // DownloadState.cancelRequested durante la descarga).
+        val cancelWatcher = launch {
+            while (isActive) {
+                if (isStopped) {
+                    DownloadState.cancelRequested = true
+                    break
+                }
+                delay(200)
+            }
+        }
+
         try {
-            Log.d("MusicDownloadWorker", "Iniciando descarga: $trackName ($trackId) vía $extensionId [$quality]")
+            try {
+                Log.d("MusicDownloadWorker", "Iniciando descarga: $trackName ($trackId) vía $extensionId [$quality]")
             engine = ExtensionEngine(applicationContext, extensionId)
 
             if (!engine.hasDownloadCapability()) {
@@ -93,6 +109,8 @@ class MusicDownloadWorker(
                     updateNotification(notificationId, trackName, percent, 100, String.format("%.1f MB", downloadedMB), "")
                 }
             }
+            // Capturar el log completo del motor ANTES de destruirlo
+            val engineErrorLog = engine.lastEngineErrorLog
             engine.destroy()
             engine = null
 
@@ -103,7 +121,10 @@ class MusicDownloadWorker(
 
             val result = try { JSONObject(resultJson) } catch (e: Exception) {
                 Log.e("MusicDownloadWorker", "Respuesta no-JSON de la extensión: ${resultJson.take(200)}")
-                return@withContext failure("Respuesta inválida de la extensión", trackName)
+                return@withContext failure(
+                    "Respuesta inválida de la extensión", trackName,
+                    errorLog = "Respuesta cruda (primeros 2000 caracteres):\n" + resultJson.take(2000)
+                )
             }
 
             if (!result.optBoolean("success", false)) {
@@ -112,7 +133,7 @@ class MusicDownloadWorker(
                 cleanupTemp(tempDir, tempBase)
                 val userMessage = humanizeError(errorMessage)
                 updateNotification(notificationId, trackName, 0, 100, "Error: $userMessage", "")
-                return@withContext failure(userMessage, trackName)
+                return@withContext failure(userMessage, trackName, errorLog = engineErrorLog)
             }
 
             // Archivo descargado por la extensión (puede haber cambiado la extensión/ruta)
@@ -179,17 +200,51 @@ class MusicDownloadWorker(
             runCatching { engine?.destroy() }
             cleanupTemp(tempDir, tempBase)
             updateNotification(notificationId, trackName, 0, 100, "Error: ${e.message}", "")
-            failure(e.localizedMessage ?: e.javaClass.simpleName, trackName)
+            failure(e.localizedMessage ?: e.javaClass.simpleName, trackName, errorLog = fullTrace(e))
+        }
+        // ── Aquí termina el TRY INTERNO (try/catch/catch) ──
+        } finally {
+            // Detener el vigilante en TODAS las salidas (éxito, fallo o cancelación).
+            // Este finally pertenece al TRY EXTERNO: cubre también los returns
+            // anticipados (return@withContext failure(...)) del cuerpo.
+            cancelWatcher.cancel()
+            DownloadState.cancelRequested = false
         }
     }
 
-    private fun failure(message: String, trackName: String): Result {
-        return Result.failure(
-            workDataOf(
-                "error" to message,
-                "trackName" to trackName
+    private fun failure(message: String, trackName: String, errorLog: String? = null): Result {
+        // WorkManager limita cada Data (~10KB): truncar el log por seguridad
+        return if (!errorLog.isNullOrEmpty()) {
+            Result.failure(
+                workDataOf(
+                    "error" to message,
+                    "trackName" to trackName,
+                    "errorLog" to errorLog.take(6000)
+                )
             )
-        )
+        } else {
+            Result.failure(
+                workDataOf(
+                    "error" to message,
+                    "trackName" to trackName
+                )
+            )
+        }
+    }
+
+    /** Traza completa para el log de diagnóstico (clase, mensaje, frames y causa). */
+    private fun fullTrace(e: Throwable): String = buildString {
+        appendLine("${e.javaClass.name}: ${e.message ?: "(sin mensaje)"}")
+        e.stackTrace.take(120).forEach { st ->
+            appendLine("  at ${st.className}.${st.methodName}(${st.fileName}:${st.lineNumber})")
+        }
+        e.cause?.let { c ->
+            appendLine()
+            appendLine("Caused by: ${c.javaClass.name}: ${c.message ?: ""}")
+            c.stackTrace.take(40).forEach { st ->
+                appendLine("  at ${st.className}.${st.methodName}(${st.fileName}:${st.lineNumber})")
+            }
+        }
     }
 
     /** Traduce errores técnicos de la extensión a mensajes entendibles. */

@@ -113,11 +113,11 @@ fun PlayerScreen(viewModel: PlayerViewModel, streamViewModel: StreamViewModel, o
                     .background(Color.Black.copy(alpha = 0.4f))
             )
         } else {
-            // Solid Background
+            // Solid Background — sigue el tema activo (incluye "Color predominante")
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(if(appColors.isDark) Color(0xFF121212) else Color(0xFFF5F5F5))
+                    .background(appColors.background)
             )
         }
 
@@ -379,7 +379,7 @@ fun PlayerScreen(viewModel: PlayerViewModel, streamViewModel: StreamViewModel, o
 
                 when {
                     isLoadingLyrics -> {
-                        CircularProgressIndicator(color = Color(0xFF1DB954))
+                        CircularProgressIndicator(color = appColors.accent)
                     }
                     currentLyrics != null -> {
                         LazyColumn(
@@ -627,7 +627,9 @@ fun WaveformProgress(
                 )
             }
             
-            val thumbX = progress * width
+            // El pulgador usa displayProgress para moverse en sincronía con las
+            // barras mientras se arrastra (antes usaba `progress` y se desincronizaba)
+            val thumbX = displayProgress * width
             drawCircle(
                 color = appColors.textPrimary,
                 radius = 8.dp.toPx(),
@@ -640,12 +642,13 @@ fun WaveformProgress(
 @Composable
 fun QualityInfo(audio: AudioFile?) {
     val appColors = LocalAppColors.current
-    
+
     val qualityText = if (audio?.path?.startsWith("http") == true) {
         "Streaming • YouTube Music"
     } else {
+        // No inventamos sample rate: mostramos solo el formato real del archivo
         val extension = audio?.path?.substringAfterLast(".")?.uppercase() ?: "AUDIO"
-        "44.1 kHz • ${extension}"
+        "Archivo local • ${extension}"
     }
     
     Text(
@@ -659,66 +662,115 @@ fun QualityInfo(audio: AudioFile?) {
 fun MiniPlayer(viewModel: PlayerViewModel, onClick: () -> Unit, onSwipeUp: () -> Unit) {
     val currentAudio by viewModel.currentAudio.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
-    var dragY = 0f
+    val progress by viewModel.progress.collectAsState()
     val appColors = LocalAppColors.current
 
-    if (currentAudio == null) return
+    val audio = currentAudio ?: return
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(appColors.surface)
-            .clickable { onClick() }
-            .pointerInput(Unit) {
-                detectVerticalDragGestures(
-                    onDragStart = { dragY = 0f },
-                    onDragEnd = {
-                        if (dragY < -30) {
-                            onSwipeUp()
-                        }
-                    },
-                    onVerticalDrag = { _, dragAmount ->
-                        dragY += dragAmount
-                    }
-                )
-            }
-            .padding(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(appColors.background),
-            contentAlignment = Alignment.Center
+    // Mini-player flotante estilo tarjeta: esquinas redondeadas, elevación,
+    // barra de progreso de 2dp arriba y botón "siguiente".
+    Box(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
+        Surface(
+            shape = RoundedCornerShape(14.dp),
+            color = appColors.surface,
+            tonalElevation = 3.dp,
+            shadowElevation = 6.dp,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(Icons.Default.MusicNote, contentDescription = null, tint = appColors.textSecondary)
-            if (currentAudio?.albumUri != null) {
-                val miniCtx = androidx.compose.ui.platform.LocalContext.current
-                AsyncImage(
-                    model = ImageRequest.Builder(miniCtx)
-                        .data(ImageUtils.highRes(currentAudio?.albumUri))
-                        .crossfade(300)
-                        .build(),
-                    contentDescription = "Album Art",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+            Column {
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(2.dp),
+                    color = appColors.accent,
+                    trackColor = Color.Transparent,
                 )
+                // Feedback táctil: la tarjeta se hunde ligeramente al presionar
+                val miniInteraction = remember { MutableInteractionSource() }
+                val miniPressed by miniInteraction.collectIsPressedAsState()
+                val miniScale by animateFloatAsState(
+                    targetValue = if (miniPressed) 0.97f else 1f,
+                    animationSpec = tween(150),
+                    label = "miniPressScale"
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .scale(miniScale)
+                        .clickable(
+                            interactionSource = miniInteraction,
+                            indication = null
+                        ) { onClick() }
+                        .pointerInput(Unit) {
+                            // dragY vive DENTRO del pointerInput: sobrevive a las
+                            // recomposiciones y se reinicia en cada gesto
+                            var totalDragY = 0f
+                            detectVerticalDragGestures(
+                                onDragStart = { totalDragY = 0f },
+                                onDragEnd = {
+                                    if (totalDragY < -30) {
+                                        onSwipeUp()
+                                    }
+                                },
+                                onVerticalDrag = { _, dragAmount ->
+                                    totalDragY += dragAmount
+                                }
+                            )
+                        }
+                        .padding(start = 10.dp, end = 2.dp, top = 6.dp, bottom = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(appColors.background),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.MusicNote, contentDescription = null, tint = appColors.textSecondary)
+                        if (audio.albumUri != null) {
+                            val miniCtx = androidx.compose.ui.platform.LocalContext.current
+                            AsyncImage(
+                                model = ImageRequest.Builder(miniCtx)
+                                    .data(ImageUtils.highRes(audio.albumUri))
+                                    .crossfade(300)
+                                    .build(),
+                                contentDescription = "Album Art",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(audio.title, color = appColors.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        Text(audio.artist, color = appColors.textSecondary, fontSize = 12.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    }
+                    IconButton(onClick = { viewModel.playPause() }, modifier = Modifier.size(40.dp)) {
+                        Icon(
+                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = if (isPlaying) "Pausar" else "Reproducir",
+                            tint = appColors.textPrimary
+                        )
+                    }
+                    IconButton(onClick = { viewModel.skipNext() }, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            imageVector = Icons.Default.SkipNext,
+                            contentDescription = "Siguiente",
+                            tint = appColors.textSecondary
+                        )
+                    }
+                    // X: cierra el mini-player Y detiene la canción por completo
+                    IconButton(onClick = { viewModel.stopAndClear() }, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Cerrar y detener",
+                            tint = appColors.textSecondary
+                        )
+                    }
+                }
             }
         }
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(currentAudio?.title ?: "", color = appColors.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-            Text(currentAudio?.artist ?: "", color = appColors.textSecondary, fontSize = 12.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-        }
-        Icon(
-            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-            contentDescription = "Play/Pause",
-            tint = appColors.textPrimary,
-            modifier = Modifier
-                .size(32.dp)
-                .clickable { viewModel.playPause() }
-        )
-        Spacer(modifier = Modifier.width(8.dp))
     }
 }

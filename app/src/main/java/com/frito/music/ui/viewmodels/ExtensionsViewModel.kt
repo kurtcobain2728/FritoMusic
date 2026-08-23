@@ -29,15 +29,29 @@ class ExtensionsViewModel(application: Application) : AndroidViewModel(applicati
     fun isDownloadProvider(id: String): Boolean = extensionManager.isDownloadProvider(id)
     fun isCompatible(id: String): Boolean = extensionManager.isCompatible(id)
 
+    private suspend fun computeFlags(extensionId: String): Pair<Boolean, Boolean> =
+        withContext(Dispatchers.IO) {
+            extensionManager.isDownloadProvider(extensionId) to extensionManager.isCompatible(extensionId)
+        }
+
+    private fun updateExtensionModel(
+        extensionId: String,
+        transform: (ExtensionUIModel) -> ExtensionUIModel
+    ) {
+        _extensions.value = _extensions.value.map {
+            if (it.info.id == extensionId) transform(it) else it
+        }
+    }
+
     fun loadRegistry(url: String) {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
-            
+
             val registry = withContext(Dispatchers.IO) {
                 extensionManager.fetchRegistry(url)
             }
-            
+
             if (registry != null) {
                 updateUIModels(registry.extensions)
             } else {
@@ -47,15 +61,25 @@ class ExtensionsViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    private fun updateUIModels(infos: List<ExtensionInfo>) {
-        val uiModels = infos.map { info ->
-            val installedVersion = extensionManager.getInstalledVersion(info.id)
-            val state = when {
-                installedVersion == null -> ExtensionState.NOT_INSTALLED
-                isNewerVersion(info.version, installedVersion) -> ExtensionState.UPDATE_AVAILABLE
-                else -> ExtensionState.INSTALLED
+    private suspend fun updateUIModels(infos: List<ExtensionInfo>) {
+        val uiModels = withContext(Dispatchers.IO) {
+            infos.map { info ->
+                val installedVersion = extensionManager.getInstalledVersion(info.id)
+                val state = when {
+                    installedVersion == null -> ExtensionState.NOT_INSTALLED
+                    isNewerVersion(info.version, installedVersion) -> ExtensionState.UPDATE_AVAILABLE
+                    else -> ExtensionState.INSTALLED
+                }
+                val isDownload = extensionManager.isDownloadProvider(info.id)
+                val compatible = extensionManager.isCompatible(info.id)
+                ExtensionUIModel(
+                    info = info,
+                    state = state,
+                    progress = 0f,
+                    isDownloadProvider = isDownload,
+                    isCompatible = compatible
+                )
             }
-            ExtensionUIModel(info, state, 0f)
         }
         _extensions.value = uiModels
     }
@@ -66,16 +90,21 @@ class ExtensionsViewModel(application: Application) : AndroidViewModel(applicati
         if (extIndex == -1) return
 
         val uiModel = currentList[extIndex]
-        
+
         updateExtensionState(extensionId, ExtensionState.DOWNLOADING, 0f)
 
         viewModelScope.launch {
             val success = extensionManager.downloadExtension(uiModel.info) { progress ->
                 updateExtensionState(extensionId, ExtensionState.DOWNLOADING, progress)
             }
-            
+
             if (success) {
-                updateExtensionState(extensionId, ExtensionState.INSTALLED, 1f)
+                // Recalcular flags: al instalarse ya hay manifest real (el type
+                // del registry podía no coincidir con el paquete)
+                val (isDownload, compatible) = computeFlags(extensionId)
+                updateExtensionModel(extensionId) {
+                    it.copy(state = ExtensionState.INSTALLED, progress = 1f, isDownloadProvider = isDownload, isCompatible = compatible)
+                }
             } else {
                 updateExtensionState(extensionId, ExtensionState.ERROR, 0f)
             }
@@ -84,7 +113,13 @@ class ExtensionsViewModel(application: Application) : AndroidViewModel(applicati
 
     fun deleteExtension(extensionId: String, extensionName: String) {
         extensionManager.deleteExtension(extensionId, extensionName)
-        updateExtensionState(extensionId, ExtensionState.NOT_INSTALLED, 0f)
+        viewModelScope.launch {
+            // Al borrar vuelve a regir el "type" del registry
+            val (isDownload, compatible) = computeFlags(extensionId)
+            updateExtensionModel(extensionId) {
+                it.copy(state = ExtensionState.NOT_INSTALLED, progress = 0f, isDownloadProvider = isDownload, isCompatible = compatible)
+            }
+        }
     }
 
     private fun updateExtensionState(extensionId: String, newState: ExtensionState, newProgress: Float) {

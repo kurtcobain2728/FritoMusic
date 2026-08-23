@@ -14,10 +14,13 @@ import com.music.innertube.pages.HomePage
 import com.music.innertube.pages.PlaylistPage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -31,6 +34,12 @@ class StreamViewModel : ViewModel() {
     
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
+    // Error exclusivo de reproducción (resolución de URL). Separado de
+    // errorMessage para que un fallo al reproducir no "sangre" a las pantallas
+    // de detalle que muestran errores de carga.
+    private val _playbackError = MutableStateFlow<String?>(null)
+    val playbackError: StateFlow<String?> = _playbackError.asStateFlow()
     
     private val _currentLyrics = MutableStateFlow<String?>(null)
     val currentLyrics: StateFlow<String?> = _currentLyrics.asStateFlow()
@@ -62,6 +71,14 @@ class StreamViewModel : ViewModel() {
     private val _isLoadingHome = MutableStateFlow(false)
     val isLoadingHome: StateFlow<Boolean> = _isLoadingHome.asStateFlow()
 
+    // Historial personal (requiere sesión): alimenta la sección
+    // "Escuchado recientemente" del home de Stream.
+    private val _recentlyPlayed = MutableStateFlow<List<SongItem>>(emptyList())
+    val recentlyPlayed: StateFlow<List<SongItem>> = _recentlyPlayed.asStateFlow()
+
+    private val _isLoadingHistory = MutableStateFlow(false)
+    val isLoadingHistory: StateFlow<Boolean> = _isLoadingHistory.asStateFlow()
+
     private val _userPlaylists = MutableStateFlow<List<PlaylistItem>>(emptyList())
     val userPlaylists: StateFlow<List<PlaylistItem>> = _userPlaylists.asStateFlow()
 
@@ -72,10 +89,17 @@ class StreamViewModel : ViewModel() {
     val isLoadingPlaylists: StateFlow<Boolean> = _isLoadingPlaylists.asStateFlow()
 
     private var searchJob: Job? = null
-    
+    private var prefetchJob: Job? = null
+
+    /**
+     * Prefetch cancelable: si llega una búsqueda nueva, se cancela el prefetch
+     * anterior (antes se acumulaban hasta 9 player-requests y arriesgaba 429).
+     */
     fun prefetchStreamUrls(videoIds: List<String>) {
-        viewModelScope.launch(Dispatchers.IO) {
+        prefetchJob?.cancel()
+        prefetchJob = viewModelScope.launch(Dispatchers.IO) {
             videoIds.take(3).forEach { id ->
+                if (!isActive) return@launch
                 runCatching { YouTubeRepository.getStreamUrl(id) }
             }
         }
@@ -95,54 +119,126 @@ class StreamViewModel : ViewModel() {
             _isSearching.value = true
             _errorMessage.value = null
 
-            val searchResult = withContext(Dispatchers.IO) {
-                YouTubeRepository.search(query)
-            }
-            searchResult
-                .onSuccess { results ->
-                    _searchResults.value = results
-                    prefetchStreamUrls(results.map { it.videoId })
+            // Canciones y artistas EN PARALELO (antes iban en serie: doble espera)
+            coroutineScope {
+                val songsDeferred = async(Dispatchers.IO) {
+                    YouTubeRepository.search(query)
                 }
-                .onFailure { error ->
-                    _errorMessage.value = error.message ?: "Error searching"
-                    _searchResults.value = null
+                val artistsDeferred = async(Dispatchers.IO) {
+                    YouTubeRepository.searchArtists(query)
                 }
 
-            val artistResult = withContext(Dispatchers.IO) {
-                YouTubeRepository.searchArtists(query)
+                val searchResult = songsDeferred.await()
+                searchResult
+                    .onSuccess { results ->
+                        _searchResults.value = results
+                        prefetchStreamUrls(results.map { it.videoId })
+                    }
+                    .onFailure { error ->
+                        _errorMessage.value = error.message ?: "Error searching"
+                        _searchResults.value = null
+                    }
+
+                val artistResult = artistsDeferred.await()
+                artistResult
+                    .onSuccess { artists ->
+                        _artistResults.value = artists
+                    }
+                    .onFailure { _artistResults.value = null }
             }
-            artistResult
-                .onSuccess { artists ->
-                    _artistResults.value = artists
-                }
-                .onFailure { _artistResults.value = null }
 
             _isSearching.value = false
         }
     }
 
-    fun playTrack(track: StreamableTrack, playerViewModel: PlayerViewModel) {
-        val prepAudio = track.toAudioFile("")
-        playerViewModel.setPreparingAudio(prepAudio)
+    /**
+     * Núcleo de reproducción: resuelve SOLO la URL del track inicial (arranque
+     * rápido) y encola la lista completa; las URLs restantes se resuelven
+     * perezosamente desde PlayerViewModel cuando ExoPlayer llega a cada una.
+     */
+    private fun startPlayback(
+        tracks: List<StreamableTrack>,
+        startIndex: Int,
+        playerViewModel: PlayerViewModel
+    ) {
+        if (tracks.isEmpty()) return
+        val safeStart = startIndex.coerceIn(0, tracks.lastIndex)
+        val startTrack = tracks[safeStart]
+        playerViewModel.setPreparingAudio(startTrack.toAudioFile(""))
 
         viewModelScope.launch {
-            _errorMessage.value = null
-            
             val result = withContext(Dispatchers.IO) {
-                YouTubeRepository.getStreamUrl(track.videoId)
+                YouTubeRepository.getStreamUrl(startTrack.videoId)
             }
             result
                 .onSuccess { streamUrl ->
-                    val fullAudioFile = track.toAudioFile(streamUrl)
-                    playerViewModel.playAudios(listOf(fullAudioFile), 0)
-                    
-                    // Load lyrics in background
-                    loadLyrics(track.videoId)
+                    // Solo el track inicial trae URL; el resto queda pendiente ("")
+                    val audios = tracks.mapIndexed { i, t ->
+                        t.toAudioFile(if (i == safeStart) streamUrl else "")
+                    }
+                    playerViewModel.playStreamQueue(
+                        audios = audios,
+                        startIndex = safeStart,
+                        videoIds = tracks.map { it.videoId }
+                    ) { videoId ->
+                        YouTubeRepository.getStreamUrl(videoId).getOrNull()
+                    }
+                    loadLyrics(startTrack.videoId)
                 }
                 .onFailure { error ->
-                    _errorMessage.value = error.message ?: "Error playing track"
+                    _playbackError.value = error.message ?: "Error playing track"
+                    playerViewModel.clearPreparingAudio()
                 }
         }
+    }
+
+    private fun SongItem.toStreamableTrack() = StreamableTrack(
+        videoId = id,
+        title = title,
+        artist = artists.joinToString(", ") { it.name },
+        album = album?.name,
+        durationMs = duration?.times(1000L) ?: 0L,
+        thumbnailUrl = thumbnail
+    )
+
+    fun playTrack(
+        track: StreamableTrack,
+        playerViewModel: PlayerViewModel,
+        queue: List<StreamableTrack>? = null
+    ) {
+        val list = queue ?: listOf(track)
+        val index = queue
+            ?.indexOfFirst { it.videoId == track.videoId }
+            ?.takeIf { it >= 0 } ?: 0
+        startPlayback(list, index, playerViewModel)
+    }
+
+    fun playArtistSong(
+        song: SongItem,
+        playerViewModel: PlayerViewModel,
+        queueSongs: List<SongItem>? = null
+    ) {
+        val list = queueSongs?.map { it.toStreamableTrack() } ?: listOf(song.toStreamableTrack())
+        val index = queueSongs
+            ?.indexOfFirst { it.id == song.id }
+            ?.takeIf { it >= 0 } ?: 0
+        startPlayback(list, index, playerViewModel)
+    }
+
+    fun playAlbumSong(
+        song: SongItem,
+        playerViewModel: PlayerViewModel,
+        queueSongs: List<SongItem>? = null
+    ) {
+        val list = queueSongs?.map { it.toStreamableTrack() } ?: listOf(song.toStreamableTrack())
+        val index = queueSongs
+            ?.indexOfFirst { it.id == song.id }
+            ?.takeIf { it >= 0 } ?: 0
+        startPlayback(list, index, playerViewModel)
+    }
+
+    fun clearPlaybackError() {
+        _playbackError.value = null
     }
     
     private fun loadLyrics(videoId: String) {
@@ -188,36 +284,6 @@ class StreamViewModel : ViewModel() {
         _selectedArtist.value = null
     }
 
-    fun playArtistSong(song: SongItem, playerViewModel: PlayerViewModel) {
-        val streamableTrack = StreamableTrack(
-            videoId = song.id,
-            title = song.title,
-            artist = song.artists.joinToString(", ") { it.name },
-            album = song.album?.name,
-            durationMs = song.duration?.times(1000L) ?: 0L,
-            thumbnailUrl = song.thumbnail
-        )
-        val prepAudio = streamableTrack.toAudioFile("")
-        playerViewModel.setPreparingAudio(prepAudio)
-
-        viewModelScope.launch {
-            _errorMessage.value = null
-
-            val result = withContext(Dispatchers.IO) {
-                YouTubeRepository.getStreamUrl(song.id)
-            }
-            result
-                .onSuccess { streamUrl ->
-                    val fullAudioFile = streamableTrack.toAudioFile(streamUrl)
-                    playerViewModel.playAudios(listOf(fullAudioFile), 0)
-                    loadLyrics(song.id)
-                }
-                .onFailure { error ->
-                    _errorMessage.value = error.message ?: "Error playing track"
-                }
-        }
-    }
-
     fun loadAlbumDetails(browseId: String) {
         viewModelScope.launch {
             _isLoadingAlbum.value = true
@@ -243,36 +309,6 @@ class StreamViewModel : ViewModel() {
         _selectedAlbum.value = null
     }
 
-    fun playAlbumSong(song: SongItem, playerViewModel: PlayerViewModel) {
-        val streamableTrack = StreamableTrack(
-            videoId = song.id,
-            title = song.title,
-            artist = song.artists.joinToString(", ") { it.name },
-            album = song.album?.name,
-            durationMs = song.duration?.times(1000L) ?: 0L,
-            thumbnailUrl = song.thumbnail
-        )
-        val prepAudio = streamableTrack.toAudioFile("")
-        playerViewModel.setPreparingAudio(prepAudio)
-
-        viewModelScope.launch {
-            _errorMessage.value = null
-
-            val result = withContext(Dispatchers.IO) {
-                YouTubeRepository.getStreamUrl(song.id)
-            }
-            result
-                .onSuccess { streamUrl ->
-                    val fullAudioFile = streamableTrack.toAudioFile(streamUrl)
-                    playerViewModel.playAudios(listOf(fullAudioFile), 0)
-                    loadLyrics(song.id)
-                }
-                .onFailure { error ->
-                    _errorMessage.value = error.message ?: "Error playing track"
-                }
-        }
-    }
-
     fun clearSearch() {
         searchJob?.cancel()
         _searchResults.value = null
@@ -285,27 +321,42 @@ class StreamViewModel : ViewModel() {
             _isLoadingHome.value = true
             _errorMessage.value = null
 
-            val homeResult = withContext(Dispatchers.IO) {
-                YouTubeRepository.getHome()
-            }
-            homeResult
-                .onSuccess { home ->
-                    _homePage.value = home
-                }
-                .onFailure { error ->
-                    _errorMessage.value = error.message ?: "Error loading home content"
-                }
+            // Historial en paralelo con home/explore (solo tiene sentido con sesión)
+            val historyDeferred = async(Dispatchers.IO) { YouTubeRepository.getMusicHistory() }
 
-            val exploreResult = withContext(Dispatchers.IO) {
-                YouTubeRepository.getExplore()
+            // Home y Explore EN PARALELO (antes en serie)
+            coroutineScope {
+                val homeDeferred = async(Dispatchers.IO) { YouTubeRepository.getHome() }
+                val exploreDeferred = async(Dispatchers.IO) { YouTubeRepository.getExplore() }
+
+                homeDeferred.await()
+                    .onSuccess { home ->
+                        _homePage.value = home
+                        // Prefetch de la primera tanda de canciones del home
+                        val songIds = home.sections.flatMap { it.items }
+                            .filterIsInstance<SongItem>().map { it.id }
+                        prefetchStreamUrls(songIds)
+                    }
+                    .onFailure { error ->
+                        _errorMessage.value = error.message ?: "Error loading home content"
+                    }
+
+                exploreDeferred.await()
+                    .onSuccess { explore ->
+                        _explorePage.value = explore
+                    }
+                    .onFailure { error ->
+                        _errorMessage.value = error.message ?: "Error loading explore content"
+                    }
             }
-            exploreResult
-                .onSuccess { explore ->
-                    _explorePage.value = explore
+
+            // El historial es opcional: si falla, la sección simplemente no aparece
+            historyDeferred.await()
+                .onSuccess { songs ->
+                    _recentlyPlayed.value = songs
+                    prefetchStreamUrls(songs.take(3).map { it.id })
                 }
-                .onFailure { error ->
-                    _errorMessage.value = error.message ?: "Error loading explore content"
-                }
+                .onFailure { _recentlyPlayed.value = emptyList() }
 
             _isLoadingHome.value = false
         }
@@ -342,6 +393,8 @@ class StreamViewModel : ViewModel() {
             result
                 .onSuccess { playlistPage ->
                     _selectedPlaylistSongs.value = playlistPage
+                    // Prefetch de las primeras canciones de la playlist
+                    prefetchStreamUrls(playlistPage.songs.map { it.id })
                 }
                 .onFailure { error ->
                     _errorMessage.value = error.message ?: "Error loading playlist songs"

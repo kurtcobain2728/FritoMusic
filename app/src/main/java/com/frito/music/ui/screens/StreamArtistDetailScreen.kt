@@ -171,7 +171,7 @@ fun StreamArtistDetailScreen(
                         StreamArtistSongItem(
                             index = index + 1,
                             song = song,
-                            onClick = { streamViewModel.playArtistSong(song, playerViewModel) }
+                            onClick = { streamViewModel.playArtistSong(song, playerViewModel, queueSongs = songs) }
                         )
                     }
 

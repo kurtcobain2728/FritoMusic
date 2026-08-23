@@ -30,8 +30,8 @@ fun SearchScreen(
     playerViewModel: PlayerViewModel
 ) {
     var query by remember { mutableStateOf("") }
-    // Envuelto en remember para evitar recomputación en cada recomposición
-    val allAudios = remember(homeViewModel) { homeViewModel.getAllAudios() }
+    // Reactivo: se actualiza solo cuando el escaneo o un rescan (descarga nueva) termina
+    val allAudios by homeViewModel.allAudios.collectAsState()
     val favorites by playerViewModel.favorites.collectAsState(initial = emptySet())
     val appColors = LocalAppColors.current
 
@@ -46,20 +46,31 @@ fun SearchScreen(
         }
     }
 
-    // Filtrar canciones según la búsqueda
-    val searchResults = remember(query, allAudios) {
+    // Debounce: no filtrar toda la librería por cada tecla pulsada
+    var debouncedQuery by remember { mutableStateOf("") }
+    LaunchedEffect(query) {
         if (query.isEmpty()) {
+            debouncedQuery = ""
+        } else {
+            kotlinx.coroutines.delay(250)
+            debouncedQuery = query
+        }
+    }
+
+    // Filtrar canciones según la búsqueda (con debounce)
+    val searchResults = remember(debouncedQuery, allAudios) {
+        if (debouncedQuery.isEmpty()) {
             emptyList()
         } else {
             allAudios.filter {
-                it.title.contains(query, ignoreCase = true) ||
-                it.artist.contains(query, ignoreCase = true) ||
-                it.album.contains(query, ignoreCase = true)
+                it.title.contains(debouncedQuery, ignoreCase = true) ||
+                it.artist.contains(debouncedQuery, ignoreCase = true) ||
+                it.album.contains(debouncedQuery, ignoreCase = true)
             }
         }
     }
 
-    val displayList = if (query.isEmpty()) suggestedSongs else searchResults
+    val displayList = if (debouncedQuery.isEmpty()) suggestedSongs else searchResults
 
     Column(
         modifier = Modifier

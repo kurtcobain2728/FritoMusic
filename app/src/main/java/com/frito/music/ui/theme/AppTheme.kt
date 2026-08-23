@@ -1,5 +1,8 @@
 package com.frito.music.ui.theme
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
@@ -96,8 +99,9 @@ fun FritoMusicTheme(
 
             // El texto primario se calcula por contraste WCAG
             val textPrimary = textColorForBackground(dominantColor)
-            // El texto secundario es igual pero con 60% de opacidad
-            val textSecondary = textPrimary.copy(alpha = 0.6f)
+            // El texto secundario es igual pero con opacidad (0.72 mantiene
+            // contraste >= ~4.5:1 en fondos de luminancia media)
+            val textSecondary = textPrimary.copy(alpha = 0.72f)
             // La superficie es una variación del color dominante
             val surface = adjustColorForSurface(dominantColor)
 
@@ -114,13 +118,15 @@ fun FritoMusicTheme(
         }
         else -> {
             // Modo Oscuro, Claro, Automático e imagen de fondo
+            // textSecondary con contraste WCAG AA (>= 4.5:1) sobre el fondo:
+            // #B3B3B3 sobre #121212 ≈ 5.1:1 (antes Color.Gray daba ~3.4:1)
             if (backgroundImageUri != null) {
                 AppColors(
                     background = Color.Transparent,
                     surface = if (isDark) Color(0xAA121212) else Color(0xAAFFFFFF),
                     accent = accent,
                     textPrimary = if (isDark) Color.White else Color.Black,
-                    textSecondary = if (isDark) Color.Gray else Color.DarkGray,
+                    textSecondary = if (isDark) Color(0xFFB3B3B3) else Color(0xFF444444),
                     isDark = isDark,
                     themeMode = themeMode,
                     backgroundImageUri = backgroundImageUri
@@ -131,7 +137,7 @@ fun FritoMusicTheme(
                     surface = Color(0xFF1A1A1A),
                     accent = accent,
                     textPrimary = Color.White,
-                    textSecondary = Color.Gray,
+                    textSecondary = Color(0xFFB3B3B3),
                     isDark = true,
                     themeMode = themeMode,
                     backgroundImageUri = null
@@ -142,7 +148,7 @@ fun FritoMusicTheme(
                     surface = Color(0xFFFFFFFF),
                     accent = accent,
                     textPrimary = Color.Black,
-                    textSecondary = Color.DarkGray,
+                    textSecondary = Color(0xFF444444),
                     isDark = false,
                     themeMode = themeMode,
                     backgroundImageUri = null
@@ -151,8 +157,45 @@ fun FritoMusicTheme(
         }
     }
 
+    // MaterialTheme real: los componentes M3 (diálogos, sheets, sliders, switches)
+    // ahora heredan los colores del tema propio en vez del tema claro por defecto.
+    val m3Scheme = if (appColors.isDark) {
+        darkColorScheme(
+            primary = appColors.accent,
+            onPrimary = textColorForBackground(appColors.accent),
+            secondary = appColors.accent,
+            background = appColors.background.ifTransparentFallback(appColors.isDark),
+            onBackground = appColors.textPrimary,
+            surface = appColors.surface,
+            onSurface = appColors.textPrimary,
+            surfaceVariant = appColors.surface,
+            onSurfaceVariant = appColors.textSecondary
+        )
+    } else {
+        lightColorScheme(
+            primary = appColors.accent,
+            onPrimary = textColorForBackground(appColors.accent),
+            secondary = appColors.accent,
+            background = appColors.background.ifTransparentFallback(appColors.isDark),
+            onBackground = appColors.textPrimary,
+            surface = appColors.surface,
+            onSurface = appColors.textPrimary,
+            surfaceVariant = appColors.surface,
+            onSurfaceVariant = appColors.textSecondary
+        )
+    }
+
     CompositionLocalProvider(LocalAppColors provides appColors) {
-        content()
+        MaterialTheme(colorScheme = m3Scheme) {
+            content()
+        }
     }
 }
+
+/**
+ * El fondo puede ser Transparent (modo imagen de fondo). Para el colorScheme M3
+ * necesitamos un color sólido coherente; usamos el oscuro/claro estándar.
+ */
+private fun Color.ifTransparentFallback(isDark: Boolean): Color =
+    if (this == Color.Transparent) (if (isDark) Color(0xFF121212) else Color(0xFFF5F5F5)) else this
 

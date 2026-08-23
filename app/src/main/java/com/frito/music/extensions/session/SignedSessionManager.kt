@@ -273,10 +273,8 @@ class SignedSessionManager(
     fun completeGrant(grant: String?): String {
         val cfg = config ?: return jsonError("signedSession is not configured", "success" to false)
         var g = grant?.trim().orEmpty()
-        var grantWasPending = false
         if (g.isEmpty()) {
             g = prefs(context).getString("pending_grant.$extensionId", null)?.trim().orEmpty()
-            grantWasPending = g.isNotEmpty()
         }
         if (g.isEmpty()) return jsonError("no pending grant", "success" to false)
 
@@ -313,10 +311,11 @@ class SignedSessionManager(
             record.sessionSecret = sessionSecret
             record.expiresAt = expiresAt
             saveRecord(cfg, record)
-            // Solo borrar el grant pendiente tras un intercambio exitoso
-            if (grantWasPending) {
-                prefs(context).edit().remove("pending_grant.$extensionId").apply()
-            }
+            // Borrar el grant pendiente SIEMPRE tras un intercambio exitoso.
+            // Aunque el grant viniera explícito (verificación in-app), el pendiente
+            // ya quedó consumido: dejarlo haría que cada ON_RESUME reintente un
+            // exchange imposible y muestre un error falso al usuario.
+            prefs(context).edit().remove("pending_grant.$extensionId").apply()
             clearPendingAuthUrl(context, extensionId)
             Log.d(TAG, "Sesión firmada completada para $extensionId (expira: $expiresAt)")
             JSONObject().put("success", true).toString()

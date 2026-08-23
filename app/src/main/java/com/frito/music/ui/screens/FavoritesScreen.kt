@@ -39,7 +39,8 @@ fun FavoritesScreen(
     playerViewModel: PlayerViewModel,
     onBack: () -> Unit
 ) {
-    val allAudios = remember(homeViewModel) { homeViewModel.getAllAudios() }
+    // Reactivo: se actualiza solo cuando el escaneo o un rescan (descarga nueva) termina
+    val allAudios by homeViewModel.allAudios.collectAsState()
     val favorites by playerViewModel.favorites.collectAsState(initial = emptySet())
     val appColors = LocalAppColors.current
 
@@ -52,11 +53,13 @@ fun FavoritesScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(
+                // Gradiente derivado del acento (antes: banda rojiza fija que
+                // chocaba con temas claros y con "Color predominante")
                 Brush.verticalGradient(
                     colors = if (appColors.backgroundImageUri != null) {
-                        listOf(Color(0xFFFF6B6B).copy(alpha = 0.3f), Color.Transparent)
+                        listOf(appColors.accent.copy(alpha = 0.3f), Color.Transparent)
                     } else {
-                        listOf(Color(0xFF3A1A1A), appColors.background)
+                        listOf(appColors.accent.copy(alpha = if (appColors.isDark) 0.22f else 0.14f), appColors.background)
                     },
                     startY = 0f,
                     endY = 800f
@@ -95,13 +98,13 @@ fun FavoritesScreen(
                 modifier = Modifier
                     .size(120.dp)
                     .clip(RoundedCornerShape(24.dp))
-                    .background(Color(0xFFFF6B6B)), // Red background for the cover
+                    .background(appColors.accent),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Favorite,
                     contentDescription = "Favorite Cover",
-                    tint = Color.White,
+                    tint = com.frito.music.ui.theme.textColorForBackground(appColors.accent),
                     modifier = Modifier.size(64.dp)
                 )
             }
@@ -153,7 +156,7 @@ fun FavoritesScreen(
                             },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = Color.White, modifier = Modifier.size(32.dp))
+                        Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = com.frito.music.ui.theme.textColorForBackground(appColors.accent), modifier = Modifier.size(32.dp))
                     }
                 }
             }

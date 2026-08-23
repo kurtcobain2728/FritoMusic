@@ -32,5 +32,11 @@ enum class ExtensionState {
 data class ExtensionUIModel(
     val info: ExtensionInfo,
     val state: ExtensionState,
-    val progress: Float = 0f // Para mostrar barra de progreso de descarga
-)
+    val progress: Float = 0f, // Para mostrar barra de progreso de descarga
+    // Flags precalculados en IO (antes se leían ZIPs durante la composición).
+    // Se calculan desde el manifest si está instalada, o del registry si no.
+    val isDownloadProvider: Boolean = true,
+    val isCompatible: Boolean = true
+) {
+    val isUsableAsServer: Boolean get() = isDownloadProvider && isCompatible
+}

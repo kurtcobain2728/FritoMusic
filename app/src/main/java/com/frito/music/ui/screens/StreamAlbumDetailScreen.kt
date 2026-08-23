@@ -163,7 +163,7 @@ fun StreamAlbumDetailScreen(
                     item {
                         Button(
                             onClick = {
-                                streamViewModel.playAlbumSong(songs.first(), playerViewModel)
+                                streamViewModel.playAlbumSong(songs.first(), playerViewModel, queueSongs = songs)
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -193,7 +193,7 @@ fun StreamAlbumDetailScreen(
                     StreamAlbumSongItem(
                         index = index + 1,
                         song = song,
-                        onClick = { streamViewModel.playAlbumSong(song, playerViewModel) }
+                        onClick = { streamViewModel.playAlbumSong(song, playerViewModel, queueSongs = songs) }
                     )
                 }
 

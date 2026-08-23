@@ -64,6 +64,14 @@ fun HomeScreen(homeViewModel: HomeViewModel = viewModel(), playerViewModel: Play
         } else {
             permissionLauncher.launch(permission)
         }
+        // Android 8/9: pedir también escritura para que las descargas puedan
+        // guardarse en Music/ (StorageUtils escribe directo al almacenamiento público).
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+            val writePermission = Manifest.permission.WRITE_EXTERNAL_STORAGE
+            if (androidx.core.content.ContextCompat.checkSelfPermission(context, writePermission) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                permissionLauncher.launch(writePermission)
+            }
+        }
     }
 
     // Interceptar el botón Atrás si estamos dentro de una carpeta
@@ -193,7 +201,8 @@ fun FolderCard(folderName: String, songCount: Int, appColors: com.frito.music.ui
                     )
                 }
                 
-                if (songCount >= 0) {
+                // Solo mostrar el badge si hay canciones (antes >= 0 mostraba "0" en vacías)
+                if (songCount > 0) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
@@ -204,7 +213,7 @@ fun FolderCard(folderName: String, songCount: Int, appColors: com.frito.music.ui
                     ) {
                         Text(
                             text = songCount.toString(),
-                            color = Color.White,
+                            color = com.frito.music.ui.theme.textColorForBackground(appColors.accent),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -287,10 +296,7 @@ fun AudioFileRow(audio: AudioFile, appColors: com.frito.music.ui.theme.AppColors
             )
         }
         Spacer(modifier = Modifier.width(8.dp))
-        Icon(
-            imageVector = Icons.Default.MoreVert,
-            contentDescription = "Opciones",
-            tint = appColors.textSecondary
-        )
+        // (Se eliminó el icono MoreVert muerto: prometía un menú que no existía.
+        //  Candidato futuro: menú contextual Reproducir/Añadir a playlist/Favorito.)
     }
 }
