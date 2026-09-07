@@ -89,6 +89,8 @@ class MainActivity : ComponentActivity() {
         // Initialize YouTube Login Manager and load saved session
         com.frito.music.data.repository.YouTubeLoginManager.init(this)
         com.frito.music.data.repository.YouTubeLoginManager.loadLoginToYouTube()
+        com.frito.music.data.repository.FavoriteArtistsManager.init(this)
+        com.frito.music.data.repository.StreamHistoryManager.init(this)
 
         // Deep link de verificación de sesión (si la app se abrió desde el navegador)
         handleSessionGrantIntent(intent)
@@ -122,32 +124,33 @@ class MainActivity : ComponentActivity() {
                         }
                     )
                 } else {
-                // rememberSaveable: el estado de navegación sobrevive rotaciones
-                var currentTab by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("inicio") }
-                var currentSubScreen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
-                var showPlayerScreen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
-                var selectedPlaylist by remember { mutableStateOf<Playlist?>(null) } // no parcelable: se pierde con rotación (aceptable)
-                var selectedArtistId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
-                var selectedAlbumId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
-                var selectedStreamArtistId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
-                var selectedStreamAlbumId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
-                var selectedStreamPlaylistId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
-                var verificationTarget by remember { mutableStateOf<Pair<String, String>?>(null) } // se reconstruye vía deep link / banner
-                var showYouTubeLogin by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+                    // rememberSaveable: el estado de navegación sobrevive rotaciones
+                    var currentTab by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("inicio") }
+                    var currentSubScreen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+                    var showPlayerScreen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+                    var selectedPlaylist by remember { mutableStateOf<Playlist?>(null) } // no parcelable: se pierde con rotación (aceptable)
+                    var selectedArtistId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+                    var selectedAlbumId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+                    var selectedStreamArtistId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+                    var selectedStreamAlbumId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+                    var selectedStreamPlaylistId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+                    var previousStreamSubScreen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+                    var verificationTarget by remember { mutableStateOf<Pair<String, String>?>(null) } // se reconstruye vía deep link / banner
+                    var showYouTubeLogin by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
 
-                val favorites by playerViewModel.favorites.collectAsState(initial = emptySet())
-                val playlists by playerViewModel.playlists.collectAsState(initial = emptyList())
-                val currentAudio by playerViewModel.currentAudio.collectAsState()
+                    val favorites by playerViewModel.favorites.collectAsState(initial = emptySet())
+                    val playlists by playerViewModel.playlists.collectAsState(initial = emptyList())
+                    val currentAudio by playerViewModel.currentAudio.collectAsState()
 
-                val context = androidx.compose.ui.platform.LocalContext.current
-                var backPressedTime by remember { mutableStateOf(0L) }
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    var backPressedTime by remember { mutableStateOf(0L) }
 
-                // Re-escanear la biblioteca cuando una descarga termina con éxito,
-                // para que la canción nueva aparezca sin reiniciar la app.
-                androidx.compose.runtime.DisposableEffect(homeViewModel, context) {
-                    val seenSucceeded = HashSet<String>()
-                    val observer = object : androidx.lifecycle.Observer<MutableList<androidx.work.WorkInfo>> {
-                        override fun onChanged(infos: MutableList<androidx.work.WorkInfo>) {
+                    // Re-escanear la biblioteca cuando una descarga termina con éxito,
+                    // para que la canción nueva aparezca sin reiniciar la app.
+                    androidx.compose.runtime.DisposableEffect(homeViewModel, context) {
+                        val seenSucceeded = HashSet<String>()
+                        val observer = object : androidx.lifecycle.Observer<MutableList<androidx.work.WorkInfo>> {
+                            override fun onChanged(infos: MutableList<androidx.work.WorkInfo>) {
                             infos.filter { it.state == androidx.work.WorkInfo.State.SUCCEEDED }
                                 .forEach { info ->
                                     if (seenSucceeded.add(info.id.toString())) {
@@ -174,8 +177,11 @@ class MainActivity : ComponentActivity() {
                         selectedAlbumId = null
                         verificationTarget = null
                     } else if (currentSubScreen == "stream_artist_detail") {
-                        currentSubScreen = null
+                        currentSubScreen = previousStreamSubScreen
+                        previousStreamSubScreen = null
                         selectedStreamArtistId = null
+                    } else if (currentSubScreen == "stream_favorite_artists" || currentSubScreen == "stream_all_artists") {
+                        currentSubScreen = null
                     } else if (currentSubScreen == "stream_album_detail") {
                         currentSubScreen = "stream_artist_detail"
                         selectedStreamAlbumId = null
@@ -480,6 +486,27 @@ class MainActivity : ComponentActivity() {
                                                 )
                                             }
                                         }
+                                        "stream_favorite_artists" -> {
+                                            StreamFavoriteArtistsScreen(
+                                                onArtistClick = { id ->
+                                                    selectedStreamArtistId = id
+                                                    previousStreamSubScreen = "stream_favorite_artists"
+                                                    currentSubScreen = "stream_artist_detail"
+                                                },
+                                                onBack = { currentSubScreen = null }
+                                            )
+                                        }
+                                        "stream_all_artists" -> {
+                                            StreamAllArtistsScreen(
+                                                streamViewModel = streamViewModel,
+                                                onArtistClick = { id ->
+                                                    selectedStreamArtistId = id
+                                                    previousStreamSubScreen = "stream_all_artists"
+                                                    currentSubScreen = "stream_artist_detail"
+                                                },
+                                                onBack = { currentSubScreen = null }
+                                            )
+                                        }
                                         "extensiones" -> ExtensionsScreen(onBack = { currentSubScreen = null })
                                         else -> {
                                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -536,6 +563,7 @@ class MainActivity : ComponentActivity() {
                                                 playerViewModel = playerViewModel,
                                                 onNavigateToArtist = { id ->
                                                     selectedStreamArtistId = id
+                                                    previousStreamSubScreen = null
                                                     currentSubScreen = "stream_artist_detail"
                                                 },
                                                 onNavigateToLogin = {
@@ -543,6 +571,12 @@ class MainActivity : ComponentActivity() {
                                                 },
                                                 onNavigateToPlaylists = {
                                                     currentSubScreen = "stream_playlists"
+                                                },
+                                                onNavigateToFavoriteArtists = {
+                                                    currentSubScreen = "stream_favorite_artists"
+                                                },
+                                                onNavigateToAllArtists = {
+                                                    currentSubScreen = "stream_all_artists"
                                                 }
                                             )
                                             "mas" -> MoreScreen(

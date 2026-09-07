@@ -2,9 +2,15 @@ package com.frito.music.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.frito.music.data.models.HomeShelf
 import com.frito.music.data.models.StreamableTrack
+import com.frito.music.data.models.TasteProfile
 import com.frito.music.data.network.yt.YouTubeRepository
+import com.frito.music.data.repository.FavoriteArtistsManager
+import com.frito.music.data.repository.StreamHistoryManager
+import com.music.innertube.models.Album
 import com.music.innertube.models.AlbumItem
+import com.music.innertube.models.Artist
 import com.music.innertube.models.ArtistItem
 import com.music.innertube.models.PlaylistItem
 import com.music.innertube.models.SongItem
@@ -14,8 +20,6 @@ import com.music.innertube.pages.ArtistPage
 import com.music.innertube.pages.ExplorePage
 import com.music.innertube.pages.HomePage
 import com.music.innertube.pages.PlaylistPage
-import com.frito.music.data.models.HomeShelf
-import com.frito.music.data.models.TasteProfile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -107,6 +111,20 @@ class StreamViewModel : ViewModel() {
     private var searchJob: Job? = null
     private var prefetchJob: Job? = null
 
+    init {
+        val initialHistory = StreamHistoryManager.recentSongs.value
+        if (initialHistory.isNotEmpty()) {
+            _recentlyPlayed.value = initialHistory
+            _homeShelves.value = listOf(
+                HomeShelf(
+                    id = "recently_played",
+                    title = "Vuelve a escuchar",
+                    items = initialHistory
+                )
+            )
+        }
+    }
+
     /**
      * Prefetch cancelable: si llega una búsqueda nueva, se cancela el prefetch
      * anterior (antes se acumulaban hasta 9 player-requests y arriesgaba 429).
@@ -180,6 +198,10 @@ class StreamViewModel : ViewModel() {
         if (tracks.isEmpty()) return
         val safeStart = startIndex.coerceIn(0, tracks.lastIndex)
         val startTrack = tracks[safeStart]
+        
+        // Registrar de inmediato en el historial de Stream para que Vuelve a escuchar se actualice al instante
+        recordPlayedSong(startTrack.toSongItem())
+
         playerViewModel.setPreparingAudio(startTrack.toAudioFile(""))
 
         viewModelScope.launch {
@@ -216,6 +238,41 @@ class StreamViewModel : ViewModel() {
         durationMs = duration?.times(1000L) ?: 0L,
         thumbnailUrl = thumbnail
     )
+
+    private fun StreamableTrack.toSongItem() = SongItem(
+        id = videoId,
+        title = title,
+        artists = listOf(Artist(name = artist, id = null)),
+        album = album?.let { Album(name = it, id = "") },
+        duration = (durationMs / 1000).toInt(),
+        thumbnail = thumbnailUrl,
+        endpoint = null
+    )
+
+    fun recordPlayedSong(song: SongItem) {
+        if (song.id.isBlank()) return
+        StreamHistoryManager.recordSong(song)
+        val current = _recentlyPlayed.value.toMutableList()
+        current.removeAll { it.id == song.id }
+        current.add(0, song)
+        val updated = current.take(25)
+        _recentlyPlayed.value = updated
+
+        // Actualizar de inmediato el shelf "recently_played" en homeShelves para reflejo instantáneo en UI
+        val currentShelves = _homeShelves.value.toMutableList()
+        val shelfIndex = currentShelves.indexOfFirst { it.id == "recently_played" }
+        val newShelf = HomeShelf(
+            id = "recently_played",
+            title = "Vuelve a escuchar",
+            items = updated
+        )
+        if (shelfIndex >= 0) {
+            currentShelves[shelfIndex] = newShelf
+        } else {
+            currentShelves.add(0, newShelf)
+        }
+        _homeShelves.value = currentShelves
+    }
 
     fun playTrack(
         track: StreamableTrack,
@@ -349,7 +406,9 @@ class StreamViewModel : ViewModel() {
                 val homeDeferred = async(Dispatchers.IO) { YouTubeRepository.getHome() }
                 val exploreDeferred = async(Dispatchers.IO) { YouTubeRepository.getExplore() }
 
-                val historySongs = historyDeferred.await().getOrDefault(emptyList())
+                val remoteHistorySongs = historyDeferred.await().getOrDefault(emptyList())
+                val localHistorySongs = StreamHistoryManager.recentSongs.value
+                val historySongs = (localHistorySongs + remoteHistorySongs).distinctBy { it.id }
                 val likedSongs = likedDeferred.await().getOrDefault(emptyList())
                 val homeResult = homeDeferred.await()
                 val exploreResult = exploreDeferred.await()
@@ -362,10 +421,13 @@ class StreamViewModel : ViewModel() {
                 _recentlyPlayed.value = historySongs
 
                 // 2. Construir perfil de gustos (TasteProfile)
-                val likedArtistIds = likedSongs.flatMap { it.artists }
+                val favoriteArtists = FavoriteArtistsManager.favoriteArtists.value
+                val favoriteArtistIds = favoriteArtists.map { it.id }.filter { it.isNotBlank() }.toSet()
+                val favoriteArtistNames = favoriteArtists.map { it.title.trim().lowercase() }.filter { it.isNotBlank() }.toSet()
+
+                val likedArtistIds = (favoriteArtistIds + likedSongs.flatMap { it.artists }
                     .mapNotNull { it.id }
-                    .filter { it.isNotBlank() }
-                    .toSet()
+                    .filter { it.isNotBlank() }).toSet()
                 val likedAlbumIds = likedSongs.mapNotNull { it.album?.id }
                     .filter { it.isNotBlank() }
                     .toSet()
@@ -449,13 +511,37 @@ class StreamViewModel : ViewModel() {
                     )
                 } else null
 
-                // ── B3. "Álbumes y sencillos populares" (explore + cruce con artistas que le gustan)
-                val newReleases = explore?.newReleaseAlbums.orEmpty()
-                val popularAlbumsShelf = if (newReleases.isNotEmpty()) {
-                    val (fromFavoriteArtists, otherReleases) = newReleases.partition { album ->
-                        likedArtistIds.isNotEmpty() && album.artists?.any { it.id != null && likedArtistIds.contains(it.id) } == true
+                // ── B3. "Álbumes y sencillos populares" (explore + home + cruce con artistas favoritos y escuchados)
+                val listenedArtistIds = (likedArtistIds + historySongs.flatMap { it.artists }.mapNotNull { it.id }).toSet()
+                val listenedArtistNames = (favoriteArtistNames + likedSongs.flatMap { it.artists }.map { it.name.trim().lowercase() } + historySongs.flatMap { it.artists }.map { it.name.trim().lowercase() })
+                    .filter { it.isNotBlank() }.toSet()
+
+                val allAvailableAlbums = (explore?.newReleaseAlbums.orEmpty() + home?.sections?.flatMap { it.items }?.filterIsInstance<AlbumItem>().orEmpty())
+                    .distinctBy { it.browseId }
+
+                val popularAlbumsShelf = if (allAvailableAlbums.isNotEmpty()) {
+                    val scoredAlbums = allAvailableAlbums.map { album ->
+                        val albumArtistNames = album.artists?.map { it.name.trim().lowercase() }.orEmpty().toSet()
+                        val albumArtistIds = album.artists?.mapNotNull { it.id }.orEmpty().toSet()
+
+                        var score = 0
+                        // Artistas favoritos explícitos: máxima prioridad (+100)
+                        if (albumArtistIds.any { favoriteArtistIds.contains(it) } || albumArtistNames.any { favoriteArtistNames.contains(it) }) {
+                            score += 100
+                        }
+                        // Artistas escuchados / dados me gusta (+50)
+                        if (albumArtistIds.any { listenedArtistIds.contains(it) } || albumArtistNames.any { listenedArtistNames.contains(it) }) {
+                            score += 50
+                        }
+                        Pair(album, score)
                     }
-                    val sortedAlbums = (fromFavoriteArtists + otherReleases).distinctBy { it.browseId }.take(20)
+
+                    val sortedAlbums = scoredAlbums
+                        .sortedWith(compareByDescending<Pair<AlbumItem, Int>> { it.second }.thenBy { it.first.title })
+                        .map { it.first }
+                        .distinctBy { it.browseId }
+                        .take(20)
+
                     HomeShelf(
                         id = "popular_albums",
                         title = "Álbumes y sencillos populares",
@@ -463,12 +549,12 @@ class StreamViewModel : ViewModel() {
                     )
                 } else null
 
-                // ── B4. "Artistas para ti" (artistas relacionados con likes, o trending para cuentas nuevas)
-                val popularArtistsShelf = if (likedArtistIds.isNotEmpty()) {
-                    val seedArtists = likedArtistIds.take(3)
+                // ── B4. "Artistas para ti" (artistas relacionados con favoritos y likes, o trending para cuentas nuevas)
+                val allSeedArtistIds = (favoriteArtistIds + likedArtistIds).take(4)
+                val popularArtistsShelf = if (allSeedArtistIds.isNotEmpty()) {
                     val artistScoreMap = mutableMapOf<String, Pair<ArtistItem, Int>>()
                     coroutineScope {
-                        val jobs = seedArtists.map { artistId ->
+                        val jobs = allSeedArtistIds.map { artistId ->
                             async(Dispatchers.IO) {
                                 recommendationSemaphore.withPermit {
                                     runCatching {
@@ -479,7 +565,7 @@ class StreamViewModel : ViewModel() {
                         }
                         jobs.map { it.await() }.forEach { list ->
                             list.forEach { artist ->
-                                if (!likedArtistIds.contains(artist.id)) {
+                                if (!allSeedArtistIds.contains(artist.id)) {
                                     val current = artistScoreMap[artist.id]
                                     val score = (current?.second ?: 0) + 1
                                     artistScoreMap[artist.id] = Pair(artist, score)

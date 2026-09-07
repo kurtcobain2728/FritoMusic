@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
@@ -30,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.frito.music.data.models.StreamableTrack
+import com.frito.music.data.repository.YouTubeLoginManager
 import com.frito.music.ui.components.YouTubeLogoutModal
 import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.ui.viewmodels.PlayerViewModel
@@ -48,7 +50,9 @@ fun StreamScreen(
     playerViewModel: PlayerViewModel,
     onNavigateToArtist: (String) -> Unit = {},
     onNavigateToLogin: () -> Unit = {},
-    onNavigateToPlaylists: () -> Unit = {}
+    onNavigateToPlaylists: () -> Unit = {},
+    onNavigateToFavoriteArtists: () -> Unit = {},
+    onNavigateToAllArtists: () -> Unit = {}
 ) {
     val appColors = LocalAppColors.current
 
@@ -59,53 +63,37 @@ fun StreamScreen(
     val playbackError by streamViewModel.playbackError.collectAsState()
     val homePage by streamViewModel.homePage.collectAsState()
     val explorePage by streamViewModel.explorePage.collectAsState()
-    val homeShelves by streamViewModel.homeShelves.collectAsState()
     val isLoadingHome by streamViewModel.isLoadingHome.collectAsState()
     val recentlyPlayed by streamViewModel.recentlyPlayed.collectAsState()
+    val homeShelves by streamViewModel.homeShelves.collectAsState()
 
     var searchQuery by remember { mutableStateOf("") }
     var selectedTab by remember { mutableStateOf(StreamTab.CANCIONES) }
-    var showTutorial by remember { 
-        val hasSeen = com.frito.music.data.repository.YouTubeLoginManager.hasSeenTutorial()
-        mutableStateOf(!hasSeen) 
-    }
     var showLogoutModal by remember { mutableStateOf(false) }
-    val isLoggedIn = com.frito.music.data.repository.YouTubeLoginManager.isLoggedIn()
 
-    LaunchedEffect(isLoggedIn) {
+    val isLoggedIn = remember(YouTubeLoginManager.getCookie()) {
+        YouTubeLoginManager.isLoggedIn()
+    }
+
+    LaunchedEffect(Unit) {
         if (isLoggedIn) {
             streamViewModel.loadHomeContent()
         }
-    }
-
-    if (showTutorial) {
-        StreamTutorialScreen(
-            onFinish = {
-                com.frito.music.data.repository.YouTubeLoginManager.setTutorialSeen()
-                showTutorial = false
-            }
-        )
     }
     
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(appColors.background)
+            .statusBarsPadding()
     ) {
-        // Header
+        // Top Bar
         Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 48.dp, start = 16.dp, end = 16.dp, bottom = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.PlayArrow,
-                contentDescription = null,
-                tint = appColors.textPrimary,
-                modifier = Modifier.size(28.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = "Stream",
                 color = appColors.textPrimary,
@@ -113,6 +101,23 @@ fun StreamScreen(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f)
             )
+
+            // Botón de Artistas Favoritos
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .clickable { onNavigateToFavoriteArtists() }
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Star,
+                    contentDescription = "Artistas favoritos",
+                    tint = Color(0xFFFFD700),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(4.dp))
 
             // Playlists button (visible when logged in)
             if (isLoggedIn) {
@@ -296,6 +301,7 @@ fun StreamScreen(
                         onArtistClick = { browseId ->
                             onNavigateToArtist(browseId)
                         },
+                        onSeeAllArtists = onNavigateToAllArtists,
                         modifier = Modifier.weight(1f)
                     )
                 } else {

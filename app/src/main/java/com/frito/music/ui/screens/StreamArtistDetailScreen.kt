@@ -1,5 +1,6 @@
 package com.frito.music.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,6 +14,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.frito.music.data.repository.FavoriteArtistsManager
 import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.ui.viewmodels.PlayerViewModel
 import com.frito.music.ui.viewmodels.StreamViewModel
@@ -42,6 +46,9 @@ fun StreamArtistDetailScreen(
     onBack: () -> Unit
 ) {
     val appColors = LocalAppColors.current
+
+    val favoriteArtists by FavoriteArtistsManager.favoriteArtists.collectAsState()
+    val isFavorite = favoriteArtists.any { it.id == artistId }
 
     val artistPage by streamViewModel.selectedArtist.collectAsState()
     val isLoading by streamViewModel.isLoadingArtist.collectAsState()
@@ -158,13 +165,47 @@ fun StreamArtistDetailScreen(
                 // Top Songs
                 if (songs.isNotEmpty()) {
                     item {
-                        Text(
-                            text = "Populares",
-                            color = appColors.textPrimary,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = "Populares",
+                                color = appColors.textPrimary,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = if (isFavorite) Color(0xFFFFD700).copy(alpha = 0.15f) else Color.White.copy(alpha = 0.08f),
+                                border = BorderStroke(1.dp, if (isFavorite) Color(0xFFFFD700) else Color.White.copy(alpha = 0.2f)),
+                                modifier = Modifier.clickable {
+                                    FavoriteArtistsManager.toggleFavorite(artist)
+                                }
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarOutline,
+                                        contentDescription = if (isFavorite) "Quitar de favoritos" else "Guardar en favoritos",
+                                        tint = if (isFavorite) Color(0xFFFFD700) else appColors.textPrimary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = if (isFavorite) "Siguiendo" else "Favorito",
+                                        color = if (isFavorite) Color(0xFFFFD700) else appColors.textPrimary,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
+                        }
                     }
 
                     itemsIndexed(songs) { index, song ->

@@ -41,6 +41,7 @@ fun StreamHomeScreen(
     onPlaySong: (SongItem, List<SongItem>) -> Unit,
     onAlbumClick: (String) -> Unit,
     onArtistClick: (String) -> Unit,
+    onSeeAllArtists: () -> Unit = {},
     recentlyPlayed: List<SongItem> = emptyList(),
     modifier: Modifier = Modifier
 ) {
@@ -72,13 +73,31 @@ fun StreamHomeScreen(
             homeShelves.forEach { shelf ->
                 if (shelf.items.isNotEmpty()) {
                     item(key = shelf.id) {
-                        Text(
-                            text = shelf.title,
-                            color = appColors.textPrimary,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = shelf.title,
+                                color = appColors.textPrimary,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (shelf.id == "popular_artists" || shelf.title.contains("Artistas para ti", ignoreCase = true)) {
+                                Text(
+                                    text = "Ver todo",
+                                    color = Color(0xFF1DB954),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier
+                                        .clickable { onSeeAllArtists() }
+                                        .padding(start = 8.dp, top = 4.dp, bottom = 4.dp)
+                                )
+                            }
+                        }
                         LazyRow(
                             contentPadding = PaddingValues(horizontal = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -139,13 +158,29 @@ fun StreamHomeScreen(
             // ─── Artistas para ti (recomendados por YT Music según tu cuenta) ───
             if (recommendedArtists.isNotEmpty()) {
                 item {
-                    Text(
-                        text = "Artistas para ti",
-                        color = appColors.textPrimary,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = "Artistas para ti",
+                            color = appColors.textPrimary,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = "Ver todo",
+                            color = Color(0xFF1DB954),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier
+                                .clickable { onSeeAllArtists() }
+                                .padding(start = 8.dp, top = 4.dp, bottom = 4.dp)
+                        )
+                    }
                     LazyRow(
                         contentPadding = PaddingValues(horizontal = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
