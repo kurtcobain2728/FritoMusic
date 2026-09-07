@@ -14,9 +14,12 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.frito.music.data.models.AudioFile
+import com.frito.music.data.models.LyricsUiState
 import com.frito.music.data.repository.FavoritesRepository
+import com.frito.music.data.repository.LyricsRepository
 import com.frito.music.data.repository.PlaylistRepository
 import com.frito.music.service.MusicService
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -36,8 +39,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val _currentAudio = MutableStateFlow<AudioFile?>(null)
     val currentAudio = _currentAudio.asStateFlow()
 
+    private val lyricsRepository = LyricsRepository(application)
+    private val _lyricsState = MutableStateFlow<LyricsUiState>(LyricsUiState.Idle)
+    val lyricsState: StateFlow<LyricsUiState> = _lyricsState.asStateFlow()
+    private var lyricsJob: Job? = null
+
     fun setPreparingAudio(audio: AudioFile) {
         _currentAudio.value = audio
+        loadLyricsForCurrentAudio()
     }
 
     /** Limpia el estado "preparando" cuando la resolución de la URL falla,
@@ -51,6 +60,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         } else {
             _currentAudio.value = null
         }
+        loadLyricsForCurrentAudio()
     }
 
     private val _progress = MutableStateFlow(0f)
@@ -128,6 +138,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     }
                     _durationMs.value = mediaController?.duration?.coerceAtLeast(0L) ?: 0L
                     resolveCurrentIfPending()
+                    loadLyricsForCurrentAudio()
                 }
 
                 override fun onPlaybackStateChanged(playbackState: Int) {
@@ -370,6 +381,34 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         _progress.value = 0f
         _positionMs.value = 0L
         _durationMs.value = 0L
+        lyricsJob?.cancel()
+        _lyricsState.value = LyricsUiState.Idle
+    }
+
+    fun loadLyricsForCurrentAudio(forceRefresh: Boolean = false) {
+        val audio = _currentAudio.value
+        if (audio == null) {
+            _lyricsState.value = LyricsUiState.Idle
+            return
+        }
+        lyricsJob?.cancel()
+        lyricsJob = viewModelScope.launch {
+            _lyricsState.value = LyricsUiState.Loading
+            val durationSec = (mediaController?.duration?.takeIf { it > 0 } ?: audio.durationMs.takeIf { it > 0 })?.let { it / 1000 }
+            val lyrics = lyricsRepository.getLyrics(
+                title = audio.title,
+                artist = audio.artist,
+                durationSeconds = durationSec,
+                localFilePath = if (audio.path.startsWith("http://") || audio.path.startsWith("https://") || audio.path.isEmpty()) null else audio.path,
+                videoId = _currentVideoId.value,
+                forceRefresh = forceRefresh
+            )
+            if (lyrics != null && (lyrics.lines.isNotEmpty() || !lyrics.plainLyrics.isNullOrBlank())) {
+                _lyricsState.value = LyricsUiState.Success(lyrics)
+            } else {
+                _lyricsState.value = LyricsUiState.Empty
+            }
+        }
     }
 
     fun skipNext() {
@@ -387,6 +426,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             it.seekTo(pos)
             _positionMs.value = pos
             _progress.value = progress
+        }
+    }
+
+    fun seekToMs(positionMs: Long) {
+        mediaController?.let {
+            val dur = it.duration.coerceAtLeast(1L)
+            val clampedPos = positionMs.coerceIn(0L, dur)
+            it.seekTo(clampedPos)
+            _positionMs.value = clampedPos
+            _progress.value = (clampedPos.toFloat() / dur.toFloat()).coerceIn(0f, 1f)
         }
     }
 

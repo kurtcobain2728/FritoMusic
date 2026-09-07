@@ -46,6 +46,7 @@ import androidx.media3.common.Player
 import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.data.models.AudioFile
 import com.frito.music.ui.components.AddToYouTubePlaylistModal
+import com.frito.music.ui.components.SyncedLyricsView
 
 fun formatDuration(ms: Long): String {
     val totalSeconds = ms / 1000
@@ -78,8 +79,7 @@ fun PlayerScreen(
     val currentVideoId by viewModel.currentVideoId.collectAsState()
     val isOnlineLiked = currentVideoId != null && likedSongIds.contains(currentVideoId)
     val playlists by viewModel.playlists.collectAsState()
-    val currentLyrics by streamViewModel.currentLyrics.collectAsState()
-    val isLoadingLyrics by streamViewModel.isLoadingLyrics.collectAsState()
+    val lyricsState by viewModel.lyricsState.collectAsState()
     var showLyrics by remember { mutableStateOf(false) }
     var showPlaylistSheet by remember { mutableStateOf(false) }
     var showCreateDialog by remember { mutableStateOf(false) }
@@ -374,61 +374,64 @@ fun PlayerScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-
-        }
-        
-        // Lyrics Overlay
-        androidx.compose.animation.AnimatedVisibility(
-            visible = showLyrics,
-            enter = androidx.compose.animation.slideInVertically(initialOffsetY = { it }, animationSpec = androidx.compose.animation.core.tween(300)),
-            exit = androidx.compose.animation.slideOutVertically(targetOffsetY = { it }, animationSpec = androidx.compose.animation.core.tween(300))
-        ) {
-            Box(
+            // Bottom action bar: Lyrics quick access
+            Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .background(appColors.surface),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.KeyboardArrowDown,
-                    contentDescription = "Close Lyrics",
-                    tint = appColors.textPrimary,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 48.dp)
-                        .size(36.dp)
-                        .clickable { showLyrics = false }
-                )
-
-                when {
-                    isLoadingLyrics -> {
-                        CircularProgressIndicator(color = appColors.accent)
-                    }
-                    currentLyrics != null -> {
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 24.dp, vertical = 80.dp)
-                        ) {
-                            item {
-                                Text(
-                                    text = currentLyrics!!,
-                                    color = appColors.textPrimary,
-                                    fontSize = 16.sp,
-                                    lineHeight = 24.sp
-                                )
-                            }
-                        }
-                    }
-                    else -> {
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = appColors.surface.copy(alpha = 0.85f),
+                    modifier = Modifier.clickable { showLyrics = true }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MusicNote,
+                            contentDescription = "Ver letra",
+                            tint = appColors.accent,
+                            modifier = Modifier.size(18.dp)
+                        )
                         Text(
-                            text = "Letras no disponibles",
-                            color = appColors.textSecondary,
-                            fontSize = 16.sp
+                            text = "Letra",
+                            color = appColors.textPrimary,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
             }
+        }
+        
+        // Synchronized Lyrics Overlay
+        androidx.compose.animation.AnimatedVisibility(
+            visible = showLyrics,
+            enter = androidx.compose.animation.slideInVertically(
+                initialOffsetY = { it },
+                animationSpec = androidx.compose.animation.core.tween(350)
+            ),
+            exit = androidx.compose.animation.slideOutVertically(
+                targetOffsetY = { it },
+                animationSpec = androidx.compose.animation.core.tween(300)
+            )
+        ) {
+            SyncedLyricsView(
+                lyricsState = lyricsState,
+                positionMs = positionMs,
+                onSeekTo = { viewModel.seekToMs(it) },
+                onClose = { showLyrics = false },
+                onRefresh = { viewModel.loadLyricsForCurrentAudio(forceRefresh = true) },
+                albumArtUri = currentAudio?.albumUri,
+                title = currentAudio?.title.orEmpty(),
+                artist = currentAudio?.artist.orEmpty(),
+                accentColor = appColors.accent
+            )
         }
 
         if (showPlaylistSheet) {
