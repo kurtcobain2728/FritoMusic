@@ -1,15 +1,3 @@
-### Task 5: Detalle de playlist online + quitar canciones
-
-**Files:**
-- Create: `app/src/main/java/com/frito/music/ui/screens/OnlinePlaylistDetailScreen.kt`
-
-**Interfaces:**
-- Consumes: `OnlineLibraryViewModel.playlistSongs/onlineError/loadPlaylistSongs/removeFromOnlinePlaylist/clearPlaylistSongs`, `StreamViewModel.playAlbumSong(song, playerViewModel, queueSongs)`
-- Produces: pantalla de detalle con canciones, play-all, y quitar canciÃ³n
-
-- [ ] **Step 1: Crear la pantalla**
-
-```kotlin
 package com.frito.music.ui.screens
 
 import androidx.compose.foundation.background
@@ -52,7 +40,6 @@ fun OnlinePlaylistDetailScreen(
     val appColors = LocalAppColors.current
     val page by onlineLibraryViewModel.playlistSongs.collectAsState()
     val error by onlineLibraryViewModel.onlineError.collectAsState()
-    val scope = rememberCoroutineScope()
 
     LaunchedEffect(playlistId) {
         onlineLibraryViewModel.clearPlaylistSongs()
@@ -64,7 +51,7 @@ fun OnlinePlaylistDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(page?.title ?: "Lista", color = appColors.textPrimary) },
+                title = { Text(page?.playlist?.title ?: "Lista", color = appColors.textPrimary) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = appColors.textPrimary)
@@ -140,21 +127,3 @@ fun OnlinePlaylistDetailScreen(
         }
     }
 }
-```
-
-- [ ] **Step 2: Verificar compilaciÃ³n**
-
-Run: `.\gradlew assembleDebug`
-Expected: BUILD SUCCESSFUL.
-
----
-
-
----
-CONSTRAINTS GLOBALES (obligatorio):
-- minSdk 26, targetSdk 34, Compose BOM 2024.02.00
-- NO ejecutar gradlew/assembleDebug: el usuario compila. Verifica estructura (llaves y paréntesis balanceados) y que las referencias/imports existan.
-- NO hacer commits git: el usuario no lo ha pedido.
-- Reutilizar patrones existentes (StreamTrackItem, prompt de login de StreamScreen, playArtistSong/playAlbumSong con queueSongs).
-- Sin dependencias nuevas. Sesión: YouTubeLoginManager.isLoggedIn(). videoId: YouTubeUrlParser.extractVideoId().
-- Al terminar: escribir el reporte en el archivo indicado y devolver estado + archivos tocados + verificación.

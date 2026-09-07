@@ -120,6 +120,65 @@ object YouTubeRepository {
             .distinctBy { it.id }
     }
 
+    /**
+     * Identifica la entrada "Música que te gustó" / "Liked songs" dentro de la
+     * librería. Es una playlist AUTOGENERADA (no una playlist del usuario).
+     *
+     * Señales (cualquiera de ellas vale):
+     *  - id empieza por "RDCLAK5uy" (prefijo estándar de la playlist de likes)
+     *  - id == "FEmusic_liked_songs"
+     *  - título contiene "gustó" / "liked" / "likes"
+     *  - subtítulo dice "Playlist autogenerada" / "Auto-generated playlist"
+     */
+    private fun isLikedSongsEntry(item: PlaylistItem): Boolean {
+        val byId = item.id.startsWith("RDCLAK5uy") || item.id == "FEmusic_liked_songs"
+        val byTitle = item.title.contains("gustó", ignoreCase = true) ||
+            item.title.contains("liked", ignoreCase = true) ||
+            item.title.contains("likes", ignoreCase = true)
+        val bySubtitle = item.songCountText?.contains("autogenerada", ignoreCase = true) == true ||
+            item.songCountText?.contains("auto-generated", ignoreCase = true) == true
+        return byId || byTitle || bySubtitle
+    }
+
+    /**
+     * Canciones "Me gusta" de la cuenta de YouTube Music.
+     *
+     * NO usamos el browseId "FEmusic_liked_songs" directamente: con el cliente
+     * WEB_REMIX devuelve HTTP 400 INVALID_ARGUMENT. En su lugar localizamos la
+     * entrada "Música que te gustó" dentro de la librería (FEmusic_liked_playlists)
+     * y abrimos su playlistId real con YouTube.playlist(), que sí funciona.
+     */
+    suspend fun getLikedSongs(): Result<List<SongItem>> = runCatching {
+        val page = YouTube.library("FEmusic_liked_playlists").getOrThrow()
+        val playlistItems = page.items.filterIsInstance<PlaylistItem>()
+        android.util.Log.d("FritoLikes", "Entradas de librería: ${playlistItems.map { "id=${it.id} | titulo=${it.title} | sub=${it.songCountText}" }}")
+
+        val likedEntry = playlistItems.firstOrNull { isLikedSongsEntry(it) }
+        android.util.Log.d("FritoLikes", "Entrada de likes detectada: ${likedEntry?.id} (play=${likedEntry?.playEndpoint?.playlistId}, shuffle=${likedEntry?.shuffleEndpoint?.playlistId})")
+
+        // Cadena de fallback para obtener el playlistId real de los likes
+        val likedPlaylistId = likedEntry?.playEndpoint?.playlistId
+            ?: likedEntry?.shuffleEndpoint?.playlistId
+            ?: likedEntry?.id?.takeIf { !it.startsWith("FEmusic_") }
+        if (likedPlaylistId.isNullOrEmpty()) {
+            throw Exception("No se encontró tu lista de Me gusta")
+        }
+        android.util.Log.d("FritoLikes", "Abriendo playlist de likes: $likedPlaylistId")
+        YouTube.playlist(likedPlaylistId).getOrThrow().songs
+    }
+
+    /**
+     * Playlists guardadas de la cuenta de YouTube Music.
+     * Se excluye la entrada "Música que te gustó" (autogenerada): no es una
+     * playlist real, son los favoritos y tienen su propia sección.
+     */
+    suspend fun getLikedPlaylists(): Result<List<PlaylistItem>> = runCatching {
+        val page = YouTube.library("FEmusic_liked_playlists").getOrThrow()
+        page.items
+            .filterIsInstance<PlaylistItem>()
+            .filterNot { isLikedSongsEntry(it) }
+    }
+
     private suspend fun resolveWithClient(client: YouTubeClient, videoId: String): String? {
         val poToken = if (client.useWebPoTokens) {
             val sessionId = YouTube.dataSyncId ?: YouTube.visitorData
@@ -228,7 +287,9 @@ object YouTubeRepository {
 
     suspend fun getUserPlaylists(): Result<List<PlaylistItem>> = runCatching {
         val result = YouTube.library("FEmusic_liked_playlists").getOrThrow()
-        result.items.filterIsInstance<PlaylistItem>()
+        result.items
+            .filterIsInstance<PlaylistItem>()
+            .filterNot { isLikedSongsEntry(it) }
     }
 
     suspend fun getPlaylistSongs(playlistId: String): Result<PlaylistPage> = runCatching {

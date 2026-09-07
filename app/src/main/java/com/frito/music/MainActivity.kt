@@ -48,6 +48,7 @@ import com.frito.music.ui.viewmodels.HomeViewModel
 import com.frito.music.ui.viewmodels.PlayerViewModel
 import com.frito.music.ui.viewmodels.DownloadViewModel
 import com.frito.music.ui.viewmodels.StreamViewModel
+import com.frito.music.ui.viewmodels.OnlineLibraryViewModel
 import com.frito.music.ui.theme.ThemeViewModel
 import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.ui.theme.AppAnimations
@@ -99,6 +100,7 @@ class MainActivity : ComponentActivity() {
             val playerViewModel: PlayerViewModel = viewModel()
             val downloadViewModel: DownloadViewModel = viewModel()
             val streamViewModel: StreamViewModel = viewModel()
+            val onlineLibraryViewModel: OnlineLibraryViewModel = viewModel()
 
             val themeMode by themeViewModel.themeMode.collectAsState()
             val accentColor by themeViewModel.accentColor.collectAsState()
@@ -179,6 +181,9 @@ class MainActivity : ComponentActivity() {
                         selectedStreamAlbumId = null
                     } else if (currentSubScreen == "stream_playlist_detail") {
                         currentSubScreen = "stream_playlists"
+                        selectedStreamPlaylistId = null
+                    } else if (currentSubScreen == "online_playlist_detail") {
+                        currentSubScreen = "listas"
                         selectedStreamPlaylistId = null
                     } else if (currentSubScreen == "stream_playlists") {
                         currentSubScreen = null
@@ -320,10 +325,17 @@ class MainActivity : ComponentActivity() {
                                         "favoritos" -> FavoritesScreen(
                                             homeViewModel = homeViewModel,
                                             playerViewModel = playerViewModel,
+                                            onlineLibraryViewModel = onlineLibraryViewModel,
+                                            streamViewModel = streamViewModel,
                                             onBack = { currentSubScreen = null }
                                         )
                                         "listas" -> PlaylistsScreen(
                                             playerViewModel = playerViewModel,
+                                            onlineLibraryViewModel = onlineLibraryViewModel,
+                                            onNavigateToOnlinePlaylist = { playlistId ->
+                                                selectedStreamPlaylistId = playlistId
+                                                currentSubScreen = "online_playlist_detail"
+                                            },
                                             onBack = { currentSubScreen = null },
                                             onPlaylistClick = { playlist ->
                                                 selectedPlaylist = playlist
@@ -450,6 +462,17 @@ class MainActivity : ComponentActivity() {
                                                 )
                                             }
                                         }
+                                        "online_playlist_detail" -> {
+                                            selectedStreamPlaylistId?.let { pid ->
+                                                OnlinePlaylistDetailScreen(
+                                                    playlistId = pid,
+                                                    onlineLibraryViewModel = onlineLibraryViewModel,
+                                                    streamViewModel = streamViewModel,
+                                                    playerViewModel = playerViewModel,
+                                                    onBack = { currentSubScreen = "listas"; selectedStreamPlaylistId = null }
+                                                )
+                                            }
+                                        }
                                         "extensiones" -> ExtensionsScreen(onBack = { currentSubScreen = null })
                                         else -> {
                                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -554,6 +577,7 @@ class MainActivity : ComponentActivity() {
                         PlayerScreen(
                             viewModel = playerViewModel,
                             streamViewModel = streamViewModel,
+                            onlineLibraryViewModel = onlineLibraryViewModel,
                             onClose = { showPlayerScreen = false }
                         )
                     }

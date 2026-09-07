@@ -1,19 +1,72 @@
-### Task 2: `OnlineLibraryViewModel` â€” playlists online
+package com.frito.music.ui.viewmodels
 
-**Files:**
-- Modify: `app/src/main/java/com/frito/music/ui/viewmodels/OnlineLibraryViewModel.kt`
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.frito.music.data.network.yt.YouTubeRepository
+import com.music.innertube.models.SongItem
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
-**Interfaces:**
-- Consumes: `YouTubeRepository.getLikedPlaylists()`, `YouTube.playlist(id)`, `YouTube.createPlaylist`, `YouTube.deletePlaylist`, `YouTube.addToPlaylist`, `YouTube.removeFromPlaylist`
-- Produces:
-  - `val onlinePlaylists: StateFlow<List<PlaylistItem>>`
-  - `val playlistSongs: StateFlow<PlaylistPage?>`
-  - `val isLoadingPlaylists: StateFlow<Boolean>`
-  - `fun loadOnlinePlaylists()`, `fun loadPlaylistSongs(id)`, `fun createOnlinePlaylist(title)`, `fun deleteOnlinePlaylist(id)`, `fun addToOnlinePlaylist(pid, videoId)`, `fun removeFromOnlinePlaylist(pid, videoId, setVideoId)`, `fun clearPlaylistSongs()`
+class OnlineLibraryViewModel : ViewModel() {
 
-- [ ] **Step 1: AÃ±adir estado de playlists al ViewModel** (tras `clearOnlineError()`):
+    private val _likedSongs = MutableStateFlow<List<SongItem>>(emptyList())
+    val likedSongs: StateFlow<List<SongItem>> = _likedSongs.asStateFlow()
 
-```kotlin
+    private val _likedSongIds = MutableStateFlow<Set<String>>(emptySet())
+    val likedSongIds: StateFlow<Set<String>> = _likedSongIds.asStateFlow()
+
+    private val _isLoadingLiked = MutableStateFlow(false)
+    val isLoadingLiked: StateFlow<Boolean> = _isLoadingLiked.asStateFlow()
+
+    private val _onlineError = MutableStateFlow<String?>(null)
+    val onlineError: StateFlow<String?> = _onlineError.asStateFlow()
+
+    fun loadLikedSongs() {
+        viewModelScope.launch {
+            _isLoadingLiked.value = true
+            _onlineError.value = null
+            val result = withContext(Dispatchers.IO) { YouTubeRepository.getLikedSongs() }
+            result
+                .onSuccess { songs ->
+                    _likedSongs.value = songs
+                    _likedSongIds.value = songs.map { it.id }.toSet()
+                }
+                .onFailure { e ->
+                    _onlineError.value = e.message ?: "No se pudieron cargar tus canciones"
+                }
+            _isLoadingLiked.value = false
+        }
+    }
+
+    /** Cambio optimista: actualiza localmente y luego llama a la API. */
+    fun likeSong(videoId: String, liked: Boolean) {
+        val current = _likedSongIds.value.toMutableSet()
+        if (liked) current.add(videoId) else current.remove(videoId)
+        _likedSongIds.value = current
+        // Mantener la lista coherente: si se quita el like, eliminar de likedSongs
+        if (!liked) {
+            _likedSongs.value = _likedSongs.value.filterNot { it.id == videoId }
+        }
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                com.music.innertube.YouTube.likeVideo(videoId, liked)
+            }
+            result.onFailure {
+                // revertir optimista
+                val rev = _likedSongIds.value.toMutableSet()
+                if (liked) rev.remove(videoId) else rev.add(videoId)
+                _likedSongIds.value = rev
+                _onlineError.value = "No se pudo actualizar en YouTube Music"
+            }
+        }
+    }
+
+    fun clearOnlineError() { _onlineError.value = null }
+
     private val _onlinePlaylists = MutableStateFlow<List<com.music.innertube.models.PlaylistItem>>(emptyList())
     val onlinePlaylists: StateFlow<List<com.music.innertube.models.PlaylistItem>> = _onlinePlaylists.asStateFlow()
 
@@ -85,21 +138,4 @@
                 .onFailure { _onlineError.value = it.message ?: "No se pudo quitar la canciÃ³n" }
         }
     }
-```
-
-- [ ] **Step 2: Verificar compilaciÃ³n**
-
-Run: `.\gradlew assembleDebug`
-Expected: BUILD SUCCESSFUL.
-
----
-
-
----
-CONSTRAINTS GLOBALES (obligatorio):
-- minSdk 26, targetSdk 34, Compose BOM 2024.02.00
-- NO ejecutar gradlew/assembleDebug: el usuario compila. Verifica estructura (llaves y paréntesis balanceados) y que las referencias/imports existan.
-- NO hacer commits git: el usuario no lo ha pedido.
-- Reutilizar patrones existentes (StreamTrackItem, prompt de login de StreamScreen, playArtistSong/playAlbumSong con queueSongs).
-- Sin dependencias nuevas. Sesión: YouTubeLoginManager.isLoggedIn(). videoId: YouTubeUrlParser.extractVideoId().
-- Al terminar: escribir el reporte en el archivo indicado y devolver estado + archivos tocados + verificación.
+}

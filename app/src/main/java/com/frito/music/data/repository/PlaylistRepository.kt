@@ -80,4 +80,11 @@ class PlaylistRepository(context: Context) {
             }
         }
     }
+
+    fun deletePlaylist(playlistId: String) {
+        val current = _playlists.value.toMutableList()
+        if (current.removeAll { it.id == playlistId }) {
+            savePlaylists(current)
+        }
+    }
 }

@@ -1,36 +1,24 @@
-### Task 1 Report: Stream Tutorial Screen
+# Task 1 Report — `OnlineLibraryViewModel` (estado y liked songs)
 
-**Status:** ✅ Completed
+**Status:** DONE_WITH_CONCERNS
 
-**Changes Made:**
+## Files touched
+- **Created:** `app/src/main/java/com/frito/music/ui/viewmodels/OnlineLibraryViewModel.kt`
+- **Modified:** `app/src/main/java/com/frito/music/data/network/yt/YouTubeRepository.kt` (added `getLikedSongs()` and `getLikedPlaylists()` after `getMusicHistory()`)
 
-1. **YouTubeLoginManager.kt** - Added tutorial preference methods:
-   - `hasSeenTutorial(): Boolean` - checks if user has seen tutorial
-   - `setTutorialSeen()` - marks tutorial as seen
+## Verification output
+```
+OnlineLibraryViewModel.kt: {=12 }=12 parens=27/27
+YouTubeRepository.kt: {=55 }=55 parens=126/126
+```
+Both files have balanced braces and parentheses. No compile run (per global constraints — user compiles).
 
-2. **StreamTutorialScreen.kt** - Created new tutorial screen with:
-   - 3 tutorial steps: Bienvenido, Iniciar Sesión, ¡Listo!
-   - HorizontalPager for page navigation
-   - Dot indicators showing current page
-   - "Omitir" (skip) and "Siguiente"/"¡Entendido!" buttons
-   - Semi-transparent black overlay (80% opacity)
-   - Material3 components with green accent (0xFF1DB954)
-   - Uses LocalAppColors for theme consistency
+## Self-review notes
+- Code in both files matches the brief verbatim.
+- Imports verified: `PlaylistItem` and `SongItem` were already imported in `YouTubeRepository.kt`; `com.music.innertube.YouTube` is already imported, so `getLikedSongs`/`getLikedPlaylists` compile. The ViewModel calls `likeVideo` fully qualified as required.
+- ViewModel follows the existing package style (ViewModel + StateFlow + viewModelScope), matching brief.
 
-3. **StreamScreen.kt** - Updated to show tutorial:
-   - Added tutorial state management
-   - Shows tutorial overlay on first visit
-   - Added "Iniciar sesión" text next to login icon when not logged in
-   - Login button now has rounded shape and padding
-
-**Verification:**
-- ✅ Compilation successful (`./gradlew :app:compileDebugKotlin`)
-- ✅ All changes committed with message "feat: add stream tutorial for new users"
-
-**Files Modified:**
-- `app/src/main/java/com/frito/music/data/repository/YouTubeLoginManager.kt`
-- `app/src/main/java/com/frito/music/ui/screens/StreamScreen.kt`
-- `app/src/main/java/com/frito/music/ui/screens/StreamTutorialScreen.kt` (new)
-
-**Next Steps:**
-Task 1 is complete. Ready to proceed with Task 2: Logout Modal.
+## Concerns
+1. `getLikedPlaylists()` duplicates the existing `getUserPlaylists()` (line ~229 in `YouTubeRepository.kt`) — both call `YouTube.library("FEmusic_liked_playlists")` and filter `PlaylistItem`. Added as the brief instructs (verbatim), but the team may want to consolidate in a later task.
+2. `loadLikedSongs()` failure path leaves `_likedSongs`/`_likedSongIds` at their previous values (stale data) — acceptable for a refresh flow, but worth noting for UI handling in later tasks.
+3. No compile verification possible in this environment; structural check passed and all referenced APIs (`YouTube.library`, `YouTube.likeVideo`) match the innertube surface used elsewhere in the repo.

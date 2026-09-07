@@ -20,6 +20,7 @@ import com.frito.music.service.MusicService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
@@ -69,6 +70,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     private val audioFilesMap = mutableMapOf<String, AudioFile>()
 
+    /**
+     * videoId REAL de YouTube de cada mediaId de la cola de streaming.
+     * El AudioFile solo guarda la URL resuelta (googlevideo), que NO contiene
+     * el videoId: sin este map no se puede dar like ni añadir a playlist.
+     */
+    private val videoIdsByMediaId = mutableMapOf<String, String>()
+
+    private val _currentVideoId = MutableStateFlow<String?>(null)
+    val currentVideoId: StateFlow<String?> = _currentVideoId.asStateFlow()
+
     // --- Cola de streaming con resolución perezosa de URLs ---
     // Los items pendientes se encolan con uri vacía y se resuelven cuando
     // ExoPlayer llega a ellos. Clave = mediaId del item -> videoId de YouTube.
@@ -113,6 +124,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                     mediaItem?.mediaId?.let { id ->
                         _currentAudio.value = audioFilesMap[id]
+                        _currentVideoId.value = videoIdsByMediaId[id]
                     }
                     _durationMs.value = mediaController?.duration?.coerceAtLeast(0L) ?: 0L
                     resolveCurrentIfPending()
@@ -165,6 +177,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
         audioFilesMap.clear()
         pendingStreamVideoIds.clear()
+        videoIdsByMediaId.clear()
+        _currentVideoId.value = null
 
         val keys = mutableListOf<String>()
         val mediaItems = audios.mapIndexed { index, audio ->
@@ -221,11 +235,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         if (keys.size != videoIds.size) return
         streamResolver = resolver
         keys.forEachIndexed { index, key ->
+            videoIdsByMediaId[key] = videoIds[index]
             // El ítem inicial ya viene resuelto: no marcarlo como pendiente
             if (index != startIndex) {
                 pendingStreamVideoIds[key] = videoIds[index]
             }
         }
+        // Exponer el videoId real del ítem que empieza a sonar
+        _currentVideoId.value = videoIds[startIndex]
 
         // Pre-resolución secuencial en segundo plano: resuelve todas las URLs
         // pendientes (la caché de 4h las hace baratas) para que cuando ExoPlayer
@@ -344,9 +361,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
         streamResolver = null
         pendingStreamVideoIds.clear()
+        videoIdsByMediaId.clear()
         resolvingIndex = -1
         audioFilesMap.clear()
         _currentAudio.value = null
+        _currentVideoId.value = null
         _isPlaying.value = false
         _progress.value = 0f
         _positionMs.value = 0L
@@ -396,6 +415,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun createPlaylist(name: String): com.frito.music.data.models.Playlist {
         return playlistRepository.createPlaylist(name)
+    }
+
+    fun deletePlaylist(playlistId: String) {
+        playlistRepository.deletePlaylist(playlistId)
     }
 
     fun addCurrentAudioToPlaylist(playlistId: String) {

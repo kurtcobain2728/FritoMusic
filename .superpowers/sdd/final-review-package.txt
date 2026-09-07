@@ -1,0 +1,2749 @@
+=== FILES EN ESTA FEATURE ===
+app\src\main\java\com\frito\music\ui\viewmodels\OnlineLibraryViewModel.kt
+app\src\main\java\com\frito\music\data\network\yt\YouTubeRepository.kt
+app\src\main\java\com\frito\music\ui\screens\FavoritesScreen.kt
+app\src\main\java\com\frito\music\ui\screens\PlaylistsScreen.kt
+app\src\main\java\com\frito\music\ui\screens\OnlinePlaylistDetailScreen.kt
+app\src\main\java\com\frito\music\ui\screens\PlayerScreen.kt
+app\src\main\java\com\frito\music\MainActivity.kt
+
+
+########## app\src\main\java\com\frito\music\ui\viewmodels\OnlineLibraryViewModel.kt ##########
+package com.frito.music.ui.viewmodels
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.frito.music.data.network.yt.YouTubeRepository
+import com.music.innertube.models.SongItem
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+class OnlineLibraryViewModel : ViewModel() {
+
+    private val _likedSongs = MutableStateFlow<List<SongItem>>(emptyList())
+    val likedSongs: StateFlow<List<SongItem>> = _likedSongs.asStateFlow()
+
+    private val _likedSongIds = MutableStateFlow<Set<String>>(emptySet())
+    val likedSongIds: StateFlow<Set<String>> = _likedSongIds.asStateFlow()
+
+    private val _isLoadingLiked = MutableStateFlow(false)
+    val isLoadingLiked: StateFlow<Boolean> = _isLoadingLiked.asStateFlow()
+
+    private val _onlineError = MutableStateFlow<String?>(null)
+    val onlineError: StateFlow<String?> = _onlineError.asStateFlow()
+
+    fun loadLikedSongs() {
+        viewModelScope.launch {
+            _isLoadingLiked.value = true
+            _onlineError.value = null
+            val result = withContext(Dispatchers.IO) { YouTubeRepository.getLikedSongs() }
+            result
+                .onSuccess { songs ->
+                    _likedSongs.value = songs
+                    _likedSongIds.value = songs.map { it.id }.toSet()
+                }
+                .onFailure { e ->
+                    _onlineError.value = e.message ?: "No se pudieron cargar tus canciones"
+                }
+            _isLoadingLiked.value = false
+        }
+    }
+
+    /** Cambio optimista: actualiza localmente y luego llama a la API. */
+    fun likeSong(videoId: String, liked: Boolean) {
+        val current = _likedSongIds.value.toMutableSet()
+        if (liked) current.add(videoId) else current.remove(videoId)
+        _likedSongIds.value = current
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                com.music.innertube.YouTube.likeVideo(videoId, liked)
+            }
+            result.onFailure {
+                // revertir optimista
+                val rev = _likedSongIds.value.toMutableSet()
+                if (liked) rev.remove(videoId) else rev.add(videoId)
+                _likedSongIds.value = rev
+                _onlineError.value = "No se pudo actualizar en YouTube Music"
+            }
+        }
+    }
+
+    fun clearOnlineError() { _onlineError.value = null }
+
+    private val _onlinePlaylists = MutableStateFlow<List<com.music.innertube.models.PlaylistItem>>(emptyList())
+    val onlinePlaylists: StateFlow<List<com.music.innertube.models.PlaylistItem>> = _onlinePlaylists.asStateFlow()
+
+    private val _playlistSongs = MutableStateFlow<com.music.innertube.pages.PlaylistPage?>(null)
+    val playlistSongs: StateFlow<com.music.innertube.pages.PlaylistPage?> = _playlistSongs.asStateFlow()
+
+    private val _isLoadingPlaylists = MutableStateFlow(false)
+    val isLoadingPlaylists: StateFlow<Boolean> = _isLoadingPlaylists.asStateFlow()
+
+    fun loadOnlinePlaylists() {
+        viewModelScope.launch {
+            _isLoadingPlaylists.value = true
+            val result = withContext(Dispatchers.IO) { YouTubeRepository.getLikedPlaylists() }
+            result.onSuccess { _onlinePlaylists.value = it }
+                .onFailure { _onlineError.value = it.message ?: "No se pudieron cargar tus listas" }
+            _isLoadingPlaylists.value = false
+        }
+    }
+
+    fun loadPlaylistSongs(playlistId: String) {
+        viewModelScope.launch {
+            _playlistSongs.value = null
+            _onlineError.value = null
+            val result = withContext(Dispatchers.IO) {
+                YouTubeRepository.getPlaylistSongs(playlistId)
+            }
+            result.onSuccess { _playlistSongs.value = it }
+                .onFailure { _onlineError.value = it.message ?: "No se pudo abrir la lista" }
+        }
+    }
+
+    fun clearPlaylistSongs() { _playlistSongs.value = null }
+
+    fun createOnlinePlaylist(title: String) {
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                YouTubeRepository.createYouTubePlaylist(title)
+            }
+            result.onSuccess { loadOnlinePlaylists() }
+                .onFailure { _onlineError.value = it.message ?: "No se pudo crear la lista" }
+        }
+    }
+
+    fun deleteOnlinePlaylist(playlistId: String) {
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                com.music.innertube.YouTube.deletePlaylist(playlistId)
+            }
+            result.onSuccess { loadOnlinePlaylists() }
+                .onFailure { _onlineError.value = it.message ?: "No se pudo borrar la lista" }
+        }
+    }
+
+    fun addToOnlinePlaylist(playlistId: String, videoId: String) {
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                com.music.innertube.YouTube.addToPlaylist(playlistId, videoId)
+            }
+            result.onFailure { _onlineError.value = it.message ?: "No se pudo aÃ±adir la canciÃ³n" }
+        }
+    }
+
+    fun removeFromOnlinePlaylist(playlistId: String, videoId: String, setVideoId: String) {
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                com.music.innertube.YouTube.removeFromPlaylist(playlistId, videoId, setVideoId)
+            }
+            result.onSuccess { loadPlaylistSongs(playlistId) }
+                .onFailure { _onlineError.value = it.message ?: "No se pudo quitar la canciÃ³n" }
+        }
+    }
+}
+
+########## app\src\main\java\com\frito\music\data\network\yt\YouTubeRepository.kt ##########
+package com.frito.music.data.network.yt
+
+import com.frito.music.data.models.StreamableTrack
+import com.music.innertube.NewPipeExtractor
+import com.music.innertube.YouTube
+import com.music.innertube.models.ArtistItem
+import com.music.innertube.models.PlaylistItem
+import com.music.innertube.models.SongItem
+import com.music.innertube.models.WatchEndpoint
+import com.music.innertube.models.YouTubeClient
+import com.music.innertube.models.YouTubeClient.Companion.ANDROID_VR_1_43_32
+import com.music.innertube.models.YouTubeClient.Companion.ANDROID_VR_1_61_48
+import com.music.innertube.models.YouTubeClient.Companion.TVHTML5_SIMPLY_EMBEDDED_PLAYER
+import com.music.innertube.models.YouTubeClient.Companion.WEB_REMIX
+import com.music.innertube.pages.AlbumPage
+import com.music.innertube.pages.ArtistPage
+import com.music.innertube.pages.ExplorePage
+import com.music.innertube.pages.HomePage
+import com.music.innertube.pages.PlaylistPage
+import com.frito.music.utils.potoken.PoTokenGenerator
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.withContext
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
+
+object YouTubeRepository {
+
+    private val poTokenGenerator = PoTokenGenerator()
+
+    private data class CachedUrl(val url: String, val timestamp: Long)
+    private val streamUrlCache = ConcurrentHashMap<String, CachedUrl>()
+    private const val STREAM_URL_TTL_MS = 4 * 60 * 60 * 1000L
+
+    /**
+     * signatureTimestamp global de la sesiÃ³n (viene del player JS de YouTube y
+     * cambia con poca frecuencia). Los clientes con useSignatureTimestamp lo
+     * requieren en /player o devuelven 403.
+     */
+    @Volatile
+    private var signatureTimestampCache: Int? = null
+
+    private fun getSignatureTimestamp(videoId: String): Int? {
+        signatureTimestampCache?.let { return it }
+        return try {
+            NewPipeExtractor.getSignatureTimestamp(videoId).getOrNull()?.also {
+                signatureTimestampCache = it
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun getCachedStreamUrl(videoId: String): String? {
+        val entry = streamUrlCache[videoId] ?: return null
+        return if (System.currentTimeMillis() - entry.timestamp < STREAM_URL_TTL_MS) entry.url
+        else { streamUrlCache.remove(videoId); null }
+    }
+
+    // Clients that don't require PoToken (work without login)
+    private val ANONYMOUS_CLIENTS = listOf(
+        TVHTML5_SIMPLY_EMBEDDED_PLAYER,
+        ANDROID_VR_1_43_32,
+        ANDROID_VR_1_61_48
+    )
+
+    // Clients that work best with login (have cookies)
+    private val AUTHENTICATED_CLIENTS = listOf(
+        WEB_REMIX,
+        TVHTML5_SIMPLY_EMBEDDED_PLAYER,
+        ANDROID_VR_1_43_32
+    )
+
+    suspend fun search(query: String): Result<List<StreamableTrack>> = runCatching {
+        val result = YouTube.search(query, YouTube.SearchFilter.FILTER_SONG)
+        result.getOrThrow().items.filterIsInstance<SongItem>().map { song ->
+            StreamableTrack(
+                videoId = song.id,
+                title = song.title,
+                artist = song.artists.joinToString(", ") { it.name },
+                album = song.album?.name,
+                durationMs = song.duration?.times(1000L) ?: 0L,
+                thumbnailUrl = song.thumbnail
+            )
+        }
+    }
+
+    suspend fun searchArtists(query: String): Result<List<ArtistItem>> = runCatching {
+        val result = YouTube.search(query, YouTube.SearchFilter.FILTER_ARTIST)
+        result.getOrThrow().items.filterIsInstance<ArtistItem>()
+    }
+
+    suspend fun getArtistDetails(browseId: String): Result<ArtistPage> = runCatching {
+        YouTube.artist(browseId).getOrThrow()
+    }
+
+    suspend fun getAlbumDetails(browseId: String): Result<AlbumPage> = runCatching {
+        YouTube.album(browseId).getOrThrow()
+    }
+
+    suspend fun getHome(): Result<HomePage> = runCatching {
+        YouTube.home().getOrThrow()
+    }
+
+    suspend fun getExplore(): Result<ExplorePage> = runCatching {
+        YouTube.explore().getOrThrow()
+    }
+
+    /**
+     * Historial de reproducciÃ³n de la cuenta (requiere sesiÃ³n).
+     * Devuelve las canciones escuchadas recientemente, aplanadas y sin duplicados.
+     * Es la base de la secciÃ³n "Escuchado recientemente" del home de Stream.
+     */
+    suspend fun getMusicHistory(): Result<List<SongItem>> = runCatching {
+        val page = YouTube.musicHistory().getOrThrow()
+        page.sections.orEmpty()
+            .flatMap { it.songs }
+            .distinctBy { it.id }
+    }
+
+    /** Canciones "Me gusta" de la cuenta de YouTube Music. */
+    suspend fun getLikedSongs(): Result<List<SongItem>> = runCatching {
+        val page = YouTube.library("FEmusic_liked_songs").getOrThrow()
+        page.items.filterIsInstance<SongItem>()
+    }
+
+    /** Playlists guardadas de la cuenta de YouTube Music. */
+    suspend fun getLikedPlaylists(): Result<List<PlaylistItem>> = runCatching {
+        val page = YouTube.library("FEmusic_liked_playlists").getOrThrow()
+        page.items.filterIsInstance<PlaylistItem>()
+    }
+
+    private suspend fun resolveWithClient(client: YouTubeClient, videoId: String): String? {
+        val poToken = if (client.useWebPoTokens) {
+            val sessionId = YouTube.dataSyncId ?: YouTube.visitorData
+            if (sessionId != null) poTokenGenerator.getWebClientPoToken(videoId, sessionId) else null
+        } else null
+
+        val playerResponse = YouTube.player(
+            videoId = videoId,
+            playlistId = null,
+            client = client,
+            signatureTimestamp = getSignatureTimestamp(videoId),
+            poToken = poToken?.playerRequestPoToken
+        ).getOrNull() ?: return null
+
+        if (playerResponse.playabilityStatus.status != "OK") return null
+
+        val format = playerResponse.streamingData?.adaptiveFormats
+            ?.filter { it.mimeType.startsWith("audio/") }
+            ?.maxByOrNull { it.bitrate } ?: return null
+
+        val directUrl = format.url
+        if (!directUrl.isNullOrEmpty()) {
+            return if (poToken != null) "$directUrl&pot=${poToken.streamingDataPoToken}" else directUrl
+        }
+
+        val sigCipher = format.signatureCipher
+        val cipher = format.cipher
+        if (!sigCipher.isNullOrEmpty() || !cipher.isNullOrEmpty()) {
+            val deobfuscatedUrl = NewPipeExtractor.getStreamUrl(format, videoId)
+            if (deobfuscatedUrl != null) {
+                return if (poToken != null) "$deobfuscatedUrl&pot=${poToken.streamingDataPoToken}" else deobfuscatedUrl
+            }
+        }
+
+        val newPipeUrls = NewPipeExtractor.newPipePlayer(videoId)
+        if (newPipeUrls.isNotEmpty()) {
+            val audioUrl = newPipeUrls.firstOrNull { (itag, _) ->
+                playerResponse.streamingData?.adaptiveFormats
+                    ?.any { it.itag == itag && it.mimeType.startsWith("audio/") } == true
+            }?.second ?: newPipeUrls.firstOrNull()?.second
+            if (audioUrl != null) return audioUrl
+        }
+
+        return null
+    }
+
+    private suspend fun raceClients(videoId: String, clients: List<YouTubeClient>): String? =
+        supervisorScope {
+            val first = CompletableDeferred<String>()
+            val remaining = AtomicInteger(clients.size)
+            val jobs = clients.map { client ->
+                async(Dispatchers.IO) {
+                    val url = runCatching { resolveWithClient(client, videoId) }.getOrNull()
+                    if (url != null) {
+                        first.complete(url)
+                    } else if (remaining.decrementAndGet() == 0) {
+                        first.completeExceptionally(Exception("NingÃºn cliente pudo resolver el stream"))
+                    }
+                }
+            }
+            try {
+                first.await()
+            } catch (e: Exception) {
+                null
+            } finally {
+                jobs.forEach { it.cancel() }
+            }
+        }
+
+    suspend fun getStreamUrl(videoId: String): Result<String> = withContext(Dispatchers.IO) {
+        runCatching {
+            getCachedStreamUrl(videoId)?.let { return@runCatching it }
+
+            val isLoggedIn = YouTube.cookie != null
+            val clients = if (isLoggedIn) AUTHENTICATED_CLIENTS else ANONYMOUS_CLIENTS
+
+            val url = raceClients(videoId, clients)
+            if (url != null) {
+                streamUrlCache[videoId] = CachedUrl(url, System.currentTimeMillis())
+                return@runCatching url
+            }
+
+            // Fallback final NewPipe directo
+            val newPipeUrls = NewPipeExtractor.newPipePlayer(videoId)
+            if (newPipeUrls.isNotEmpty()) {
+                val audioUrl = newPipeUrls.firstOrNull()?.second
+                if (audioUrl != null) {
+                    streamUrlCache[videoId] = CachedUrl(audioUrl, System.currentTimeMillis())
+                    return@runCatching audioUrl
+                }
+            }
+
+            throw Exception("Could not resolve stream URL with any client")
+        }
+    }
+
+    suspend fun getLyrics(videoId: String): Result<String?> = runCatching {
+        val nextResult = YouTube.next(
+            WatchEndpoint(videoId = videoId)
+        ).getOrThrow()
+
+        nextResult.lyricsEndpoint?.let { endpoint ->
+            YouTube.lyrics(endpoint).getOrThrow()
+        }
+    }
+
+    suspend fun getUserPlaylists(): Result<List<PlaylistItem>> = runCatching {
+        val result = YouTube.library("FEmusic_liked_playlists").getOrThrow()
+        result.items.filterIsInstance<PlaylistItem>()
+    }
+
+    suspend fun getPlaylistSongs(playlistId: String): Result<PlaylistPage> = runCatching {
+        YouTube.playlist(playlistId).getOrThrow()
+    }
+
+    suspend fun createYouTubePlaylist(title: String): Result<String> = runCatching {
+        YouTube.createPlaylist(title) ?: throw Exception("Failed to create playlist")
+    }
+
+    suspend fun addToPlaylist(playlistId: String, videoId: String): Result<Unit> = runCatching {
+        YouTube.addToPlaylist(playlistId, videoId)
+        Unit
+    }
+}
+
+
+########## app\src\main\java\com\frito\music\ui\screens\FavoritesScreen.kt ##########
+package com.frito.music.ui.screens
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.frito.music.data.models.AudioFile
+import com.frito.music.ui.theme.LocalAppColors
+import com.frito.music.ui.viewmodels.HomeViewModel
+import com.frito.music.ui.viewmodels.OnlineLibraryViewModel
+import com.frito.music.ui.viewmodels.PlayerViewModel
+import com.frito.music.ui.viewmodels.StreamViewModel
+import com.music.innertube.models.SongItem
+
+@Composable
+fun FavoritesScreen(
+    homeViewModel: HomeViewModel,
+    playerViewModel: PlayerViewModel,
+    onlineLibraryViewModel: OnlineLibraryViewModel,
+    streamViewModel: StreamViewModel,
+    onBack: () -> Unit
+) {
+    // Reactivo: se actualiza solo cuando el escaneo o un rescan (descarga nueva) termina
+    val allAudios by homeViewModel.allAudios.collectAsState()
+    val favorites by playerViewModel.favorites.collectAsState(initial = emptySet())
+    val appColors = LocalAppColors.current
+
+    // Cachear el filtrado para evitar recalcular en cada recomposiciÃ³n
+    val favoriteAudios = remember(allAudios, favorites) {
+        allAudios.filter { favorites.contains(it.path) }.sortedBy { it.title }
+    }
+
+    val scope = rememberCoroutineScope()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                // Gradiente derivado del acento (antes: banda rojiza fija que
+                // chocaba con temas claros y con "Color predominante")
+                Brush.verticalGradient(
+                    colors = if (appColors.backgroundImageUri != null) {
+                        listOf(appColors.accent.copy(alpha = 0.3f), Color.Transparent)
+                    } else {
+                        listOf(appColors.accent.copy(alpha = if (appColors.isDark) 0.22f else 0.14f), appColors.background)
+                    },
+                    startY = 0f,
+                    endY = 800f
+                )
+            )
+    ) {
+        // Top Bar / Back button
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 48.dp, start = 16.dp, end = 16.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(appColors.surface)
+                    .clickable { onBack() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = appColors.textPrimary
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // PestaÃ±as Offline | Online
+        val pagerState = rememberPagerState(pageCount = { 2 })
+        TabRow(
+            selectedTabIndex = pagerState.currentPage,
+            containerColor = Color.Transparent,
+            contentColor = appColors.textPrimary,
+            divider = { HorizontalDivider(color = Color(0xFF222222)) },
+            indicator = { tabPositions ->
+                TabRowDefaults.SecondaryIndicator(
+                    Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
+                    color = appColors.accent,
+                    height = 2.dp
+                )
+            }
+        ) {
+            Tab(
+                selected = pagerState.currentPage == 0,
+                onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
+                text = { Text("Offline", fontWeight = if (pagerState.currentPage == 0) FontWeight.Bold else FontWeight.Normal) }
+            )
+            Tab(
+                selected = pagerState.currentPage == 1,
+                onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
+                text = { Text("Online", fontWeight = if (pagerState.currentPage == 1) FontWeight.Bold else FontWeight.Normal) }
+            )
+        }
+
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.weight(1f)
+        ) { page ->
+            if (page == 0) {
+                FavoritesOfflineContent(favoriteAudios = favoriteAudios, playerViewModel = playerViewModel, appColors = appColors)
+            } else {
+                FavoritesOnlineContent(
+                    onlineLibraryViewModel = onlineLibraryViewModel,
+                    streamViewModel = streamViewModel,
+                    playerViewModel = playerViewModel,
+                    appColors = appColors
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FavoritesOfflineContent(
+    favoriteAudios: List<AudioFile>,
+    playerViewModel: PlayerViewModel,
+    appColors: com.frito.music.ui.theme.AppColors
+) {
+    Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+        // Header Section
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(24.dp))
+            Box(
+                modifier = Modifier
+                    .size(120.dp)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(appColors.accent),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Favorite,
+                    contentDescription = "Favorite Cover",
+                    tint = com.frito.music.ui.theme.textColorForBackground(appColors.accent),
+                    modifier = Modifier.size(64.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "Favoritos",
+                color = appColors.textPrimary,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "${favoriteAudios.size} canciones",
+                color = appColors.textSecondary,
+                fontSize = 16.sp
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Play / Shuffle Buttons if not empty
+            if (favoriteAudios.isNotEmpty()) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(appColors.surface)
+                            .clickable {
+                                if (!playerViewModel.shuffleModeEnabled.value) {
+                                    playerViewModel.toggleShuffle()
+                                }
+                                val randomIndex = favoriteAudios.indices.random()
+                                playerViewModel.playAudios(favoriteAudios, randomIndex)
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.Shuffle, contentDescription = "Shuffle", tint = appColors.textPrimary, modifier = Modifier.size(24.dp))
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .background(appColors.accent)
+                            .clickable {
+                                playerViewModel.playAudios(favoriteAudios, 0)
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = com.frito.music.ui.theme.textColorForBackground(appColors.accent), modifier = Modifier.size(32.dp))
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        if (favoriteAudios.isEmpty()) {
+            // Empty State
+            Column(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.FavoriteBorder,
+                    contentDescription = "Empty Favorites",
+                    tint = appColors.textSecondary,
+                    modifier = Modifier.size(64.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Toca el corazÃ³n en cualquier canciÃ³n para\nagregarla aquÃ­",
+                    color = appColors.textSecondary,
+                    fontSize = 16.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 32.dp)
+                )
+            }
+        } else {
+            // List of favorites
+            LazyColumn(
+                contentPadding = PaddingValues(start = 16.dp, top = 0.dp, end = 16.dp, bottom = 100.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(
+                    items = favoriteAudios,
+                    key = { it.path }
+                ) { audio ->
+                    val index = favoriteAudios.indexOf(audio)
+                    AudioFileRowUI(song = audio, isFavorite = true, appColors = appColors, onClick = {
+                        playerViewModel.playAudios(favoriteAudios, index)
+                    })
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FavoritesOnlineContent(
+    onlineLibraryViewModel: OnlineLibraryViewModel,
+    streamViewModel: StreamViewModel,
+    playerViewModel: PlayerViewModel,
+    appColors: com.frito.music.ui.theme.AppColors
+) {
+    val likedSongs by onlineLibraryViewModel.likedSongs.collectAsState()
+    val likedIds by onlineLibraryViewModel.likedSongIds.collectAsState()
+    val isLoading by onlineLibraryViewModel.isLoadingLiked.collectAsState()
+    val error by onlineLibraryViewModel.onlineError.collectAsState()
+
+    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                onlineLibraryViewModel.loadLikedSongs()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    when {
+        !com.frito.music.data.repository.YouTubeLoginManager.isLoggedIn() -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Outlined.MusicNote, contentDescription = null, tint = appColors.textSecondary.copy(alpha = 0.5f), modifier = Modifier.size(80.dp))
+                    Spacer(Modifier.height(16.dp))
+                    Text("Inicia sesiÃ³n para ver tus favoritos de YouTube Music", color = appColors.textSecondary, fontSize = 16.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 32.dp))
+                }
+            }
+        }
+        isLoading && likedSongs.isEmpty() -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = appColors.accent)
+            }
+        }
+        likedSongs.isEmpty() -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(if (error != null) error!! else "No tienes canciones marcadas", color = if (error != null) Color.Red else appColors.textSecondary, fontSize = 16.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(32.dp))
+            }
+        }
+        else -> {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 100.dp, top = 8.dp)
+            ) {
+                items(likedSongs, key = { it.id }) { song ->
+                    OnlineLikedSongRow(
+                        song = song,
+                        isLiked = likedIds.contains(song.id),
+                        onToggleLike = { onlineLibraryViewModel.likeSong(song.id, !likedIds.contains(song.id)) },
+                        onClick = { streamViewModel.playArtistSong(song, playerViewModel, queueSongs = likedSongs) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OnlineLikedSongRow(
+    song: SongItem,
+    isLiked: Boolean,
+    onToggleLike: () -> Unit,
+    onClick: () -> Unit
+) {
+    val appColors = LocalAppColors.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color(0xFF1A1A1A)),
+            contentAlignment = Alignment.Center
+        ) {
+            if (song.thumbnail.isNotEmpty()) {
+                AsyncImage(model = song.thumbnail, contentDescription = song.title, modifier = Modifier.fillMaxSize())
+            } else {
+                Icon(Icons.Default.MusicNote, contentDescription = null, tint = appColors.textSecondary)
+            }
+        }
+        Spacer(modifier = Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(song.title, color = appColors.textPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(song.artists.joinToString(", ") { it.name }, color = appColors.textSecondary, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        Icon(
+            imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Default.FavoriteBorder,
+            contentDescription = if (isLiked) "Quitar de Me gusta" else "Me gusta",
+            tint = if (isLiked) Color(0xFFFF6B6B) else appColors.textSecondary,
+            modifier = Modifier
+                .size(28.dp)
+                .clickable { onToggleLike() }
+        )
+    }
+}
+
+########## app\src\main\java\com\frito\music\ui\screens\PlaylistsScreen.kt ##########
+package com.frito.music.ui.screens
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.frito.music.ui.theme.LocalAppColors
+import com.frito.music.ui.viewmodels.OnlineLibraryViewModel
+import com.frito.music.ui.viewmodels.PlayerViewModel
+
+@Composable
+fun PlaylistsScreen(
+    playerViewModel: PlayerViewModel,
+    onlineLibraryViewModel: OnlineLibraryViewModel,
+    onNavigateToOnlinePlaylist: (String) -> Unit,
+    onBack: () -> Unit,
+    onPlaylistClick: (com.frito.music.data.models.Playlist) -> Unit
+) {
+    val appColors = LocalAppColors.current
+    val scope = rememberCoroutineScope()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = if (appColors.backgroundImageUri != null) {
+                        listOf(appColors.accent.copy(alpha = 0.3f), Color.Transparent)
+                    } else {
+                        listOf(appColors.accent.copy(alpha = 0.15f), appColors.background)
+                    },
+                    startY = 0f,
+                    endY = 800f
+                )
+            )
+    ) {
+        // Top Bar / Back button
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 48.dp, start = 16.dp, end = 16.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(appColors.surface)
+                    .clickable { onBack() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = appColors.textPrimary
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // PestaÃ±as Offline | Online
+        val pagerState = rememberPagerState(pageCount = { 2 })
+        TabRow(
+            selectedTabIndex = pagerState.currentPage,
+            containerColor = Color.Transparent,
+            contentColor = appColors.textPrimary,
+            divider = { HorizontalDivider(color = Color(0xFF222222)) },
+            indicator = { tabPositions ->
+                TabRowDefaults.SecondaryIndicator(
+                    Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
+                    color = appColors.accent,
+                    height = 2.dp
+                )
+            }
+        ) {
+            Tab(
+                selected = pagerState.currentPage == 0,
+                onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
+                text = { Text("Offline", fontWeight = if (pagerState.currentPage == 0) FontWeight.Bold else FontWeight.Normal) }
+            )
+            Tab(
+                selected = pagerState.currentPage == 1,
+                onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
+                text = { Text("Online", fontWeight = if (pagerState.currentPage == 1) FontWeight.Bold else FontWeight.Normal) }
+            )
+        }
+
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.weight(1f)
+        ) { page ->
+            if (page == 0) {
+                PlaylistsOfflineContent(playerViewModel = playerViewModel, appColors = appColors, onPlaylistClick = onPlaylistClick)
+            } else {
+                PlaylistsOnlineContent(
+                    onlineLibraryViewModel = onlineLibraryViewModel,
+                    onNavigateToOnlinePlaylist = onNavigateToOnlinePlaylist,
+                    appColors = appColors
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlaylistsOfflineContent(
+    playerViewModel: PlayerViewModel,
+    appColors: com.frito.music.ui.theme.AppColors,
+    onPlaylistClick: (com.frito.music.data.models.Playlist) -> Unit
+) {
+    val playlists by playerViewModel.playlists.collectAsState()
+    var showCreateDialog by remember { mutableStateOf(false) }
+    var newPlaylistName by remember { mutableStateOf("") }
+
+    if (showCreateDialog) {
+        AlertDialog(
+            onDismissRequest = { showCreateDialog = false },
+            title = { Text(text = "Nueva Lista de ReproducciÃ³n", color = appColors.textPrimary) },
+            text = {
+                OutlinedTextField(
+                    value = newPlaylistName,
+                    onValueChange = { newPlaylistName = it },
+                    label = { Text("Nombre", color = appColors.textSecondary) },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = appColors.textPrimary,
+                        unfocusedTextColor = appColors.textPrimary,
+                        focusedBorderColor = appColors.accent,
+                        unfocusedBorderColor = appColors.textSecondary
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (newPlaylistName.isNotBlank()) {
+                        playerViewModel.createPlaylist(newPlaylistName.trim())
+                    }
+                    showCreateDialog = false
+                    newPlaylistName = ""
+                }) {
+                    Text("Guardar", color = appColors.accent, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCreateDialog = false }) {
+                    Text("Cancelar", color = appColors.textSecondary)
+                }
+            },
+            containerColor = appColors.surface
+        )
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Header Section
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(24.dp))
+            Box(
+                modifier = Modifier
+                    .size(120.dp)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(appColors.accent),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.FormatListBulleted,
+                    contentDescription = "Playlist",
+                    tint = com.frito.music.ui.theme.textColorForBackground(appColors.accent),
+                    modifier = Modifier.size(64.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "Listas de ReproducciÃ³n",
+                color = appColors.textPrimary,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "${playlists.size} listas",
+                color = appColors.textSecondary,
+                fontSize = 16.sp
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Create List Button
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(appColors.accent)
+                    .clickable { showCreateDialog = true }
+                    .padding(horizontal = 24.dp, vertical = 12.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add",
+                        tint = com.frito.music.ui.theme.textColorForBackground(appColors.accent),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Crear lista",
+                        color = com.frito.music.ui.theme.textColorForBackground(appColors.accent),
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        if (playlists.isEmpty()) {
+            // Empty State Section
+            Column(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.FormatListBulleted,
+                    contentDescription = "Empty Playlists",
+                    tint = appColors.textSecondary,
+                    modifier = Modifier.size(64.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Sin listas",
+                    color = appColors.textPrimary,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Crea tu primera lista de reproducciÃ³n",
+                    color = appColors.textSecondary,
+                    fontSize = 16.sp,
+                    textAlign = TextAlign.Center
+                )
+            }
+        } else {
+            LazyColumn(
+                contentPadding = PaddingValues(bottom = 100.dp, start = 16.dp, end = 16.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(
+                    playlists,
+                    key = { it.id }
+                ) { playlist ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(appColors.surface)
+                            .clickable { onPlaylistClick(playlist) }
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(appColors.accent.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.QueueMusic,
+                                contentDescription = "Playlist",
+                                tint = appColors.accent,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column {
+                            Text(
+                                text = playlist.name,
+                                color = appColors.textPrimary,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "${playlist.audioPaths.size} canciones",
+                                color = appColors.textSecondary,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlaylistsOnlineContent(
+    onlineLibraryViewModel: OnlineLibraryViewModel,
+    onNavigateToOnlinePlaylist: (String) -> Unit,
+    appColors: com.frito.music.ui.theme.AppColors
+) {
+    val playlists by onlineLibraryViewModel.onlinePlaylists.collectAsState()
+    val isLoading by onlineLibraryViewModel.isLoadingPlaylists.collectAsState()
+    val error by onlineLibraryViewModel.onlineError.collectAsState()
+    var showCreate by remember { mutableStateOf(false) }
+    var newName by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        onlineLibraryViewModel.loadOnlinePlaylists()
+    }
+
+    when {
+        !com.frito.music.data.repository.YouTubeLoginManager.isLoggedIn() -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Inicia sesiÃ³n para ver tus listas de YouTube Music", color = appColors.textSecondary, fontSize = 16.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(32.dp))
+            }
+        }
+        else -> {
+            Column(Modifier.fillMaxSize()) {
+                // BotÃ³n crear playlist online
+                Box(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(appColors.accent)
+                        .clickable { showCreate = true }
+                        .padding(horizontal = 20.dp, vertical = 10.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Add, contentDescription = "Crear", tint = com.frito.music.ui.theme.textColorForBackground(appColors.accent), modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Crear lista online", color = com.frito.music.ui.theme.textColorForBackground(appColors.accent), fontWeight = FontWeight.SemiBold)
+                    }
+                }
+
+                when {
+                    isLoading && playlists.isEmpty() -> Box(Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = appColors.accent) }
+                    playlists.isEmpty() -> Box(Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) {
+                        Text(error ?: "No tienes listas en YouTube Music", color = if (error != null) Color.Red else appColors.textSecondary, fontSize = 16.sp, modifier = Modifier.padding(32.dp))
+                    }
+                    else -> LazyColumn(
+                        modifier = Modifier.fillMaxSize().weight(1f),
+                        contentPadding = PaddingValues(bottom = 100.dp, start = 16.dp, end = 16.dp)
+                    ) {
+                        items(playlists, key = { it.id }) { pl ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(appColors.surface)
+                                    .clickable { onNavigateToOnlinePlaylist(pl.id) }
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(appColors.accent.copy(alpha = 0.15f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.AutoMirrored.Filled.QueueMusic, contentDescription = null, tint = appColors.accent, modifier = Modifier.size(24.dp))
+                                }
+                                Spacer(Modifier.width(16.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(pl.title, color = appColors.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(pl.songCountText ?: "", color = appColors.textSecondary, fontSize = 14.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showCreate) {
+        AlertDialog(
+            onDismissRequest = { showCreate = false },
+            title = { Text("Nueva lista en YouTube Music", color = appColors.textPrimary) },
+            text = {
+                OutlinedTextField(
+                    value = newName,
+                    onValueChange = { newName = it },
+                    label = { Text("Nombre", color = appColors.textSecondary) },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = appColors.textPrimary, unfocusedTextColor = appColors.textPrimary, focusedBorderColor = appColors.accent, unfocusedBorderColor = appColors.textSecondary)
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (newName.isNotBlank()) onlineLibraryViewModel.createOnlinePlaylist(newName.trim())
+                    showCreate = false
+                    newName = ""
+                }) { Text("Guardar", color = appColors.accent, fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = { TextButton(onClick = { showCreate = false }) { Text("Cancelar", color = appColors.textSecondary) } },
+            containerColor = appColors.surface
+        )
+    }
+}
+
+########## app\src\main\java\com\frito\music\ui\screens\OnlinePlaylistDetailScreen.kt ##########
+package com.frito.music.ui.screens
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.RemoveCircleOutline
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.frito.music.ui.theme.LocalAppColors
+import com.frito.music.ui.viewmodels.OnlineLibraryViewModel
+import com.frito.music.ui.viewmodels.StreamViewModel
+import com.frito.music.ui.viewmodels.PlayerViewModel
+import com.music.innertube.models.SongItem
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun OnlinePlaylistDetailScreen(
+    playlistId: String,
+    onlineLibraryViewModel: OnlineLibraryViewModel,
+    streamViewModel: StreamViewModel,
+    playerViewModel: PlayerViewModel,
+    onBack: () -> Unit
+) {
+    val appColors = LocalAppColors.current
+    val page by onlineLibraryViewModel.playlistSongs.collectAsState()
+    val error by onlineLibraryViewModel.onlineError.collectAsState()
+
+    LaunchedEffect(playlistId) {
+        onlineLibraryViewModel.clearPlaylistSongs()
+        onlineLibraryViewModel.loadPlaylistSongs(playlistId)
+    }
+
+    val songs = remember(page) { page?.songs ?: emptyList() }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(page?.playlist?.title ?: "Lista", color = appColors.textPrimary) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = appColors.textPrimary)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = appColors.background)
+            )
+        },
+        containerColor = appColors.background
+    ) { padding ->
+        when {
+            page == null && error == null -> Box(Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = appColors.accent)
+            }
+            songs.isEmpty() -> Box(Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(error ?: "Lista vacÃ­a", color = if (error != null) Color.Red else appColors.textSecondary, fontSize = 16.sp)
+            }
+            else -> LazyColumn(
+                modifier = Modifier.padding(padding).fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 40.dp)
+            ) {
+                item {
+                    Button(
+                        onClick = {
+                            if (songs.isNotEmpty()) {
+                                streamViewModel.playAlbumSong(songs.first(), playerViewModel, queueSongs = songs)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = appColors.accent),
+                        shape = RoundedCornerShape(24.dp)
+                    ) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = null, tint = com.frito.music.ui.theme.textColorForBackground(appColors.accent))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Reproducir todo", color = com.frito.music.ui.theme.textColorForBackground(appColors.accent), fontWeight = FontWeight.Bold)
+                    }
+                }
+                itemsIndexed(songs) { index, song ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { streamViewModel.playAlbumSong(song, playerViewModel, queueSongs = songs) }
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text((index + 1).toString(), color = appColors.textSecondary, fontSize = 13.sp, modifier = Modifier.width(28.dp))
+                        Box(
+                            modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF1A1A1A)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (song.thumbnail.isNotEmpty()) AsyncImage(model = song.thumbnail, contentDescription = song.title, modifier = Modifier.fillMaxSize())
+                            else Icon(Icons.Default.MusicNote, contentDescription = null, tint = appColors.textSecondary)
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(song.title, color = appColors.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(song.artists.joinToString(", ") { it.name }, color = appColors.textSecondary, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                        Icon(
+                            imageVector = Icons.Default.RemoveCircleOutline,
+                            contentDescription = "Quitar de la lista",
+                            tint = appColors.textSecondary,
+                            modifier = Modifier.size(24.dp).clickable {
+                                val sid = song.setVideoId
+                                if (sid != null) {
+                                    onlineLibraryViewModel.removeFromOnlinePlaylist(playlistId, song.id, sid)
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+########## app\src\main\java\com\frito\music\ui\screens\PlayerScreen.kt ##########
+package com.frito.music.ui.screens
+
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.draw.blur
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
+import com.frito.music.utils.ImageUtils
+import com.frito.music.ui.viewmodels.OnlineLibraryViewModel
+import com.frito.music.ui.viewmodels.PlayerViewModel
+import com.frito.music.ui.viewmodels.StreamViewModel
+import androidx.media3.common.Player
+import com.frito.music.ui.theme.LocalAppColors
+import com.frito.music.data.models.AudioFile
+import com.frito.music.ui.components.AddToYouTubePlaylistModal
+
+fun formatDuration(ms: Long): String {
+    val totalSeconds = ms / 1000
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return String.format("%d:%02d", minutes, seconds)
+}
+
+@Composable
+fun PlayerScreen(
+    viewModel: PlayerViewModel,
+    streamViewModel: StreamViewModel,
+    onlineLibraryViewModel: OnlineLibraryViewModel,
+    onClose: () -> Unit
+) {
+    val isPlaying by viewModel.isPlaying.collectAsState()
+    val progress by viewModel.progress.collectAsState()
+    val currentAudio by viewModel.currentAudio.collectAsState()
+    val positionMs by viewModel.positionMs.collectAsState()
+    val durationMs by viewModel.durationMs.collectAsState()
+    val shuffleModeEnabled by viewModel.shuffleModeEnabled.collectAsState()
+    val repeatMode by viewModel.repeatMode.collectAsState()
+    val isCurrentFavorite by viewModel.isCurrentFavorite.collectAsState()
+    val likedSongIds by onlineLibraryViewModel.likedSongIds.collectAsState()
+
+    val currentPath = currentAudio?.path.orEmpty()
+    val isOnline = currentPath.startsWith("http")
+    val currentVideoId = remember(currentPath) {
+        com.music.innertube.utils.YouTubeUrlParser.extractVideoId(currentPath)
+    }
+    val isOnlineLiked = currentVideoId != null && likedSongIds.contains(currentVideoId)
+    val playlists by viewModel.playlists.collectAsState()
+    val currentLyrics by streamViewModel.currentLyrics.collectAsState()
+    val isLoadingLyrics by streamViewModel.isLoadingLyrics.collectAsState()
+    var showLyrics by remember { mutableStateOf(false) }
+    var showPlaylistSheet by remember { mutableStateOf(false) }
+    var showCreateDialog by remember { mutableStateOf(false) }
+    var newPlaylistName by remember { mutableStateOf("") }
+    var showAddToYouTubePlaylist by remember { mutableStateOf(false) }
+    
+    val appColors = LocalAppColors.current
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                var dragY = 0f
+                detectVerticalDragGestures(
+                    onDragStart = { dragY = 0f },
+                    onDragEnd = {
+                        if (dragY > 50 && !showLyrics) {
+                            onClose()
+                        } else if (dragY > 50 && showLyrics) {
+                            showLyrics = false
+                        } else if (dragY < -50 && !showLyrics) {
+                            showLyrics = true
+                        }
+                    },
+                    onVerticalDrag = { _, dragAmount ->
+                        dragY += dragAmount
+                    }
+                )
+            }
+    ) {
+        // Blur Background Layer
+        if (appColors.backgroundImageUri != null) {
+            AsyncImage(
+                model = appColors.backgroundImageUri,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .blur(radius = 60.dp)
+            )
+            // Overlay so UI remains visible
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.4f))
+            )
+        } else {
+            // Solid Background â€” sigue el tema activo (incluye "Color predominante")
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(appColors.background)
+            )
+        }
+
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // Top Bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 48.dp, start = 16.dp, end = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = "Close",
+                    tint = appColors.textPrimary,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clickable { onClose() }
+                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "REPRODUCIENDO DE",
+                        color = appColors.textSecondary,
+                        fontSize = 10.sp,
+                        letterSpacing = 1.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Music",
+                        color = appColors.textPrimary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Icon(
+                    imageVector = if (currentAudio?.path?.startsWith("http") == true) Icons.AutoMirrored.Filled.PlaylistAdd else Icons.Default.AddCircleOutline,
+                    contentDescription = "Add",
+                    tint = appColors.textPrimary,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clickable {
+                            if (currentAudio?.path?.startsWith("http") == true) {
+                                showAddToYouTubePlaylist = true
+                            } else {
+                                showPlaylistSheet = true
+                            }
+                        }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Album Art con crossfade y scale animado
+            val albumArtScale by animateFloatAsState(
+                targetValue = if (isPlaying) 1f else 0.95f,
+                animationSpec = tween(400, easing = FastOutSlowInEasing),
+                label = "albumArtScale"
+            )
+            val context = LocalContext.current
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .aspectRatio(1f)
+                    .scale(albumArtScale)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(appColors.surface),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MusicNote,
+                    contentDescription = "Album Art",
+                    tint = appColors.textSecondary.copy(alpha = 0.5f),
+                    modifier = Modifier.size(120.dp)
+                )
+                if (currentAudio?.albumUri != null) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(ImageUtils.highRes(currentAudio?.albumUri))
+                            .crossfade(400)
+                            .build(),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Song Info
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = currentAudio?.title ?: "Sin reproducir",
+                        color = appColors.textPrimary,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = currentAudio?.artist ?: "",
+                        color = appColors.textSecondary,
+                        fontSize = 16.sp,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                }
+                val favIsActive = if (isOnline) isOnlineLiked else isCurrentFavorite
+                val favTint = if (favIsActive) Color(0xFFFF6B6B) else appColors.textPrimary
+                Icon(
+                    imageVector = if (favIsActive) Icons.Filled.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = "Favorite",
+                    tint = favTint,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clickable {
+                            if (isOnline && currentVideoId != null) {
+                                onlineLibraryViewModel.likeSong(currentVideoId, !isOnlineLiked)
+                            } else {
+                                viewModel.toggleFavorite()
+                            }
+                        }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Waveform Progress Bar
+            WaveformProgress(
+                progress = progress,
+                onProgressChange = { viewModel.seekTo(it) },
+                isPlaying = isPlaying,
+                appColors = appColors,
+                modifier = Modifier.padding(horizontal = 24.dp)
+            )
+
+            // Timestamps
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(formatDuration(positionMs), color = appColors.textSecondary, fontSize = 12.sp)
+                Text(formatDuration(durationMs), color = appColors.textSecondary, fontSize = 12.sp)
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Audio Info
+            QualityInfo(audio = currentAudio)
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Controls
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Shuffle,
+                    contentDescription = "Shuffle",
+                    tint = if (shuffleModeEnabled) appColors.accent else appColors.textPrimary,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clickable { viewModel.toggleShuffle() }
+                )
+                Icon(
+                    imageVector = Icons.Default.SkipPrevious,
+                    contentDescription = "Previous",
+                    tint = appColors.textPrimary,
+                    modifier = Modifier.size(40.dp).clickable { viewModel.skipPrevious() }
+                )
+                val playInteractionSource = remember { MutableInteractionSource() }
+                val isPlayPressed by playInteractionSource.collectIsPressedAsState()
+                val playButtonScale by animateFloatAsState(
+                    targetValue = if (isPlayPressed) 0.92f else 1f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessHigh
+                    ),
+                    label = "playScale"
+                )
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .scale(playButtonScale)
+                        .clip(CircleShape)
+                        .background(appColors.textPrimary)
+                        .clickable(
+                            interactionSource = playInteractionSource,
+                            indication = null
+                        ) { viewModel.playPause() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = "Play/Pause",
+                        tint = if(appColors.isDark) Color.Black else Color.White,
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
+                Icon(
+                    imageVector = Icons.Default.SkipNext,
+                    contentDescription = "Next",
+                    tint = appColors.textPrimary,
+                    modifier = Modifier.size(40.dp).clickable { viewModel.skipNext() }
+                )
+                val repeatIcon = when (repeatMode) {
+                    Player.REPEAT_MODE_ONE -> Icons.Default.RepeatOne
+                    else -> Icons.Default.Repeat
+                }
+                val repeatTint = if (repeatMode != Player.REPEAT_MODE_OFF) appColors.accent else appColors.textPrimary
+                
+                Icon(
+                    imageVector = repeatIcon,
+                    contentDescription = "Repeat",
+                    tint = repeatTint,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clickable { viewModel.toggleRepeat() }
+                )
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+
+        }
+        
+        // Lyrics Overlay
+        androidx.compose.animation.AnimatedVisibility(
+            visible = showLyrics,
+            enter = androidx.compose.animation.slideInVertically(initialOffsetY = { it }, animationSpec = androidx.compose.animation.core.tween(300)),
+            exit = androidx.compose.animation.slideOutVertically(targetOffsetY = { it }, animationSpec = androidx.compose.animation.core.tween(300))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(appColors.surface),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = "Close Lyrics",
+                    tint = appColors.textPrimary,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 48.dp)
+                        .size(36.dp)
+                        .clickable { showLyrics = false }
+                )
+
+                when {
+                    isLoadingLyrics -> {
+                        CircularProgressIndicator(color = appColors.accent)
+                    }
+                    currentLyrics != null -> {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 24.dp, vertical = 80.dp)
+                        ) {
+                            item {
+                                Text(
+                                    text = currentLyrics!!,
+                                    color = appColors.textPrimary,
+                                    fontSize = 16.sp,
+                                    lineHeight = 24.sp
+                                )
+                            }
+                        }
+                    }
+                    else -> {
+                        Text(
+                            text = "Letras no disponibles",
+                            color = appColors.textSecondary,
+                            fontSize = 16.sp
+                        )
+                    }
+                }
+            }
+        }
+
+        if (showPlaylistSheet) {
+            @OptIn(ExperimentalMaterial3Api::class)
+            ModalBottomSheet(
+                onDismissRequest = { showPlaylistSheet = false },
+                containerColor = appColors.surface,
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 32.dp)
+                ) {
+                    Text(
+                        text = "AÃ±adir a la lista",
+                        color = appColors.textPrimary,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                    
+                    LazyColumn(
+                        modifier = Modifier.heightIn(max = 350.dp)
+                    ) {
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { 
+                                        showPlaylistSheet = false
+                                        showCreateDialog = true 
+                                    }
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .background(appColors.background, RoundedCornerShape(8.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = "Crear", tint = appColors.textPrimary)
+                                }
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Text("Crear lista de reproducciÃ³n", color = appColors.textPrimary, fontSize = 16.sp)
+                            }
+                        }
+                        items(playlists) { playlist ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { 
+                                        viewModel.addCurrentAudioToPlaylist(playlist.id)
+                                        showPlaylistSheet = false
+                                    }
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .background(appColors.background, RoundedCornerShape(8.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.AutoMirrored.Filled.QueueMusic, contentDescription = "Lista", tint = appColors.textSecondary)
+                                }
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Column {
+                                    Text(playlist.name, color = appColors.textPrimary, fontSize = 16.sp)
+                                    Text("${playlist.audioPaths.size} canciones", color = appColors.textSecondary, fontSize = 14.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (showCreateDialog) {
+            AlertDialog(
+                onDismissRequest = { showCreateDialog = false },
+                title = { Text(text = "Nueva Lista de ReproducciÃ³n", color = appColors.textPrimary) },
+                text = {
+                    OutlinedTextField(
+                        value = newPlaylistName,
+                        onValueChange = { newPlaylistName = it },
+                        label = { Text("Nombre", color = appColors.textSecondary) },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = appColors.textPrimary,
+                            unfocusedTextColor = appColors.textPrimary,
+                            focusedBorderColor = appColors.accent,
+                            unfocusedBorderColor = appColors.textSecondary
+                        )
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        if (newPlaylistName.isNotBlank()) {
+                            val newPl = viewModel.createPlaylist(newPlaylistName.trim())
+                            viewModel.addCurrentAudioToPlaylist(newPl.id)
+                        }
+                        showCreateDialog = false
+                        newPlaylistName = ""
+                    }) {
+                        Text("Guardar", color = appColors.accent, fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showCreateDialog = false }) {
+                        Text("Cancelar", color = appColors.textSecondary)
+                    }
+                },
+                containerColor = appColors.surface
+            )
+        }
+
+        if (showAddToYouTubePlaylist) {
+            currentAudio?.let { audio ->
+                val videoId = audio.path.substringAfterLast("/")
+                AddToYouTubePlaylistModal(
+                    videoId = videoId,
+                    streamViewModel = streamViewModel,
+                    onDismiss = { showAddToYouTubePlaylist = false },
+                    onPlaylistCreated = { showAddToYouTubePlaylist = false }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun WaveformProgress(
+    progress: Float,
+    onProgressChange: (Float) -> Unit,
+    isPlaying: Boolean,
+    appColors: com.frito.music.ui.theme.AppColors,
+    modifier: Modifier = Modifier
+) {
+    val numBars = 45
+    val baseHeights = remember { List(numBars) { kotlin.random.Random.nextFloat() * 0.8f + 0.2f } }
+    var dragProgress by remember { mutableStateOf<Float?>(null) }
+    val displayProgress = dragProgress ?: progress
+    
+    // Solo animamos la fase cuando estÃ¡ reproduciendo para ahorrar GPU
+    val infiniteTransition = rememberInfiniteTransition(label = "waveform")
+    val phase by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = (2 * Math.PI).toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "phase"
+    )
+
+    val animationMultiplier by animateFloatAsState(
+        targetValue = if (isPlaying) 1f else 0f,
+        animationSpec = tween(600, easing = FastOutSlowInEasing),
+        label = "multiplier"
+    )
+    // Evita redraws del Canvas cuando estÃ¡ pausado (ahorra GPU)
+    val shouldAnimate = animationMultiplier > 0.01f
+
+    Box(modifier = modifier
+        .fillMaxWidth()
+        .height(36.dp)
+        .pointerInput(Unit) {
+            detectHorizontalDragGestures(
+                onDragStart = { offset ->
+                    dragProgress = (offset.x / size.width).coerceIn(0f, 1f)
+                },
+                onHorizontalDrag = { change, _ ->
+                    dragProgress = (change.position.x / size.width).coerceIn(0f, 1f)
+                },
+                onDragEnd = {
+                    dragProgress?.let { onProgressChange(it) }
+                    dragProgress = null
+                },
+                onDragCancel = {
+                    dragProgress = null
+                }
+            )
+        }
+        .pointerInput(Unit) {
+            detectTapGestures { offset ->
+                onProgressChange((offset.x / size.width).coerceIn(0f, 1f))
+            }
+        }
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val width = size.width
+            val height = size.height
+            val gap = 3.dp.toPx()
+            val totalGaps = (numBars - 1) * gap
+            val actualBarWidth = (width - totalGaps) / numBars
+
+            for (i in 0 until numBars) {
+                val x = i * (actualBarWidth + gap)
+                val barProgress = i.toFloat() / numBars
+                val isPlayed = barProgress <= displayProgress
+
+                // Cuando no estÃ¡ reproduciendo, usamos la fase fija para evitar redraws innecesarios
+                val effectivePhase = if (shouldAnimate) phase else 0f
+                val waveEffect = Math.sin((effectivePhase + i * 0.4).toDouble()).toFloat() * 0.4f
+                val finalMultiplier = 1f + (waveEffect * animationMultiplier)
+                val barHeight = (height * baseHeights[i] * finalMultiplier).coerceIn(height * 0.1f, height)
+
+                val yOffset = (height - barHeight) / 2
+
+                val color = if (isPlayed) appColors.accent else appColors.textSecondary.copy(alpha = 0.3f)
+
+                drawLine(
+                    color = color,
+                    start = Offset(x + actualBarWidth / 2, yOffset),
+                    end = Offset(x + actualBarWidth / 2, yOffset + barHeight),
+                    strokeWidth = actualBarWidth,
+                    cap = StrokeCap.Round
+                )
+            }
+            
+            // El pulgador usa displayProgress para moverse en sincronÃ­a con las
+            // barras mientras se arrastra (antes usaba `progress` y se desincronizaba)
+            val thumbX = displayProgress * width
+            drawCircle(
+                color = appColors.textPrimary,
+                radius = 8.dp.toPx(),
+                center = Offset(thumbX, height / 2)
+            )
+        }
+    }
+}
+
+@Composable
+fun QualityInfo(audio: AudioFile?) {
+    val appColors = LocalAppColors.current
+
+    val qualityText = if (audio?.path?.startsWith("http") == true) {
+        "Streaming â€¢ YouTube Music"
+    } else {
+        // No inventamos sample rate: mostramos solo el formato real del archivo
+        val extension = audio?.path?.substringAfterLast(".")?.uppercase() ?: "AUDIO"
+        "Archivo local â€¢ ${extension}"
+    }
+    
+    Text(
+        text = qualityText,
+        color = appColors.textSecondary,
+        fontSize = 12.sp
+    )
+}
+
+@Composable
+fun MiniPlayer(viewModel: PlayerViewModel, onClick: () -> Unit, onSwipeUp: () -> Unit) {
+    val currentAudio by viewModel.currentAudio.collectAsState()
+    val isPlaying by viewModel.isPlaying.collectAsState()
+    val progress by viewModel.progress.collectAsState()
+    val appColors = LocalAppColors.current
+
+    val audio = currentAudio ?: return
+
+    // Mini-player flotante estilo tarjeta: esquinas redondeadas, elevaciÃ³n,
+    // barra de progreso de 2dp arriba y botÃ³n "siguiente".
+    Box(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
+        Surface(
+            shape = RoundedCornerShape(14.dp),
+            color = appColors.surface,
+            tonalElevation = 3.dp,
+            shadowElevation = 6.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column {
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(2.dp),
+                    color = appColors.accent,
+                    trackColor = Color.Transparent,
+                )
+                // Feedback tÃ¡ctil: la tarjeta se hunde ligeramente al presionar
+                val miniInteraction = remember { MutableInteractionSource() }
+                val miniPressed by miniInteraction.collectIsPressedAsState()
+                val miniScale by animateFloatAsState(
+                    targetValue = if (miniPressed) 0.97f else 1f,
+                    animationSpec = tween(150),
+                    label = "miniPressScale"
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .scale(miniScale)
+                        .clickable(
+                            interactionSource = miniInteraction,
+                            indication = null
+                        ) { onClick() }
+                        .pointerInput(Unit) {
+                            // dragY vive DENTRO del pointerInput: sobrevive a las
+                            // recomposiciones y se reinicia en cada gesto
+                            var totalDragY = 0f
+                            detectVerticalDragGestures(
+                                onDragStart = { totalDragY = 0f },
+                                onDragEnd = {
+                                    if (totalDragY < -30) {
+                                        onSwipeUp()
+                                    }
+                                },
+                                onVerticalDrag = { _, dragAmount ->
+                                    totalDragY += dragAmount
+                                }
+                            )
+                        }
+                        .padding(start = 10.dp, end = 2.dp, top = 6.dp, bottom = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(appColors.background),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.MusicNote, contentDescription = null, tint = appColors.textSecondary)
+                        if (audio.albumUri != null) {
+                            val miniCtx = androidx.compose.ui.platform.LocalContext.current
+                            AsyncImage(
+                                model = ImageRequest.Builder(miniCtx)
+                                    .data(ImageUtils.highRes(audio.albumUri))
+                                    .crossfade(300)
+                                    .build(),
+                                contentDescription = "Album Art",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(audio.title, color = appColors.textPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        Text(audio.artist, color = appColors.textSecondary, fontSize = 12.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    }
+                    IconButton(onClick = { viewModel.playPause() }, modifier = Modifier.size(40.dp)) {
+                        Icon(
+                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = if (isPlaying) "Pausar" else "Reproducir",
+                            tint = appColors.textPrimary
+                        )
+                    }
+                    IconButton(onClick = { viewModel.skipNext() }, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            imageVector = Icons.Default.SkipNext,
+                            contentDescription = "Siguiente",
+                            tint = appColors.textSecondary
+                        )
+                    }
+                    // X: cierra el mini-player Y detiene la canciÃ³n por completo
+                    IconButton(onClick = { viewModel.stopAndClear() }, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Cerrar y detener",
+                            tint = appColors.textSecondary
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+########## app\src\main\java\com\frito\music\MainActivity.kt ##########
+package com.frito.music
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import com.frito.music.data.models.Playlist
+import com.frito.music.ui.components.BottomNavBar
+import com.frito.music.ui.screens.*
+import com.frito.music.ui.theme.FritoMusicTheme
+import com.frito.music.ui.viewmodels.HomeViewModel
+import com.frito.music.ui.viewmodels.PlayerViewModel
+import com.frito.music.ui.viewmodels.DownloadViewModel
+import com.frito.music.ui.viewmodels.StreamViewModel
+import com.frito.music.ui.viewmodels.OnlineLibraryViewModel
+import com.frito.music.ui.theme.ThemeViewModel
+import com.frito.music.ui.theme.LocalAppColors
+import com.frito.music.ui.theme.AppAnimations
+
+class MainActivity : ComponentActivity() {
+
+    /**
+     * Procesa el deep link spotiflac://session-grant?...&state={extensionId}&grant={grant}
+     * que llega tras la verificaciÃ³n de sesiÃ³n firmada en el navegador.
+     */
+    private fun handleSessionGrantIntent(intent: android.content.Intent?) {
+        val uri = intent?.data ?: return
+        if (uri.scheme == "spotiflac" && uri.host == "session-grant") {
+            val extensionId = uri.getQueryParameter("state")
+            val grant = uri.getQueryParameter("grant")
+            if (!extensionId.isNullOrEmpty() && !grant.isNullOrEmpty()) {
+                com.frito.music.extensions.session.SignedSessionManager
+                    .setPendingGrant(this, extensionId, grant)
+            }
+            // Limpiar el data para no reprocesarlo en recreaciones
+            intent.data = null
+        }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        handleSessionGrantIntent(intent)
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        // Edge-to-edge: dibuja bajo status/navigation bar. Los insets se manejan
+        // con WindowInsets en Compose (ver padding de headers en pantallas).
+        enableEdgeToEdge()
+        super.onCreate(savedInstanceState)
+        val prefs = getSharedPreferences("FritoMusicPrefs", android.content.Context.MODE_PRIVATE)
+        val hasCompletedOnboardingInitial = prefs.getBoolean("has_completed_onboarding", false)
+
+        // Initialize YouTube Login Manager and load saved session
+        com.frito.music.data.repository.YouTubeLoginManager.init(this)
+        com.frito.music.data.repository.YouTubeLoginManager.loadLoginToYouTube()
+
+        // Deep link de verificaciÃ³n de sesiÃ³n (si la app se abriÃ³ desde el navegador)
+        handleSessionGrantIntent(intent)
+
+        setContent {
+            var showOnboarding by remember { mutableStateOf(!hasCompletedOnboardingInitial) }
+            val themeViewModel: ThemeViewModel = viewModel()
+            val homeViewModel: HomeViewModel = viewModel()
+            val playerViewModel: PlayerViewModel = viewModel()
+            val downloadViewModel: DownloadViewModel = viewModel()
+            val streamViewModel: StreamViewModel = viewModel()
+            val onlineLibraryViewModel: OnlineLibraryViewModel = viewModel()
+
+            val themeMode by themeViewModel.themeMode.collectAsState()
+            val accentColor by themeViewModel.accentColor.collectAsState()
+            val backgroundImageUri by themeViewModel.backgroundImageUri.collectAsState()
+            val backgroundBlur by themeViewModel.backgroundBlur.collectAsState()
+            val isDark = themeViewModel.isDarkThemeActive()
+
+            FritoMusicTheme(
+                themeMode = themeMode,
+                accentColorValue = accentColor,
+                backgroundImageUri = backgroundImageUri,
+                isDark = isDark
+            ) {
+                if (showOnboarding) {
+                    com.frito.music.ui.screens.OnboardingScreen(
+                        onFinish = {
+                            prefs.edit().putBoolean("has_completed_onboarding", true).apply()
+                            showOnboarding = false
+                        }
+                    )
+                } else {
+                // rememberSaveable: el estado de navegaciÃ³n sobrevive rotaciones
+                var currentTab by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("inicio") }
+                var currentSubScreen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+                var showPlayerScreen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+                var selectedPlaylist by remember { mutableStateOf<Playlist?>(null) } // no parcelable: se pierde con rotaciÃ³n (aceptable)
+                var selectedArtistId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+                var selectedAlbumId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+                var selectedStreamArtistId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+                var selectedStreamAlbumId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+                var selectedStreamPlaylistId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+                var verificationTarget by remember { mutableStateOf<Pair<String, String>?>(null) } // se reconstruye vÃ­a deep link / banner
+                var showYouTubeLogin by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+
+                val favorites by playerViewModel.favorites.collectAsState(initial = emptySet())
+                val playlists by playerViewModel.playlists.collectAsState(initial = emptyList())
+                val currentAudio by playerViewModel.currentAudio.collectAsState()
+
+                val context = androidx.compose.ui.platform.LocalContext.current
+                var backPressedTime by remember { mutableStateOf(0L) }
+
+                // Re-escanear la biblioteca cuando una descarga termina con Ã©xito,
+                // para que la canciÃ³n nueva aparezca sin reiniciar la app.
+                androidx.compose.runtime.DisposableEffect(homeViewModel, context) {
+                    val seenSucceeded = HashSet<String>()
+                    val observer = object : androidx.lifecycle.Observer<MutableList<androidx.work.WorkInfo>> {
+                        override fun onChanged(infos: MutableList<androidx.work.WorkInfo>) {
+                            infos.filter { it.state == androidx.work.WorkInfo.State.SUCCEEDED }
+                                .forEach { info ->
+                                    if (seenSucceeded.add(info.id.toString())) {
+                                        homeViewModel.rescan()
+                                    }
+                                }
+                        }
+                    }
+                    val liveData = androidx.work.WorkManager.getInstance(context)
+                        .getWorkInfosByTagLiveData("download")
+                    liveData.observeForever(observer)
+                    onDispose { liveData.removeObserver(observer) }
+                }
+
+                androidx.activity.compose.BackHandler(enabled = true) {
+                    if (showPlayerScreen) {
+                        showPlayerScreen = false
+                    } else if (currentSubScreen == "playlist_detail") {
+                        currentSubScreen = "listas"
+                        selectedPlaylist = null
+                    } else if (currentSubScreen == "artist_detail" || currentSubScreen == "album_detail" || currentSubScreen == "session_verification") {
+                        currentSubScreen = "descargar"
+                        selectedArtistId = null
+                        selectedAlbumId = null
+                        verificationTarget = null
+                    } else if (currentSubScreen == "stream_artist_detail") {
+                        currentSubScreen = null
+                        selectedStreamArtistId = null
+                    } else if (currentSubScreen == "stream_album_detail") {
+                        currentSubScreen = "stream_artist_detail"
+                        selectedStreamAlbumId = null
+                    } else if (currentSubScreen == "stream_playlist_detail") {
+                        currentSubScreen = "stream_playlists"
+                        selectedStreamPlaylistId = null
+                    } else if (currentSubScreen == "online_playlist_detail") {
+                        currentSubScreen = "listas"
+                        selectedStreamPlaylistId = null
+                    } else if (currentSubScreen == "stream_playlists") {
+                        currentSubScreen = null
+                    } else if (showYouTubeLogin) {
+                        showYouTubeLogin = false
+                    } else if (currentSubScreen != null) {
+                        currentSubScreen = null
+                    } else {
+                        val currentTime = System.currentTimeMillis()
+                        if (currentTime - backPressedTime < 2000) {
+                            (context as? android.app.Activity)?.finish()
+                        } else {
+                            backPressedTime = currentTime
+                            android.widget.Toast.makeText(context, "Presiona atrÃ¡s de nuevo para salir", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+
+                val appColors = LocalAppColors.current
+
+                Box(modifier = Modifier.fillMaxSize()) {
+                    // Pintar fondo global si existe
+                    if (backgroundImageUri != null) {
+                        AsyncImage(
+                            model = backgroundImageUri,
+                            contentDescription = "Background",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .then(
+                                    if (backgroundBlur > 0f)
+                                        Modifier.blur(radius = backgroundBlur.dp)
+                                    else Modifier
+                                )
+                        )
+                    }
+
+                    // YouTube Login Screen
+                    if (showYouTubeLogin) {
+                        YouTubeLoginScreen(
+                            onBack = { showYouTubeLogin = false },
+                            onLoginSuccess = { showYouTubeLogin = false }
+                        )
+                    } else {
+                    Scaffold(
+                        // Con edge-to-edge activo, el fondo (color o imagen) se dibuja
+                        // bajo las barras del sistema. Las pantallas ya traen su propio
+                        // margen superior (48dp >= altura de la status bar), asÃ­ que
+                        // desactivamos el inset por defecto del Scaffold para no duplicar.
+                        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+                        bottomBar = {
+                            Column {
+                                // MiniPlayer con animaciÃ³n suave de apariciÃ³n/desapariciÃ³n
+                                AnimatedVisibility(
+                                    visible = currentAudio != null,
+                                    enter = fadeIn(tween(250, easing = FastOutSlowInEasing)) +
+                                            expandVertically(tween(300, easing = FastOutSlowInEasing)),
+                                    exit = fadeOut(tween(200, easing = FastOutSlowInEasing)) +
+                                            shrinkVertically(tween(250, easing = FastOutSlowInEasing))
+                                ) {
+                                    MiniPlayer(
+                                        viewModel = playerViewModel,
+                                        onClick = { showPlayerScreen = true },
+                                        onSwipeUp = { showPlayerScreen = true }
+                                    )
+                                }
+                                // La barra inferior se oculta/muestra con animaciÃ³n
+                                // real segÃºn haya subpantalla abierta
+                                AnimatedVisibility(
+                                    visible = currentSubScreen == null,
+                                    enter = fadeIn(tween(AppAnimations.DURATION_FAST)) +
+                                            expandVertically(tween(AppAnimations.DURATION_MEDIUM, easing = FastOutSlowInEasing)),
+                                    exit = fadeOut(tween(150)) +
+                                            shrinkVertically(tween(AppAnimations.DURATION_FAST, easing = FastOutSlowInEasing))
+                                ) {
+                                    BottomNavBar(
+                                        currentTab = currentTab,
+                                        onTabSelected = { currentTab = it }
+                                    )
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                        containerColor = appColors.background
+                    ) { innerPadding ->
+                        Surface(
+                            modifier = Modifier.padding(innerPadding).fillMaxSize(),
+                            color = Color.Transparent
+                        ) {
+                            // â”€â”€ AnimaciÃ³n de subpantallas (MÃ¡s â†’ Favoritos, Ecualizadorâ€¦) â”€â”€
+                            // Slide lateral + escala de profundidad: la pantalla entra
+                            // "creciendo" desde 0.97 y al volver se aleja suavemente.
+                            AnimatedContent(
+                                targetState = currentSubScreen,
+                                transitionSpec = {
+                                    val slideSpec = AppAnimations.screenSlideOffsetTween()
+                                    val scaleSpec = tween<Float>(
+                                        AppAnimations.DURATION_MEDIUM,
+                                        easing = FastOutSlowInEasing
+                                    )
+                                    if (targetState != null) {
+                                        // Entrando a una subpantalla: crece desde la derecha
+                                        (slideInHorizontally(
+                                            initialOffsetX = { fullWidth -> (fullWidth * 0.45f).toInt() },
+                                            animationSpec = slideSpec
+                                        ) +
+                                            scaleIn(initialScale = 0.97f, animationSpec = scaleSpec) +
+                                            fadeIn(AppAnimations.quickFadeTween()))
+                                            .togetherWith(
+                                                slideOutHorizontally(
+                                                    targetOffsetX = { fullWidth -> -(fullWidth * 0.18f).toInt() },
+                                                    animationSpec = slideSpec
+                                                ) +
+                                                    scaleOut(targetScale = 0.96f, animationSpec = scaleSpec) +
+                                                    fadeOut(tween(200, easing = FastOutSlowInEasing))
+                                            )
+                                    } else {
+                                        // Volviendo a tabs: se aleja hacia la izquierda
+                                        (slideInHorizontally(
+                                            initialOffsetX = { fullWidth -> -(fullWidth * 0.45f).toInt() },
+                                            animationSpec = slideSpec
+                                        ) +
+                                            scaleIn(initialScale = 0.97f, animationSpec = scaleSpec) +
+                                            fadeIn(AppAnimations.quickFadeTween()))
+                                            .togetherWith(
+                                                slideOutHorizontally(
+                                                    targetOffsetX = { fullWidth -> (fullWidth * 0.18f).toInt() },
+                                                    animationSpec = slideSpec
+                                                ) +
+                                                    scaleOut(targetScale = 0.95f, animationSpec = scaleSpec) +
+                                                    fadeOut(tween(200, easing = FastOutSlowInEasing))
+                                            )
+                                    }
+                                },
+                                label = "SubScreenAnimation"
+                            ) { subScreen ->
+                                if (subScreen != null) {
+                                    when (subScreen) {
+                                        "favoritos" -> FavoritesScreen(
+                                            homeViewModel = homeViewModel,
+                                            playerViewModel = playerViewModel,
+                                            onlineLibraryViewModel = onlineLibraryViewModel,
+                                            streamViewModel = streamViewModel,
+                                            onBack = { currentSubScreen = null }
+                                        )
+                                        "listas" -> PlaylistsScreen(
+                                            playerViewModel = playerViewModel,
+                                            onlineLibraryViewModel = onlineLibraryViewModel,
+                                            onNavigateToOnlinePlaylist = { playlistId ->
+                                                selectedStreamPlaylistId = playlistId
+                                                currentSubScreen = "online_playlist_detail"
+                                            },
+                                            onBack = { currentSubScreen = null },
+                                            onPlaylistClick = { playlist ->
+                                                selectedPlaylist = playlist
+                                                currentSubScreen = "playlist_detail"
+                                            }
+                                        )
+                                        "playlist_detail" -> {
+                                            selectedPlaylist?.let { playlist ->
+                                                PlaylistDetailScreen(
+                                                    playlist = playlist,
+                                                    homeViewModel = homeViewModel,
+                                                    playerViewModel = playerViewModel,
+                                                    onBack = {
+                                                        currentSubScreen = "listas"
+                                                        selectedPlaylist = null
+                                                    }
+                                                )
+                                            }
+                                        }
+                                        "ecualizador" -> EqualizerScreen(playerViewModel = playerViewModel, onBack = { currentSubScreen = null })
+                                        "apariencia" -> AppearanceScreen(themeViewModel = themeViewModel, onBack = { currentSubScreen = null })
+                                        "donaciones" -> DonationsScreen(onBack = { currentSubScreen = null })
+                                        "descargar" -> DownloadScreen(
+                                            onBack = { currentSubScreen = null },
+                                            onNavigateToArtist = { id ->
+                                                selectedArtistId = id
+                                                currentSubScreen = "artist_detail"
+                                            },
+                                            onNavigateToAlbum = { id ->
+                                                selectedAlbumId = id
+                                                currentSubScreen = "album_detail"
+                                            },
+                                            onNavigateToVerification = { extId, url ->
+                                                verificationTarget = extId to url
+                                                currentSubScreen = "session_verification"
+                                            },
+                                            viewModel = downloadViewModel
+                                        )
+                                        "session_verification" -> {
+                                            verificationTarget?.let { (extId, url) ->
+                                                com.frito.music.ui.screens.SessionVerificationScreen(
+                                                    extensionId = extId,
+                                                    authUrl = url,
+                                                    onBack = { currentSubScreen = "descargar" },
+                                                    onCompleted = {
+                                                        currentSubScreen = "descargar"
+                                                        downloadViewModel.refreshSessionState()
+                                                    }
+                                                )
+                                            }
+                                        }
+                                        "gestor_descargas" -> DownloadsManagerScreen(onBack = { currentSubScreen = null })
+                                        "artist_detail" -> {
+                                            selectedArtistId?.let { id ->
+                                                ArtistDetailScreen(
+                                                    artistId = id,
+                                                    viewModel = downloadViewModel,
+                                                    onNavigateToAlbum = { albumId ->
+                                                        selectedAlbumId = albumId
+                                                        currentSubScreen = "album_detail"
+                                                    },
+                                                    onBack = { currentSubScreen = "descargar" }
+                                                )
+                                            }
+                                        }
+                                        "album_detail" -> {
+                                            selectedAlbumId?.let { id ->
+                                                AlbumScreen(
+                                                    albumId = id,
+                                                    viewModel = downloadViewModel,
+                                                    onBack = { currentSubScreen = "descargar" }
+                                                )
+                                            }
+                                        }
+                                        "stream_artist_detail" -> {
+                                            selectedStreamArtistId?.let { id ->
+                                                StreamArtistDetailScreen(
+                                                    artistId = id,
+                                                    streamViewModel = streamViewModel,
+                                                    playerViewModel = playerViewModel,
+                                                    onNavigateToAlbum = { albumId ->
+                                                        selectedStreamAlbumId = albumId
+                                                        currentSubScreen = "stream_album_detail"
+                                                    },
+                                                    onBack = {
+                                                        currentSubScreen = null
+                                                        selectedStreamArtistId = null
+                                                    }
+                                                )
+                                            }
+                                        }
+                                        "stream_album_detail" -> {
+                                            selectedStreamAlbumId?.let { albumId ->
+                                                StreamAlbumDetailScreen(
+                                                    albumId = albumId,
+                                                    streamViewModel = streamViewModel,
+                                                    playerViewModel = playerViewModel,
+                                                    onBack = {
+                                                        currentSubScreen = "stream_artist_detail"
+                                                        selectedStreamAlbumId = null
+                                                    }
+                                                )
+                                            }
+                                        }
+                                        "stream_playlists" -> {
+                                            StreamPlaylistsScreen(
+                                                streamViewModel = streamViewModel,
+                                                onPlaylistClick = { playlistId ->
+                                                    selectedStreamPlaylistId = playlistId
+                                                    currentSubScreen = "stream_playlist_detail"
+                                                }
+                                            )
+                                        }
+                                        "stream_playlist_detail" -> {
+                                            selectedStreamPlaylistId?.let { playlistId ->
+                                                YouTubePlaylistDetailScreen(
+                                                    playlistId = playlistId,
+                                                    streamViewModel = streamViewModel,
+                                                    playerViewModel = playerViewModel,
+                                                    onBack = {
+                                                        currentSubScreen = "stream_playlists"
+                                                        selectedStreamPlaylistId = null
+                                                    }
+                                                )
+                                            }
+                                        }
+                                        "online_playlist_detail" -> {
+                                            selectedStreamPlaylistId?.let { pid ->
+                                                OnlinePlaylistDetailScreen(
+                                                    playlistId = pid,
+                                                    onlineLibraryViewModel = onlineLibraryViewModel,
+                                                    streamViewModel = streamViewModel,
+                                                    playerViewModel = playerViewModel,
+                                                    onBack = { currentSubScreen = "listas"; selectedStreamPlaylistId = null }
+                                                )
+                                            }
+                                        }
+                                        "extensiones" -> ExtensionsScreen(onBack = { currentSubScreen = null })
+                                        else -> {
+                                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                                Text("Pantalla en construcciÃ³n", color = appColors.textPrimary)
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    // â”€â”€ TransiciÃ³n entre tabs principal â”€â”€
+                                    // Desliza segÃºn la direcciÃ³n real del cambio
+                                    // (inicioâ†’mas desliza a la izquierda, y viceversa)
+                                    // + escala sutil de profundidad.
+                                    val tabOrder = remember {
+                                        listOf("inicio", "biblioteca", "buscar", "stream", "mas")
+                                    }
+                                    AnimatedContent(
+                                        targetState = currentTab,
+                                        transitionSpec = {
+                                            val from = tabOrder.indexOf(initialState).let { if (it < 0) 0 else it }
+                                            val to = tabOrder.indexOf(targetState).let { if (it < 0) 0 else it }
+                                            val forward = to >= from
+                                            val slideSpec = AppAnimations.screenSlideOffsetTween()
+                                            val scaleSpec = tween<Float>(
+                                                AppAnimations.DURATION_MEDIUM,
+                                                easing = FastOutSlowInEasing
+                                            )
+                                            (
+                                                slideInHorizontally(
+                                                    initialOffsetX = { w -> (if (forward) w else -w) / 5 },
+                                                    animationSpec = slideSpec
+                                                ) +
+                                                    scaleIn(initialScale = 0.94f, animationSpec = scaleSpec) +
+                                                    fadeIn(AppAnimations.quickFadeTween())
+                                                ).togetherWith(
+                                                slideOutHorizontally(
+                                                    targetOffsetX = { w -> (if (forward) -w else w) / 7 },
+                                                    animationSpec = slideSpec
+                                                ) +
+                                                    scaleOut(targetScale = 0.96f, animationSpec = scaleSpec) +
+                                                    fadeOut(tween(150, easing = FastOutSlowInEasing))
+                                            )
+                                        },
+                                        label = "TabAnimation"
+                                    ) { tab ->
+                                        when (tab) {
+                                            "inicio" -> HomeScreen(homeViewModel = homeViewModel, playerViewModel = playerViewModel)
+                                            "biblioteca" -> LibraryScreen(
+                                                homeViewModel = homeViewModel,
+                                                playerViewModel = playerViewModel
+                                            )
+                                            "buscar" -> SearchScreen(homeViewModel = homeViewModel, playerViewModel = playerViewModel)
+                                            "stream" -> StreamScreen(
+                                                streamViewModel = streamViewModel,
+                                                playerViewModel = playerViewModel,
+                                                onNavigateToArtist = { id ->
+                                                    selectedStreamArtistId = id
+                                                    currentSubScreen = "stream_artist_detail"
+                                                },
+                                                onNavigateToLogin = {
+                                                    showYouTubeLogin = true
+                                                },
+                                                onNavigateToPlaylists = {
+                                                    currentSubScreen = "stream_playlists"
+                                                }
+                                            )
+                                            "mas" -> MoreScreen(
+                                                favoritesCount = favorites.size,
+                                                playlistsCount = playlists.size,
+                                                onNavigateToFavorites = { currentSubScreen = "favoritos" },
+                                                onNavigateToPlaylists = { currentSubScreen = "listas" },
+                                                onNavigateToEqualizer = { currentSubScreen = "ecualizador" },
+                                                onNavigateToAppearance = { currentSubScreen = "apariencia" },
+                                                onNavigateToDonations = { currentSubScreen = "donaciones" },
+                                                onNavigateToDownload = { currentSubScreen = "descargar" },
+                                                onNavigateToDownloadsManager = { currentSubScreen = "gestor_descargas" },
+                                                onNavigateToExtensions = { currentSubScreen = "extensiones" }
+                                            )
+                                            else -> HomeScreen(homeViewModel = homeViewModel, playerViewModel = playerViewModel)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } // End if(showOnboarding) else
+
+                    // Player Overlay â€” sube con spring fÃ­sico y se va con easing suave
+                    AnimatedVisibility(
+                        visible = showPlayerScreen,
+                        enter = slideInVertically(
+                            initialOffsetY = { fullHeight -> fullHeight },
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            )
+                        ) + fadeIn(AppAnimations.fadeTween()),
+                        exit = slideOutVertically(
+                            targetOffsetY = { fullHeight -> fullHeight },
+                            animationSpec = AppAnimations.playerSlideTween()
+                        ) + fadeOut(tween(250, easing = FastOutSlowInEasing))
+                    ) {
+                        PlayerScreen(
+                            viewModel = playerViewModel,
+                            streamViewModel = streamViewModel,
+                            onlineLibraryViewModel = onlineLibraryViewModel,
+                            onClose = { showPlayerScreen = false }
+                        )
+                    }
+                    } // else (not showing YouTube Login)
+                }
+            }
+        }
+    }
+}
+

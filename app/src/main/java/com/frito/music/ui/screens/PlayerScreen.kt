@@ -39,6 +39,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import androidx.compose.ui.platform.LocalContext
 import com.frito.music.utils.ImageUtils
+import com.frito.music.ui.viewmodels.OnlineLibraryViewModel
 import com.frito.music.ui.viewmodels.PlayerViewModel
 import com.frito.music.ui.viewmodels.StreamViewModel
 import androidx.media3.common.Player
@@ -54,7 +55,12 @@ fun formatDuration(ms: Long): String {
 }
 
 @Composable
-fun PlayerScreen(viewModel: PlayerViewModel, streamViewModel: StreamViewModel, onClose: () -> Unit) {
+fun PlayerScreen(
+    viewModel: PlayerViewModel,
+    streamViewModel: StreamViewModel,
+    onlineLibraryViewModel: OnlineLibraryViewModel,
+    onClose: () -> Unit
+) {
     val isPlaying by viewModel.isPlaying.collectAsState()
     val progress by viewModel.progress.collectAsState()
     val currentAudio by viewModel.currentAudio.collectAsState()
@@ -63,6 +69,14 @@ fun PlayerScreen(viewModel: PlayerViewModel, streamViewModel: StreamViewModel, o
     val shuffleModeEnabled by viewModel.shuffleModeEnabled.collectAsState()
     val repeatMode by viewModel.repeatMode.collectAsState()
     val isCurrentFavorite by viewModel.isCurrentFavorite.collectAsState()
+    val likedSongIds by onlineLibraryViewModel.likedSongIds.collectAsState()
+
+    val currentPath = currentAudio?.path.orEmpty()
+    val isOnline = currentPath.startsWith("http")
+    // videoId REAL de YouTube (no se puede extraer de la URL resuelta de
+    // googlevideo: lo expone PlayerViewModel desde la cola de streaming)
+    val currentVideoId by viewModel.currentVideoId.collectAsState()
+    val isOnlineLiked = currentVideoId != null && likedSongIds.contains(currentVideoId)
     val playlists by viewModel.playlists.collectAsState()
     val currentLyrics by streamViewModel.currentLyrics.collectAsState()
     val isLoadingLyrics by streamViewModel.isLoadingLyrics.collectAsState()
@@ -237,13 +251,22 @@ fun PlayerScreen(viewModel: PlayerViewModel, streamViewModel: StreamViewModel, o
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                 }
+                val favIsActive = if (isOnline) isOnlineLiked else isCurrentFavorite
+                val favTint = if (favIsActive) Color(0xFFFF6B6B) else appColors.textPrimary
                 Icon(
-                    imageVector = if (isCurrentFavorite) Icons.Filled.Favorite else Icons.Default.FavoriteBorder,
+                    imageVector = if (favIsActive) Icons.Filled.Favorite else Icons.Default.FavoriteBorder,
                     contentDescription = "Favorite",
-                    tint = if (isCurrentFavorite) Color(0xFFFF6B6B) else appColors.textPrimary,
+                    tint = favTint,
                     modifier = Modifier
                         .size(28.dp)
-                        .clickable { viewModel.toggleFavorite() }
+                        .clickable {
+                            val videoId = currentVideoId
+                            if (isOnline && videoId != null) {
+                                onlineLibraryViewModel.likeSong(videoId, !isOnlineLiked)
+                            } else {
+                                viewModel.toggleFavorite()
+                            }
+                        }
                 )
             }
 
@@ -525,7 +548,8 @@ fun PlayerScreen(viewModel: PlayerViewModel, streamViewModel: StreamViewModel, o
 
         if (showAddToYouTubePlaylist) {
             currentAudio?.let { audio ->
-                val videoId = audio.path.substringAfterLast("/")
+                // videoId real de la cola (la URL resuelta NO lo contiene)
+                val videoId = currentVideoId ?: audio.path.substringAfterLast("/")
                 AddToYouTubePlaylistModal(
                     videoId = videoId,
                     streamViewModel = streamViewModel,

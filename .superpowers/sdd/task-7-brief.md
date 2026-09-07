@@ -1,36 +1,45 @@
-### Task 7: Add to YouTube Playlist Modal
+### Task 7: Refresco y verificación final
 
 **Files:**
-- Create: `app/src/main/java/com/frito/music/ui/components/AddToYouTubePlaylistModal.kt`
-- Modify: `app/src/main/java/com/frito/music/ui/screens/PlayerScreen.kt`
+- Modify: `app/src/main/java/com/frito/music/ui/screens/FavoritesScreen.kt` (opcional: refrescar likes al volver)
 
 **Interfaces:**
-- Produces: `AddToYouTubePlaylistModal` composable
-- Consumes: `StreamViewModel.userPlaylists`, `StreamViewModel.addToYouTubePlaylist()`
+- Consumes: nada nuevo
 
-**Context:** When user taps "+" on a streaming song, show modal with YouTube playlists to add to.
+- [ ] **Step 1: Refrescar likes al entrar a la pestaña Online** (ya se hace con `LaunchedEffect(Unit)` en `FavoritesOnlineContent`). Añadir además refresco al `ON_RESUME` para que un like hecho desde el player aparezca al volver:
 
-- [ ] **Step 1: Create AddToYouTubePlaylistModal**
-
-Create with:
-- ModalBottomSheet
-- "Agregar a playlist" title
-- "Crear nueva playlist" button
-- LazyColumn with playlists and checkboxes
-- "Agregar" button
-
-- [ ] **Step 2: Add "+" button to PlayerScreen**
-
-Add PlaylistAdd icon button that shows the modal.
-
-- [ ] **Step 3: Verify compilation**
-
-Run: `./gradlew :app:compileDebugKotlin`
-
-- [ ] **Step 4: Commit**
-
-```bash
-git add app/src/main/java/com/frito/music/ui/components/AddToYouTubePlaylistModal.kt
-git add app/src/main/java/com/frito/music/ui/screens/PlayerScreen.kt
-git commit -m "feat: add YouTube playlist modal to player screen"
+```kotlin
+    // en FavoritesOnlineContent, reemplazar el LaunchedEffect por:
+    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                onlineLibraryViewModel.loadLikedSongs()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 ```
+
+- [ ] **Step 2: Verificación completa**
+
+Run: `.\gradlew assembleDebug`
+Expected: BUILD SUCCESSFUL.
+
+Pruebas en dispositivo:
+1. Favoritos: pestañas Offline/Online + swipe en ambas direcciones.
+2. Favoritos Online: logueado → aparecen likes; ❤️ en player a canción online → aparece al volver.
+3. Canción local → ❤️ offline (pestaña Offline).
+4. Playlists Online: crear → aparece; abrir detalle; quitar canción.
+5. Sin sesión: pestañas Online muestran prompt de login.
+6. Rotación no pierde pestaña (pagerState con rememberSaveable si es necesario).
+
+---
+CONSTRAINTS GLOBALES (obligatorio):
+- minSdk 26, targetSdk 34, Compose BOM 2024.02.00
+- NO ejecutar gradlew/assembleDebug: el usuario compila. Verifica estructura (llaves y par�ntesis balanceados) y que las referencias/imports existan.
+- NO hacer commits git: el usuario no lo ha pedido.
+- Reutilizar patrones existentes (StreamTrackItem, prompt de login de StreamScreen, playArtistSong/playAlbumSong con queueSongs).
+- Sin dependencias nuevas. Sesi�n: YouTubeLoginManager.isLoggedIn(). videoId: YouTubeUrlParser.extractVideoId().
+- Al terminar: escribir el reporte en el archivo indicado y devolver estado + archivos tocados + verificaci�n.
