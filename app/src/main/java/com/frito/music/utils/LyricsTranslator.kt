@@ -13,8 +13,8 @@ object LyricsTranslator {
 
     /**
      * Traduce una lista de líneas de letra al idioma objetivo (por defecto español 'es').
-     * Realiza la petición usando POST a la API pública de Google Translate GTX,
-     * preservando saltos de línea y formateo.
+     * Utiliza la API JSON directa de Google Translate GTX vía POST con parsing de JSONArray,
+     * garantizando texto puro y libre de basura HTML, scripts, estilos o etiquetas.
      */
     suspend fun translate(lines: List<String>, targetLang: String = "es"): List<String> = withContext(Dispatchers.IO) {
         if (lines.isEmpty()) return@withContext emptyList()
@@ -22,48 +22,95 @@ object LyricsTranslator {
         val cacheKey = "$targetLang:${lines.joinToString("\n")}"
         cache[cacheKey]?.let { return@withContext it }
 
-        runCatching {
-            val delimiter = "\n"
-            val textToTranslate = lines.joinToString(delimiter)
+        // Método 1: Traducción directa por lotes usando el endpoint JSON oficial de GTX
+        val directResult = runCatching { translateViaGtx(lines, targetLang) }.getOrNull()
+        if (!directResult.isNullOrEmpty() && directResult.size == lines.size) {
+            val cleaned = directResult.map { cleanLine(it) }
+            cache[cacheKey] = cleaned
+            return@withContext cleaned
+        }
 
-            val url = URL("https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=$targetLang&dt=t")
-            val conn = (url.openConnection() as HttpURLConnection).apply {
-                requestMethod = "POST"
-                doOutput = true
-                connectTimeout = 6000
-                readTimeout = 6000
-                setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
-                setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+        // Método 2: Chunking por bloques pequeños de 20 líneas en caso de canciones muy largas
+        val chunkedResult = runCatching { translateViaGtxChunked(lines, targetLang) }.getOrNull()
+        if (!chunkedResult.isNullOrEmpty() && chunkedResult.size == lines.size) {
+            val cleaned = chunkedResult.map { cleanLine(it) }
+            cache[cacheKey] = cleaned
+            return@withContext cleaned
+        }
+
+        lines
+    }
+
+    private fun translateViaGtx(lines: List<String>, targetLang: String): List<String>? {
+        val textToTranslate = lines.joinToString("\n")
+        val url = URL("https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=$targetLang&dt=t")
+        val conn = (url.openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            doOutput = true
+            connectTimeout = 5000
+            readTimeout = 5000
+            setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+            setRequestProperty(
+                "User-Agent",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            )
+        }
+
+        val postData = "q=" + URLEncoder.encode(textToTranslate, "UTF-8")
+        conn.outputStream.use { it.write(postData.toByteArray(Charsets.UTF_8)) }
+
+        if (conn.responseCode == 200) {
+            val response = conn.inputStream.bufferedReader().use { it.readText() }
+            val jsonArray = JSONArray(response)
+            val sentencesArray = jsonArray.optJSONArray(0) ?: return null
+
+            val translatedBuilder = StringBuilder()
+            for (i in 0 until sentencesArray.length()) {
+                val sentence = sentencesArray.optJSONArray(i) ?: continue
+                val part = sentence.optString(0, "")
+                translatedBuilder.append(part)
             }
 
-            val postData = "q=" + URLEncoder.encode(textToTranslate, "UTF-8")
-            conn.outputStream.use { it.write(postData.toByteArray(Charsets.UTF_8)) }
+            val fullText = translatedBuilder.toString()
+            val splitLines = fullText.split("\n")
+            return lines.indices.map { i ->
+                cleanLine(splitLines.getOrNull(i)?.trim().orEmpty())
+            }
+        }
+        return null
+    }
 
-            if (conn.responseCode == 200) {
-                val response = conn.inputStream.bufferedReader().use { it.readText() }
-                val jsonArray = JSONArray(response)
-                val sentencesArray = jsonArray.optJSONArray(0) ?: return@runCatching lines
+    private fun translateViaGtxChunked(lines: List<String>, targetLang: String): List<String> {
+        val chunkSize = 20
+        val chunks = lines.chunked(chunkSize)
+        val result = mutableListOf<String>()
 
-                val translatedBuilder = StringBuilder()
-                for (i in 0 until sentencesArray.length()) {
-                    val sentence = sentencesArray.optJSONArray(i) ?: continue
-                    val part = sentence.optString(0, "")
-                    translatedBuilder.append(part)
-                }
-
-                val fullTranslatedText = translatedBuilder.toString()
-                val resultLines = fullTranslatedText.split("\n")
-
-                // Asegurar que coincida exactamente con la cantidad de líneas originales
-                val finalLines = lines.indices.map { i ->
-                    resultLines.getOrNull(i)?.trim().orEmpty()
-                }
-
-                cache[cacheKey] = finalLines
-                finalLines
+        for (chunk in chunks) {
+            val translatedChunk = translateViaGtx(chunk, targetLang)
+            if (translatedChunk != null && translatedChunk.size == chunk.size) {
+                result.addAll(translatedChunk)
             } else {
-                lines
+                result.addAll(chunk)
             }
-        }.getOrDefault(lines)
+        }
+
+        return result
+    }
+
+    /**
+     * Limpia cualquier residuo de etiquetas HTML, scripts, estilos o entidades.
+     */
+    private fun cleanLine(text: String): String {
+        return text
+            .replace(Regex("<!--[\\s\\S]*?-->"), "")
+            .replace(Regex("<[^>]*>"), "")
+            .replace("&amp;", "&")
+            .replace("&quot;", "\"")
+            .replace("&#39;", "'")
+            .replace("&apos;", "'")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&nbsp;", " ")
+            .trim()
     }
 }

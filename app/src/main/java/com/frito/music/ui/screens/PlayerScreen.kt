@@ -276,7 +276,7 @@ fun PlayerScreen(
             WaveformProgress(
                 progress = progress,
                 onProgressChange = { viewModel.seekTo(it) },
-                isPlaying = isPlaying,
+                isPlaying = isPlaying && !showLyrics,
                 appColors = appColors,
                 modifier = Modifier.padding(horizontal = 24.dp)
             )

@@ -170,8 +170,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                         _positionMs.value = pos
                         _progress.value = (pos.toFloat() / dur.toFloat()).coerceIn(0f, 1f)
                     }
+                    delay(50L)
+                } else {
+                    delay(500L)
                 }
-                delay(100L)
             }
         }
     }
@@ -255,24 +257,24 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         // Exponer el videoId real del ítem que empieza a sonar
         _currentVideoId.value = videoIds[startIndex]
 
-        // Pre-resolución secuencial en segundo plano: resuelve todas las URLs
-        // pendientes (la caché de 4h las hace baratas) para que cuando ExoPlayer
-        // llegue a cada canción ya tenga uri real y no falle.
+        // Pre-resolución eficiente en segundo plano: resuelve solo los siguientes 1-2 ítems
+        // para no sobrecalentar la CPU con decenas de descifrados JS simultáneos de Rhino
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             val generation = queueGeneration
-            keys.forEachIndexed { index, key ->
-                if (generation != queueGeneration) return@launch // cambió la cola
-                if (index == startIndex) return@forEachIndexed
-                if (!pendingStreamVideoIds.containsKey(key)) return@forEachIndexed
-                val url = runCatching { resolver(videoIds[index]) }.getOrNull()
-                if (url.isNullOrEmpty()) return@forEachIndexed
+            val endPreResolve = (startIndex + 2).coerceAtMost(keys.size - 1)
+            for (idx in (startIndex + 1)..endPreResolve) {
+                if (generation != queueGeneration) return@launch
+                val key = keys.getOrNull(idx) ?: continue
+                if (!pendingStreamVideoIds.containsKey(key)) continue
+                val url = runCatching { resolver(videoIds[idx]) }.getOrNull()
+                if (url.isNullOrEmpty()) continue
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                     if (generation != queueGeneration) return@withContext
                     if (pendingStreamVideoIds.remove(key) != null) {
                         val c = mediaController ?: return@withContext
-                        if (index < c.mediaItemCount) {
-                            val item = c.getMediaItemAt(index)
-                            c.replaceMediaItem(index, item.buildUpon().setUri(Uri.parse(url)).build())
+                        if (idx < c.mediaItemCount) {
+                            val item = c.getMediaItemAt(idx)
+                            c.replaceMediaItem(idx, item.buildUpon().setUri(Uri.parse(url)).build())
                         }
                     }
                 }
@@ -280,7 +282,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /** Resuelve la URL del ítem actual si aún está pendiente (uri vacía). */
+    /** Resuelve la URL del ítem actual si aún está pendiente (uri vacía) y pre-resuelve el siguiente. */
     private fun resolveCurrentIfPending() {
         val controller = mediaController ?: return
         val resolver = streamResolver ?: return
@@ -305,6 +307,24 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 if (!url.isNullOrEmpty()) {
                     pendingStreamVideoIds.remove(current.mediaId)
                     c.replaceMediaItem(index, current.buildUpon().setUri(Uri.parse(url)).build())
+                    // Pre-resolver solo la siguiente canción si aún está pendiente
+                    val nextIdx = index + 1
+                    if (nextIdx < c.mediaItemCount) {
+                        val nextItem = c.getMediaItemAt(nextIdx)
+                        val nextVideoId = pendingStreamVideoIds[nextItem.mediaId]
+                        if (nextVideoId != null) {
+                            viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                val nextUrl = runCatching { resolver(nextVideoId) }.getOrNull()
+                                if (!nextUrl.isNullOrEmpty()) {
+                                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                        if (generationAtStart == queueGeneration && pendingStreamVideoIds.remove(nextItem.mediaId) != null) {
+                                            c.replaceMediaItem(nextIdx, nextItem.buildUpon().setUri(Uri.parse(nextUrl)).build())
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
