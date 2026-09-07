@@ -108,6 +108,19 @@ class StreamViewModel : ViewModel() {
     private val _isLoadingPlaylists = MutableStateFlow(false)
     val isLoadingPlaylists: StateFlow<Boolean> = _isLoadingPlaylists.asStateFlow()
 
+    // Artistas paginados para "Ver todo" (Artistas para ti con scroll infinito)
+    private val _paginatedArtists = MutableStateFlow<List<ArtistItem>>(emptyList())
+    val paginatedArtists: StateFlow<List<ArtistItem>> = _paginatedArtists.asStateFlow()
+
+    private val _isLoadingMoreArtists = MutableStateFlow(false)
+    val isLoadingMoreArtists: StateFlow<Boolean> = _isLoadingMoreArtists.asStateFlow()
+
+    private val _isRefreshingArtists = MutableStateFlow(false)
+    val isRefreshingArtists: StateFlow<Boolean> = _isRefreshingArtists.asStateFlow()
+
+    private val artistDiscoveryQueue = ArrayDeque<String>()
+    private val seenArtistIds = mutableSetOf<String>()
+
     private var searchJob: Job? = null
     private var prefetchJob: Job? = null
 
@@ -452,11 +465,13 @@ class StreamViewModel : ViewModel() {
                     )
                 } else null
 
-                // ── B2. "Recomendaciones para ti" (basadas en radio/automix de semillas)
-                // Prioridad de semillas: 3 más recientes del historial + 2 de likes
-                val recentSeeds = historySongs.distinctBy { it.id }.take(3)
-                val likedSeeds = likedSongs.filterNot { l -> recentSeeds.any { it.id == l.id } }.take(2)
-                val seedSongs = (recentSeeds + likedSeeds).take(5)
+                // ── B2. "Recomendaciones para ti" (basadas en radio/automix de semillas rotativas)
+                val allCandidateSeeds = (historySongs.distinctBy { it.id } + likedSongs.distinctBy { it.id }).distinctBy { it.id }
+                val seedSongs = if (allCandidateSeeds.size > 5) {
+                    allCandidateSeeds.shuffled().take(5)
+                } else {
+                    allCandidateSeeds
+                }
 
                 val recommendedSongs = if (seedSongs.isNotEmpty()) {
                     val songScoreMap = mutableMapOf<String, Pair<SongItem, Int>>()
@@ -485,6 +500,7 @@ class StreamViewModel : ViewModel() {
                         .sortedByDescending { it.second }
                         .map { it.first }
                         .distinctBy { it.id }
+                        .shuffled()
                         .take(20)
                 } else {
                     emptyList()
@@ -499,6 +515,7 @@ class StreamViewModel : ViewModel() {
                         ?.filterIsInstance<SongItem>()
                         ?.filterNot { profile.knownVideoIds.contains(it.id) }
                         ?.distinctBy { it.id }
+                        ?.shuffled()
                         ?.take(20)
                         ?: emptyList()
                 }
@@ -511,50 +528,65 @@ class StreamViewModel : ViewModel() {
                     )
                 } else null
 
-                // ── B3. "Álbumes y sencillos populares" (explore + home + cruce con artistas favoritos y escuchados)
-                val listenedArtistIds = (likedArtistIds + historySongs.flatMap { it.artists }.mapNotNull { it.id }).toSet()
-                val listenedArtistNames = (favoriteArtistNames + likedSongs.flatMap { it.artists }.map { it.name.trim().lowercase() } + historySongs.flatMap { it.artists }.map { it.name.trim().lowercase() })
-                    .filter { it.isNotBlank() }.toSet()
+                // ── B3. "Álbumes y sencillos populares" (Discografía de artistas favoritos y más escuchados)
+                val favArtistSeeds = favoriteArtists.filter { it.id.isNotBlank() }
+                val historyArtistCounts = historySongs
+                    .flatMap { it.artists }
+                    .filter { !it.id.isNullOrBlank() }
+                    .groupingBy { it.id!! }
+                    .eachCount()
+                val topHistoryArtistIds = historyArtistCounts.entries
+                    .sortedByDescending { it.value }
+                    .map { it.key }
+                    .filterNot { favId -> favArtistSeeds.any { it.id == favId } }
+                    .take(5)
 
-                val allAvailableAlbums = (explore?.newReleaseAlbums.orEmpty() + home?.sections?.flatMap { it.items }?.filterIsInstance<AlbumItem>().orEmpty())
-                    .distinctBy { it.browseId }
+                val targetArtistIds = (favArtistSeeds.map { it.id } + topHistoryArtistIds).distinct().take(6)
 
-                val popularAlbumsShelf = if (allAvailableAlbums.isNotEmpty()) {
-                    val scoredAlbums = allAvailableAlbums.map { album ->
-                        val albumArtistNames = album.artists?.map { it.name.trim().lowercase() }.orEmpty().toSet()
-                        val albumArtistIds = album.artists?.mapNotNull { it.id }.orEmpty().toSet()
-
-                        var score = 0
-                        // Artistas favoritos explícitos: máxima prioridad (+100)
-                        if (albumArtistIds.any { favoriteArtistIds.contains(it) } || albumArtistNames.any { favoriteArtistNames.contains(it) }) {
-                            score += 100
+                val userArtistAlbums = if (targetArtistIds.isNotEmpty()) {
+                    coroutineScope {
+                        val albumJobs = targetArtistIds.map { artistId ->
+                            val knownName = favArtistSeeds.firstOrNull { it.id == artistId }?.title
+                            async(Dispatchers.IO) {
+                                recommendationSemaphore.withPermit {
+                                    runCatching {
+                                        YouTubeRepository.getArtistAlbums(artistId, knownName).getOrNull().orEmpty()
+                                    }.getOrDefault(emptyList())
+                                }
+                            }
                         }
-                        // Artistas escuchados / dados me gusta (+50)
-                        if (albumArtistIds.any { listenedArtistIds.contains(it) } || albumArtistNames.any { listenedArtistNames.contains(it) }) {
-                            score += 50
-                        }
-                        Pair(album, score)
+                        albumJobs.map { it.await() }.flatten().distinctBy { it.browseId }
                     }
+                } else {
+                    emptyList()
+                }
 
-                    val sortedAlbums = scoredAlbums
-                        .sortedWith(compareByDescending<Pair<AlbumItem, Int>> { it.second }.thenBy { it.first.title })
-                        .map { it.first }
+                val finalAlbums = if (userArtistAlbums.isNotEmpty()) {
+                    // Mezclar para variedad en cada refresco manteniendo relevancia absoluta
+                    userArtistAlbums.shuffled().take(20)
+                } else {
+                    // Fallback exclusivo para cuentas nuevas sin favoritos ni historial
+                    (explore?.newReleaseAlbums.orEmpty() + home?.sections?.flatMap { it.items }?.filterIsInstance<AlbumItem>().orEmpty())
                         .distinctBy { it.browseId }
                         .take(20)
+                }
 
+                val popularAlbumsShelf = if (finalAlbums.isNotEmpty()) {
                     HomeShelf(
                         id = "popular_albums",
                         title = "Álbumes y sencillos populares",
-                        items = sortedAlbums
+                        items = finalAlbums
                     )
                 } else null
 
-                // ── B4. "Artistas para ti" (artistas relacionados con favoritos y likes, o trending para cuentas nuevas)
-                val allSeedArtistIds = (favoriteArtistIds + likedArtistIds).take(4)
-                val popularArtistsShelf = if (allSeedArtistIds.isNotEmpty()) {
+                // ── B4. "Artistas para ti" (artistas similares/relacionados, EXCLUYENDO favoritos guardados)
+                val allSeedPool = (favoriteArtistIds + likedArtistIds + topHistoryArtistIds).distinct()
+                val activeSeedArtistIds = if (allSeedPool.size > 4) allSeedPool.shuffled().take(4) else allSeedPool
+
+                val popularArtistsShelf = if (activeSeedArtistIds.isNotEmpty()) {
                     val artistScoreMap = mutableMapOf<String, Pair<ArtistItem, Int>>()
                     coroutineScope {
-                        val jobs = allSeedArtistIds.map { artistId ->
+                        val jobs = activeSeedArtistIds.map { artistId ->
                             async(Dispatchers.IO) {
                                 recommendationSemaphore.withPermit {
                                     runCatching {
@@ -565,7 +597,9 @@ class StreamViewModel : ViewModel() {
                         }
                         jobs.map { it.await() }.forEach { list ->
                             list.forEach { artist ->
-                                if (!allSeedArtistIds.contains(artist.id)) {
+                                val isFav = favoriteArtistIds.contains(artist.id) ||
+                                            favoriteArtistNames.contains(artist.title.trim().lowercase())
+                                if (!isFav && !activeSeedArtistIds.contains(artist.id)) {
                                     val current = artistScoreMap[artist.id]
                                     val score = (current?.second ?: 0) + 1
                                     artistScoreMap[artist.id] = Pair(artist, score)
@@ -576,7 +610,9 @@ class StreamViewModel : ViewModel() {
                     val sortedArtists = artistScoreMap.values
                         .sortedByDescending { it.second }
                         .map { it.first }
+                        .filterNot { favoriteArtistIds.contains(it.id) || favoriteArtistNames.contains(it.title.trim().lowercase()) }
                         .distinctBy { it.id }
+                        .shuffled()
                         .take(15)
 
                     if (sortedArtists.isNotEmpty()) {
@@ -590,7 +626,9 @@ class StreamViewModel : ViewModel() {
                     val homeArtists = home?.sections
                         ?.flatMap { it.items }
                         ?.filterIsInstance<ArtistItem>()
+                        ?.filterNot { favoriteArtistIds.contains(it.id) || favoriteArtistNames.contains(it.title.trim().lowercase()) }
                         ?.distinctBy { it.id }
+                        ?.shuffled()
                         ?.take(15)
                         .orEmpty()
                     if (homeArtists.isNotEmpty()) {
@@ -636,12 +674,138 @@ class StreamViewModel : ViewModel() {
                     prefetchStreamUrls(prefetchSongIds)
                 }
 
+                // Inicializar artistas paginados en background para "Ver todo"
+                if (_paginatedArtists.value.isEmpty() || forceRefresh) {
+                    initPaginatedArtists(forceRefresh = forceRefresh)
+                }
+
             } catch (e: Exception) {
                 _errorMessage.value = e.message ?: "Error al cargar contenido de Stream"
             } finally {
                 _isLoadingHome.value = false
             }
         }
+    }
+
+    /**
+     * Inicializa la lista paginada de "Artistas para ti" con artistas semilla y recomendaciones sin límite.
+     */
+    fun initPaginatedArtists(forceRefresh: Boolean = false) {
+        if (!forceRefresh && _paginatedArtists.value.isNotEmpty()) return
+
+        viewModelScope.launch {
+            _isRefreshingArtists.value = true
+            val favs = FavoriteArtistsManager.favoriteArtists.value
+            val favIds = favs.map { it.id }.filter { it.isNotBlank() }.toSet()
+            val historySeeds = _recentlyPlayed.value.flatMap { it.artists }.mapNotNull { it.id }.filter { it.isNotBlank() }
+            val homeSeeds = _homePage.value?.sections?.flatMap { it.items }?.filterIsInstance<ArtistItem>()?.map { it.id }.orEmpty()
+
+            synchronized(artistDiscoveryQueue) {
+                artistDiscoveryQueue.clear()
+                seenArtistIds.clear()
+                seenArtistIds.addAll(favIds) // Artistas favoritos no deben recomendarse
+
+                val seeds = (favs.map { it.id } + historySeeds + homeSeeds).distinct().filter { it.isNotBlank() }
+                artistDiscoveryQueue.addAll(seeds.shuffled())
+            }
+
+            val initialList = mutableListOf<ArtistItem>()
+            var attempts = 0
+            while (initialList.size < 18 && attempts < 6) {
+                attempts++
+                val seed = synchronized(artistDiscoveryQueue) {
+                    if (artistDiscoveryQueue.isNotEmpty()) artistDiscoveryQueue.removeFirst() else null
+                } ?: break
+
+                val related = withContext(Dispatchers.IO) {
+                    recommendationSemaphore.withPermit {
+                        YouTubeRepository.getRelatedArtists(seed).getOrDefault(emptyList())
+                    }
+                }
+                related.forEach { artist ->
+                    val isFav = FavoriteArtistsManager.isFavorite(artist.id)
+                    if (!isFav && !seenArtistIds.contains(artist.id)) {
+                        seenArtistIds.add(artist.id)
+                        initialList.add(artist)
+                        synchronized(artistDiscoveryQueue) {
+                            artistDiscoveryQueue.addLast(artist.id)
+                        }
+                    }
+                }
+            }
+
+            _paginatedArtists.value = initialList
+            _isRefreshingArtists.value = false
+        }
+    }
+
+    /**
+     * Carga más artistas similares de manera infinita a medida que el usuario hace scroll hacia abajo.
+     */
+    fun loadMoreArtists() {
+        if (_isLoadingMoreArtists.value || _isRefreshingArtists.value) return
+
+        viewModelScope.launch {
+            _isLoadingMoreArtists.value = true
+
+            val newArtists = mutableListOf<ArtistItem>()
+            var attempts = 0
+            while (newArtists.size < 12 && attempts < 5) {
+                attempts++
+                val seed = synchronized(artistDiscoveryQueue) {
+                    if (artistDiscoveryQueue.isNotEmpty()) artistDiscoveryQueue.removeFirst() else null
+                }
+
+                if (seed != null) {
+                    val related = withContext(Dispatchers.IO) {
+                        recommendationSemaphore.withPermit {
+                            YouTubeRepository.getRelatedArtists(seed).getOrDefault(emptyList())
+                        }
+                    }
+                    related.forEach { artist ->
+                        val isFav = FavoriteArtistsManager.isFavorite(artist.id)
+                        if (!isFav && !seenArtistIds.contains(artist.id)) {
+                            seenArtistIds.add(artist.id)
+                            newArtists.add(artist)
+                            synchronized(artistDiscoveryQueue) {
+                                artistDiscoveryQueue.addLast(artist.id)
+                            }
+                        }
+                    }
+                } else {
+                    // Si se agota la cola, buscar artistas similares usando nombres de los artistas ya descubiertos
+                    val lastKnown = _paginatedArtists.value.takeLast(3).map { it.title }
+                    for (query in lastKnown) {
+                        val searchResults = withContext(Dispatchers.IO) {
+                            YouTubeRepository.searchArtists(query).getOrDefault(emptyList())
+                        }
+                        searchResults.forEach { artist ->
+                            val isFav = FavoriteArtistsManager.isFavorite(artist.id)
+                            if (!isFav && !seenArtistIds.contains(artist.id)) {
+                                seenArtistIds.add(artist.id)
+                                newArtists.add(artist)
+                                synchronized(artistDiscoveryQueue) {
+                                    artistDiscoveryQueue.addLast(artist.id)
+                                }
+                            }
+                        }
+                    }
+                    break
+                }
+            }
+
+            if (newArtists.isNotEmpty()) {
+                _paginatedArtists.value = _paginatedArtists.value + newArtists
+            }
+            _isLoadingMoreArtists.value = false
+        }
+    }
+
+    /**
+     * Refresca la lista de artistas recomendados paginados.
+     */
+    fun refreshRecommendedArtists() {
+        initPaginatedArtists(forceRefresh = true)
     }
 
 

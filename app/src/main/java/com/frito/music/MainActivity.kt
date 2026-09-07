@@ -183,7 +183,8 @@ class MainActivity : ComponentActivity() {
                     } else if (currentSubScreen == "stream_favorite_artists" || currentSubScreen == "stream_all_artists") {
                         currentSubScreen = null
                     } else if (currentSubScreen == "stream_album_detail") {
-                        currentSubScreen = "stream_artist_detail"
+                        currentSubScreen = previousStreamSubScreen ?: if (selectedStreamArtistId != null) "stream_artist_detail" else null
+                        previousStreamSubScreen = null
                         selectedStreamAlbumId = null
                     } else if (currentSubScreen == "stream_playlist_detail") {
                         currentSubScreen = "stream_playlists"
@@ -431,6 +432,7 @@ class MainActivity : ComponentActivity() {
                                                     playerViewModel = playerViewModel,
                                                     onNavigateToAlbum = { albumId ->
                                                         selectedStreamAlbumId = albumId
+                                                        previousStreamSubScreen = "stream_artist_detail"
                                                         currentSubScreen = "stream_album_detail"
                                                     },
                                                     onBack = {
@@ -447,7 +449,8 @@ class MainActivity : ComponentActivity() {
                                                     streamViewModel = streamViewModel,
                                                     playerViewModel = playerViewModel,
                                                     onBack = {
-                                                        currentSubScreen = "stream_artist_detail"
+                                                        currentSubScreen = previousStreamSubScreen ?: if (selectedStreamArtistId != null) "stream_artist_detail" else null
+                                                        previousStreamSubScreen = null
                                                         selectedStreamAlbumId = null
                                                     }
                                                 )
@@ -565,6 +568,11 @@ class MainActivity : ComponentActivity() {
                                                     selectedStreamArtistId = id
                                                     previousStreamSubScreen = null
                                                     currentSubScreen = "stream_artist_detail"
+                                                },
+                                                onNavigateToAlbum = { albumId ->
+                                                    selectedStreamAlbumId = albumId
+                                                    previousStreamSubScreen = null
+                                                    currentSubScreen = "stream_album_detail"
                                                 },
                                                 onNavigateToLogin = {
                                                     showYouTubeLogin = true

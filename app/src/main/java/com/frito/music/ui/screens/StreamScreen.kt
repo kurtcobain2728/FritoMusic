@@ -13,6 +13,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.MusicNote
@@ -49,6 +50,7 @@ fun StreamScreen(
     streamViewModel: StreamViewModel,
     playerViewModel: PlayerViewModel,
     onNavigateToArtist: (String) -> Unit = {},
+    onNavigateToAlbum: (String) -> Unit = {},
     onNavigateToLogin: () -> Unit = {},
     onNavigateToPlaylists: () -> Unit = {},
     onNavigateToFavoriteArtists: () -> Unit = {},
@@ -132,6 +134,23 @@ fun StreamScreen(
                         imageVector = Icons.AutoMirrored.Filled.List,
                         contentDescription = "Listas",
                         tint = appColors.textPrimary
+                    )
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+
+                // Refresh button
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .clickable { streamViewModel.loadHomeContent(forceRefresh = true) }
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Actualizar Stream",
+                        tint = appColors.textPrimary,
+                        modifier = Modifier.size(22.dp)
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
@@ -296,12 +315,13 @@ fun StreamScreen(
                             streamViewModel.playArtistSong(song, playerViewModel, queueSongs = sectionSongs)
                         },
                         onAlbumClick = { browseId ->
-                            streamViewModel.loadAlbumDetails(browseId)
+                            onNavigateToAlbum(browseId)
                         },
                         onArtistClick = { browseId ->
                             onNavigateToArtist(browseId)
                         },
                         onSeeAllArtists = onNavigateToAllArtists,
+                        onRefresh = { streamViewModel.loadHomeContent(forceRefresh = true) },
                         modifier = Modifier.weight(1f)
                     )
                 } else {

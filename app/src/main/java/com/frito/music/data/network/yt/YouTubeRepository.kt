@@ -3,6 +3,8 @@ package com.frito.music.data.network.yt
 import com.frito.music.data.models.StreamableTrack
 import com.music.innertube.NewPipeExtractor
 import com.music.innertube.YouTube
+import com.music.innertube.models.AlbumItem
+import com.music.innertube.models.Artist
 import com.music.innertube.models.ArtistItem
 import com.music.innertube.models.PlaylistItem
 import com.music.innertube.models.SongItem
@@ -324,6 +326,39 @@ object YouTubeRepository {
             .filterIsInstance<ArtistItem>()
             .filter { it.id.isNotBlank() && it.id != browseId }
             .distinctBy { it.id }
+    }
+
+    /**
+     * Busca álbumes en YouTube Music por término de búsqueda.
+     */
+    suspend fun searchAlbums(query: String): Result<List<AlbumItem>> = runCatching {
+        val result = YouTube.search(query, YouTube.SearchFilter.FILTER_ALBUM)
+        result.getOrThrow().items.filterIsInstance<AlbumItem>()
+    }
+
+    /**
+     * Obtiene los álbumes y sencillos oficiales de un artista a partir de su página de YouTube Music.
+     * Si el modelo de Innertube no trae 'artists', se auto-completa con el artista correspondiente.
+     */
+    suspend fun getArtistAlbums(browseId: String, artistName: String? = null): Result<List<AlbumItem>> = runCatching {
+        val artistPage = YouTube.artist(browseId).getOrThrow()
+        val name = artistName?.takeIf { it.isNotBlank() } ?: artistPage.artist.title
+        val albums = artistPage.sections
+            .flatMap { it.items }
+            .filterIsInstance<AlbumItem>()
+            .distinctBy { it.browseId }
+
+        if (albums.isNotEmpty()) {
+            albums.map { album ->
+                if (album.artists.isNullOrEmpty()) {
+                    album.copy(artists = listOf(Artist(name = name, id = browseId)))
+                } else album
+            }
+        } else if (name.isNotBlank()) {
+            searchAlbums(name).getOrDefault(emptyList()).take(6)
+        } else {
+            emptyList()
+        }
     }
 }
 

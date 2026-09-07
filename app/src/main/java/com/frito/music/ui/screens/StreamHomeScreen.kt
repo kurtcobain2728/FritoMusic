@@ -13,6 +13,9 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,6 +26,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.frito.music.data.repository.FavoriteArtistsManager
+import com.frito.music.ui.components.FritoPullRefresh
 import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.data.models.HomeShelf
 import com.music.innertube.models.AlbumItem
@@ -42,19 +47,27 @@ fun StreamHomeScreen(
     onAlbumClick: (String) -> Unit,
     onArtistClick: (String) -> Unit,
     onSeeAllArtists: () -> Unit = {},
+    onRefresh: () -> Unit = {},
     recentlyPlayed: List<SongItem> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     val appColors = LocalAppColors.current
+    val favoriteArtists by FavoriteArtistsManager.favoriteArtists.collectAsState()
+    val favoriteArtistIds = remember(favoriteArtists) {
+        favoriteArtists.map { it.id }.filter { it.isNotBlank() }.toSet()
+    }
 
-    // Artistas recomendados de respaldo
-    val recommendedArtists = homePage?.sections
-        ?.flatMap { it.items }
-        ?.filterIsInstance<ArtistItem>()
-        ?.distinctBy { it.id }
-        .orEmpty()
+    // Artistas recomendados de respaldo (excluyendo los que ya son favoritos)
+    val recommendedArtists = remember(homePage, favoriteArtistIds) {
+        homePage?.sections
+            ?.flatMap { it.items }
+            ?.filterIsInstance<ArtistItem>()
+            ?.filterNot { favoriteArtistIds.contains(it.id) }
+            ?.distinctBy { it.id }
+            .orEmpty()
+    }
 
-    if (isLoading) {
+    if (isLoading && homeShelves.isEmpty()) {
         Box(
             modifier = modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -64,15 +77,112 @@ fun StreamHomeScreen(
         return
     }
 
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 24.dp)
+    FritoPullRefresh(
+        isRefreshing = isLoading,
+        onRefresh = onRefresh,
+        modifier = modifier.fillMaxSize()
     ) {
-        if (homeShelves.isNotEmpty()) {
-            // ─── Renderizado dinámico de carruseles curados por el algoritmo ───
-            homeShelves.forEach { shelf ->
-                if (shelf.items.isNotEmpty()) {
-                    item(key = shelf.id) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 24.dp)
+        ) {
+            if (homeShelves.isNotEmpty()) {
+                // ─── Renderizado dinámico de carruseles curados por el algoritmo ───
+                homeShelves.forEach { shelf ->
+                    // EXCLUSIÓN ESTRICTA: Filtrar artistas favoritos de las recomendaciones
+                    val displayItems = if (shelf.id == "popular_artists" || shelf.title.contains("Artistas para ti", ignoreCase = true)) {
+                        shelf.items.filterNot { it is ArtistItem && favoriteArtistIds.contains(it.id) }
+                    } else {
+                        shelf.items
+                    }
+
+                    if (displayItems.isNotEmpty()) {
+                        item(key = shelf.id) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                            ) {
+                                Text(
+                                    text = shelf.title,
+                                    color = appColors.textPrimary,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                if (shelf.id == "popular_artists" || shelf.title.contains("Artistas para ti", ignoreCase = true)) {
+                                    Text(
+                                        text = "Ver todo",
+                                        color = Color(0xFF1DB954),
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        modifier = Modifier
+                                            .clickable { onSeeAllArtists() }
+                                            .padding(start = 8.dp, top = 4.dp, bottom = 4.dp)
+                                    )
+                                }
+                            }
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                val shelfSongs = displayItems.filterIsInstance<SongItem>()
+                                items(displayItems) { item ->
+                                    when (item) {
+                                        is SongItem -> SongCard(
+                                            song = item,
+                                            onClick = { onPlaySong(item, shelfSongs) }
+                                        )
+                                        is AlbumItem -> AlbumCard(
+                                            album = item,
+                                            onClick = { onAlbumClick(item.browseId) }
+                                        )
+                                        is ArtistItem -> ArtistCard(
+                                            artist = item,
+                                            onClick = {
+                                                if (item.id.isNotBlank()) onArtistClick(item.id)
+                                            }
+                                        )
+                                        else -> {}
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+                    }
+                }
+            } else {
+                // ─── Fallback original si aún no se han calculado las shelves ───
+                // ─── Escuchado recientemente (historial personal, requiere sesión) ───
+                if (recentlyPlayed.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Escuchado recientemente",
+                            color = appColors.textPrimary,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            val recentQueue = recentlyPlayed.take(10)
+                            items(recentQueue) { song ->
+                                SongCard(
+                                    song = song,
+                                    onClick = { onPlaySong(song, recentQueue) }
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                }
+
+                // ─── Artistas para ti (recomendados por YT Music según tu cuenta, excluyendo favoritos) ───
+                if (recommendedArtists.isNotEmpty()) {
+                    item {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
@@ -80,34 +190,59 @@ fun StreamHomeScreen(
                                 .padding(horizontal = 16.dp, vertical = 8.dp)
                         ) {
                             Text(
-                                text = shelf.title,
+                                text = "Artistas para ti",
                                 color = appColors.textPrimary,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.weight(1f)
                             )
-                            if (shelf.id == "popular_artists" || shelf.title.contains("Artistas para ti", ignoreCase = true)) {
-                                Text(
-                                    text = "Ver todo",
-                                    color = Color(0xFF1DB954),
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier
-                                        .clickable { onSeeAllArtists() }
-                                        .padding(start = 8.dp, top = 4.dp, bottom = 4.dp)
-                                )
-                            }
+                            Text(
+                                text = "Ver todo",
+                                color = Color(0xFF1DB954),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier
+                                    .clickable { onSeeAllArtists() }
+                                    .padding(start = 8.dp, top = 4.dp, bottom = 4.dp)
+                            )
                         }
                         LazyRow(
                             contentPadding = PaddingValues(horizontal = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            val shelfSongs = shelf.items.filterIsInstance<SongItem>()
-                            items(shelf.items) { item ->
+                            items(recommendedArtists.take(15)) { artist ->
+                                ArtistCard(
+                                    artist = artist,
+                                    onClick = {
+                                        if (artist.id.isNotBlank()) onArtistClick(artist.id)
+                                    }
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                }
+
+                // Tendencias - from homePage
+                homePage?.sections?.forEach { section ->
+                    item {
+                        Text(
+                            text = section.title,
+                            color = appColors.textPrimary,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            val sectionSongs = section.items.filterIsInstance<SongItem>().take(10)
+                            items(section.items.take(10)) { item ->
                                 when (item) {
                                     is SongItem -> SongCard(
                                         song = item,
-                                        onClick = { onPlaySong(item, shelfSongs) }
+                                        onClick = { onPlaySong(item, sectionSongs) }
                                     )
                                     is AlbumItem -> AlbumCard(
                                         album = item,
@@ -126,140 +261,31 @@ fun StreamHomeScreen(
                         Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
-            }
-        } else {
-            // ─── Fallback original si aún no se han calculado las shelves ───
-            // ─── Escuchado recientemente (historial personal, requiere sesión) ───
-            if (recentlyPlayed.isNotEmpty()) {
-                item {
-                    Text(
-                        text = "Escuchado recientemente",
-                        color = appColors.textPrimary,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        val recentQueue = recentlyPlayed.take(10)
-                        items(recentQueue) { song ->
-                            SongCard(
-                                song = song,
-                                onClick = { onPlaySong(song, recentQueue) }
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-            }
 
-            // ─── Artistas para ti (recomendados por YT Music según tu cuenta) ───
-            if (recommendedArtists.isNotEmpty()) {
-                item {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                    ) {
-                        Text(
-                            text = "Artistas para ti",
-                            color = appColors.textPrimary,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Text(
-                            text = "Ver todo",
-                            color = Color(0xFF1DB954),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier
-                                .clickable { onSeeAllArtists() }
-                                .padding(start = 8.dp, top = 4.dp, bottom = 4.dp)
-                        )
-                    }
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(recommendedArtists.take(15)) { artist ->
-                            ArtistCard(
-                                artist = artist,
-                                onClick = {
-                                    if (artist.id.isNotBlank()) onArtistClick(artist.id)
+                // Nuevos Lanzamientos - from explorePage
+                explorePage?.let { page ->
+                    if (page.newReleaseAlbums.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = "Nuevos Lanzamientos",
+                                color = appColors.textPrimary,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                items(page.newReleaseAlbums.take(10)) { album ->
+                                    AlbumCard(
+                                        album = album,
+                                        onClick = { onAlbumClick(album.browseId) }
+                                    )
                                 }
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-            }
-
-            // Tendencias - from homePage
-            homePage?.sections?.forEach { section ->
-                item {
-                    Text(
-                        text = section.title,
-                        color = appColors.textPrimary,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        val sectionSongs = section.items.filterIsInstance<SongItem>().take(10)
-                        items(section.items.take(10)) { item ->
-                            when (item) {
-                                is SongItem -> SongCard(
-                                    song = item,
-                                    onClick = { onPlaySong(item, sectionSongs) }
-                                )
-                                is AlbumItem -> AlbumCard(
-                                    album = item,
-                                    onClick = { onAlbumClick(item.browseId) }
-                                )
-                                is ArtistItem -> ArtistCard(
-                                    artist = item,
-                                    onClick = {
-                                        if (item.id.isNotBlank()) onArtistClick(item.id)
-                                    }
-                                )
-                                else -> {}
                             }
+                            Spacer(modifier = Modifier.height(16.dp))
                         }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-            }
-
-            // Nuevos Lanzamientos - from explorePage
-            explorePage?.let { page ->
-                if (page.newReleaseAlbums.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = "Nuevos Lanzamientos",
-                            color = appColors.textPrimary,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                        )
-                        LazyRow(
-                            contentPadding = PaddingValues(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(page.newReleaseAlbums.take(10)) { album ->
-                                AlbumCard(
-                                    album = album,
-                                    onClick = { onAlbumClick(album.browseId) }
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
             }

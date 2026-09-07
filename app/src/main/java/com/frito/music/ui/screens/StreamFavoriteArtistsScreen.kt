@@ -1,5 +1,6 @@
 package com.frito.music.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -171,29 +172,36 @@ private fun FavoriteArtistGridItem(
             .padding(4.dp)
     ) {
         Box(
-            modifier = Modifier
-                .size(96.dp)
-                .clip(CircleShape)
-                .background(Color.DarkGray)
+            modifier = Modifier.size(96.dp)
         ) {
-            if (!artist.thumbnail.isNullOrEmpty()) {
-                AsyncImage(
-                    model = ImageUtils.highRes(artist.thumbnail),
-                    contentDescription = artist.title,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
+            Box(
+                modifier = Modifier
+                    .size(88.dp)
+                    .align(Alignment.Center)
+                    .clip(CircleShape)
+                    .background(Color.DarkGray)
+            ) {
+                if (!artist.thumbnail.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = ImageUtils.highRes(artist.thumbnail),
+                        contentDescription = artist.title,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
             }
-            // Small favorite badge overlay
+            // Small favorite badge overlay (outside circular clip to prevent cut-off)
             Surface(
                 shape = CircleShape,
-                color = Color.Black.copy(alpha = 0.65f),
+                color = Color(0xFF1E1E1E),
+                shadowElevation = 4.dp,
+                border = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.2f)),
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(30.dp)
                     .align(Alignment.BottomEnd)
                     .clickable { onRemove() }
             ) {
-                Box(contentAlignment = Alignment.Center) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                     Icon(
                         imageVector = Icons.Filled.Star,
                         contentDescription = "Quitar de favoritos",
