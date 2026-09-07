@@ -36,7 +36,11 @@ import com.frito.music.ui.viewmodels.PlayerViewModel
 import com.frito.music.ui.theme.LocalAppColors
 
 @Composable
-fun HomeScreen(homeViewModel: HomeViewModel = viewModel(), playerViewModel: PlayerViewModel = viewModel()) {
+fun HomeScreen(
+    homeViewModel: HomeViewModel = viewModel(),
+    playerViewModel: PlayerViewModel = viewModel(),
+    isPlayerOpen: Boolean = false
+) {
     val context = LocalContext.current
     val currentNode by homeViewModel.currentNode.collectAsState()
     val isLoading by homeViewModel.isLoading.collectAsState()
@@ -74,10 +78,8 @@ fun HomeScreen(homeViewModel: HomeViewModel = viewModel(), playerViewModel: Play
         }
     }
 
-    // Interceptar el botón Atrás si estamos dentro de una carpeta
-    androidx.activity.compose.BackHandler(enabled = currentNode?.path != "/") {
-        homeViewModel.navigateUp()
-    }
+    // NOTA: el manejo de "atrás" dentro de carpetas vive en MainActivity
+    // (BackHandler central), para evitar que dos BackHandlers compitan.
 
     Column(
         modifier = Modifier
@@ -134,24 +136,36 @@ fun HomeScreen(homeViewModel: HomeViewModel = viewModel(), playerViewModel: Play
                 CircularProgressIndicator(color = appColors.accent)
             }
         } else {
+            // Memoizar por carpeta: sorting y conteos recursivos se calculan UNA vez
+            // por carpeta, no en cada recomposición (era el origen del lag al hacer
+            // scroll con muchas carpetas/canciones).
+            val node = currentNode
+            val subfolders = remember(node) {
+                node?.subfolders?.values?.toList()?.sortedBy { it.name } ?: emptyList()
+            }
+            val folderCounts = remember(node, subfolders) {
+                subfolders.associate { it.path to it.getTotalAudioCount() }
+            }
+            val audios = remember(node) {
+                node?.audios?.sortedBy { it.title } ?: emptyList()
+            }
+
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(bottom = 100.dp)
             ) {
-                val subfolders = currentNode?.subfolders?.values?.toList()?.sortedBy { it.name } ?: emptyList()
                 items(
                     subfolders,
                     key = { it.path }
                 ) { folder ->
                     FolderCard(
                         folderName = folder.name,
-                        songCount = folder.getTotalAudioCount(),
+                        songCount = folderCounts[folder.path] ?: 0,
                         onClick = { homeViewModel.navigateToFolder(folder.name) },
                         appColors = appColors
                     )
                 }
 
-                val audios = currentNode?.audios?.sortedBy { it.title } ?: emptyList()
                 itemsIndexed(
                     audios,
                     key = { _, audio -> audio.path }

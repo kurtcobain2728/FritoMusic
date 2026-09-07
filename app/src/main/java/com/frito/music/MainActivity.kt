@@ -191,6 +191,13 @@ class MainActivity : ComponentActivity() {
                         showYouTubeLogin = false
                     } else if (currentSubScreen != null) {
                         currentSubScreen = null
+                    } else if (currentTab == "inicio" &&
+                        homeViewModel.currentNode.value != null &&
+                        homeViewModel.currentNode.value?.path != "/") {
+                        // Estamos en Home dentro de una carpeta: atrás sube de carpeta.
+                        // (Un único BackHandler central evita la competencia entre
+                        //  el de MainActivity y el de HomeScreen.)
+                        homeViewModel.navigateUp()
                     } else {
                         val currentTime = System.currentTimeMillis()
                         if (currentTime - backPressedTime < 2000) {
@@ -518,7 +525,7 @@ class MainActivity : ComponentActivity() {
                                         label = "TabAnimation"
                                     ) { tab ->
                                         when (tab) {
-                                            "inicio" -> HomeScreen(homeViewModel = homeViewModel, playerViewModel = playerViewModel)
+                                            "inicio" -> HomeScreen(homeViewModel = homeViewModel, playerViewModel = playerViewModel, isPlayerOpen = showPlayerScreen || currentAudio != null)
                                             "biblioteca" -> LibraryScreen(
                                                 homeViewModel = homeViewModel,
                                                 playerViewModel = playerViewModel
@@ -550,7 +557,7 @@ class MainActivity : ComponentActivity() {
                                                 onNavigateToDownloadsManager = { currentSubScreen = "gestor_descargas" },
                                                 onNavigateToExtensions = { currentSubScreen = "extensiones" }
                                             )
-                                            else -> HomeScreen(homeViewModel = homeViewModel, playerViewModel = playerViewModel)
+                                            else -> HomeScreen(homeViewModel = homeViewModel, playerViewModel = playerViewModel, isPlayerOpen = showPlayerScreen || currentAudio != null)
                                         }
                                     }
                                 }
