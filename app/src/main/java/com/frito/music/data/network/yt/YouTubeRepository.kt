@@ -304,4 +304,26 @@ object YouTubeRepository {
         YouTube.addToPlaylist(playlistId, videoId)
         Unit
     }
+
+    /**
+     * Obtiene canciones de la radio/automix basada en una canción semilla.
+     * Es la fuente directa de recomendaciones contextuales de YouTube Music.
+     */
+    suspend fun getSongRadio(videoId: String): Result<List<SongItem>> = runCatching {
+        val nextResult = YouTube.next(WatchEndpoint(videoId = videoId)).getOrThrow()
+        nextResult.items.filter { it.id != videoId }
+    }
+
+    /**
+     * Obtiene los artistas relacionados a partir de las secciones de un artista.
+     */
+    suspend fun getRelatedArtists(browseId: String): Result<List<ArtistItem>> = runCatching {
+        val artistPage = YouTube.artist(browseId).getOrThrow()
+        artistPage.sections
+            .flatMap { it.items }
+            .filterIsInstance<ArtistItem>()
+            .filter { it.id.isNotBlank() && it.id != browseId }
+            .distinctBy { it.id }
+    }
 }
+

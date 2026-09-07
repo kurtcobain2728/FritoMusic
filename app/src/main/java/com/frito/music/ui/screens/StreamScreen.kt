@@ -59,6 +59,7 @@ fun StreamScreen(
     val playbackError by streamViewModel.playbackError.collectAsState()
     val homePage by streamViewModel.homePage.collectAsState()
     val explorePage by streamViewModel.explorePage.collectAsState()
+    val homeShelves by streamViewModel.homeShelves.collectAsState()
     val isLoadingHome by streamViewModel.isLoadingHome.collectAsState()
     val recentlyPlayed by streamViewModel.recentlyPlayed.collectAsState()
 
@@ -281,6 +282,7 @@ fun StreamScreen(
             searchResults == null && searchQuery.isEmpty() -> {
                 if (isLoggedIn) {
                     StreamHomeScreen(
+                        homeShelves = homeShelves,
                         homePage = homePage,
                         explorePage = explorePage,
                         isLoading = isLoadingHome,

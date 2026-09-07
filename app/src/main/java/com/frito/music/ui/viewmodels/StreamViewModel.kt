@@ -4,14 +4,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.frito.music.data.models.StreamableTrack
 import com.frito.music.data.network.yt.YouTubeRepository
+import com.music.innertube.models.AlbumItem
 import com.music.innertube.models.ArtistItem
 import com.music.innertube.models.PlaylistItem
 import com.music.innertube.models.SongItem
+import com.music.innertube.models.YTItem
 import com.music.innertube.pages.AlbumPage
 import com.music.innertube.pages.ArtistPage
 import com.music.innertube.pages.ExplorePage
 import com.music.innertube.pages.HomePage
 import com.music.innertube.pages.PlaylistPage
+import com.frito.music.data.models.HomeShelf
+import com.frito.music.data.models.TasteProfile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -22,6 +26,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 
 class StreamViewModel : ViewModel() {
@@ -67,6 +73,16 @@ class StreamViewModel : ViewModel() {
 
     private val _explorePage = MutableStateFlow<ExplorePage?>(null)
     val explorePage: StateFlow<ExplorePage?> = _explorePage.asStateFlow()
+
+    private val _homeShelves = MutableStateFlow<List<HomeShelf>>(emptyList())
+    val homeShelves: StateFlow<List<HomeShelf>> = _homeShelves.asStateFlow()
+
+    private val _tasteProfile = MutableStateFlow<TasteProfile?>(null)
+    val tasteProfile: StateFlow<TasteProfile?> = _tasteProfile.asStateFlow()
+
+    private var lastHomeContentTime = 0L
+    private val HOME_CACHE_TTL_MS = 45 * 60 * 1000L
+    private val recommendationSemaphore = Semaphore(3)
 
     private val _isLoadingHome = MutableStateFlow(false)
     val isLoadingHome: StateFlow<Boolean> = _isLoadingHome.asStateFlow()
@@ -316,51 +332,232 @@ class StreamViewModel : ViewModel() {
         _errorMessage.value = null
     }
 
-    fun loadHomeContent() {
+    fun loadHomeContent(forceRefresh: Boolean = false) {
+        val now = System.currentTimeMillis()
+        if (!forceRefresh && _homeShelves.value.isNotEmpty() && (now - lastHomeContentTime < HOME_CACHE_TTL_MS)) {
+            return
+        }
+
         viewModelScope.launch {
             _isLoadingHome.value = true
             _errorMessage.value = null
 
-            // Historial en paralelo con home/explore (solo tiene sentido con sesión)
-            val historyDeferred = async(Dispatchers.IO) { YouTubeRepository.getMusicHistory() }
-
-            // Home y Explore EN PARALELO (antes en serie)
-            coroutineScope {
+            try {
+                // 1. Carga en paralelo de fuentes base
+                val historyDeferred = async(Dispatchers.IO) { YouTubeRepository.getMusicHistory() }
+                val likedDeferred = async(Dispatchers.IO) { YouTubeRepository.getLikedSongs() }
                 val homeDeferred = async(Dispatchers.IO) { YouTubeRepository.getHome() }
                 val exploreDeferred = async(Dispatchers.IO) { YouTubeRepository.getExplore() }
 
-                homeDeferred.await()
-                    .onSuccess { home ->
-                        _homePage.value = home
-                        // Prefetch de la primera tanda de canciones del home
-                        val songIds = home.sections.flatMap { it.items }
-                            .filterIsInstance<SongItem>().map { it.id }
-                        prefetchStreamUrls(songIds)
-                    }
-                    .onFailure { error ->
-                        _errorMessage.value = error.message ?: "Error loading home content"
-                    }
+                val historySongs = historyDeferred.await().getOrDefault(emptyList())
+                val likedSongs = likedDeferred.await().getOrDefault(emptyList())
+                val homeResult = homeDeferred.await()
+                val exploreResult = exploreDeferred.await()
 
-                exploreDeferred.await()
-                    .onSuccess { explore ->
-                        _explorePage.value = explore
-                    }
-                    .onFailure { error ->
-                        _errorMessage.value = error.message ?: "Error loading explore content"
-                    }
-            }
+                val home = homeResult.getOrNull()
+                val explore = exploreResult.getOrNull()
 
-            // El historial es opcional: si falla, la sección simplemente no aparece
-            historyDeferred.await()
-                .onSuccess { songs ->
-                    _recentlyPlayed.value = songs
-                    prefetchStreamUrls(songs.take(3).map { it.id })
+                _homePage.value = home
+                _explorePage.value = explore
+                _recentlyPlayed.value = historySongs
+
+                // 2. Construir perfil de gustos (TasteProfile)
+                val likedArtistIds = likedSongs.flatMap { it.artists }
+                    .mapNotNull { it.id }
+                    .filter { it.isNotBlank() }
+                    .toSet()
+                val likedAlbumIds = likedSongs.mapNotNull { it.album?.id }
+                    .filter { it.isNotBlank() }
+                    .toSet()
+                val recentSongIds = historySongs.map { it.id }
+
+                val profile = TasteProfile(
+                    likedSongs = likedSongs,
+                    likedArtistIds = likedArtistIds,
+                    likedAlbumIds = likedAlbumIds,
+                    recentSongIds = recentSongIds
+                )
+                _tasteProfile.value = profile
+
+                // 3. Generación de cada Shelf
+
+                // ── B1. "Vuelve a escuchar" (historial reciente)
+                val recentlyPlayedShelf = if (historySongs.isNotEmpty()) {
+                    HomeShelf(
+                        id = "recently_played",
+                        title = "Vuelve a escuchar",
+                        items = historySongs.distinctBy { it.id }.take(20)
+                    )
+                } else null
+
+                // ── B2. "Recomendaciones para ti" (basadas en radio/automix de semillas)
+                // Prioridad de semillas: 3 más recientes del historial + 2 de likes
+                val recentSeeds = historySongs.distinctBy { it.id }.take(3)
+                val likedSeeds = likedSongs.filterNot { l -> recentSeeds.any { it.id == l.id } }.take(2)
+                val seedSongs = (recentSeeds + likedSeeds).take(5)
+
+                val recommendedSongs = if (seedSongs.isNotEmpty()) {
+                    val songScoreMap = mutableMapOf<String, Pair<SongItem, Int>>()
+                    coroutineScope {
+                        val jobs = seedSongs.map { seed ->
+                            async(Dispatchers.IO) {
+                                recommendationSemaphore.withPermit {
+                                    runCatching {
+                                        YouTubeRepository.getSongRadio(seed.id).getOrNull().orEmpty()
+                                    }.getOrDefault(emptyList())
+                                }
+                            }
+                        }
+                        jobs.map { it.await() }.forEach { list ->
+                            list.forEach { song ->
+                                // Filtrar las canciones que el usuario ya conoce
+                                if (!profile.knownVideoIds.contains(song.id)) {
+                                    val current = songScoreMap[song.id]
+                                    val score = (current?.second ?: 0) + 1
+                                    songScoreMap[song.id] = Pair(song, score)
+                                }
+                            }
+                        }
+                    }
+                    songScoreMap.values
+                        .sortedByDescending { it.second }
+                        .map { it.first }
+                        .distinctBy { it.id }
+                        .take(20)
+                } else {
+                    emptyList()
                 }
-                .onFailure { _recentlyPlayed.value = emptyList() }
 
-            _isLoadingHome.value = false
+                // Fallback para recomendaciones: si no hay semillas o no hubo resultados, usar canciones del home
+                val finalRecommendations = if (recommendedSongs.isNotEmpty()) {
+                    recommendedSongs
+                } else {
+                    home?.sections
+                        ?.flatMap { it.items }
+                        ?.filterIsInstance<SongItem>()
+                        ?.filterNot { profile.knownVideoIds.contains(it.id) }
+                        ?.distinctBy { it.id }
+                        ?.take(20)
+                        ?: emptyList()
+                }
+
+                val recommendationsShelf = if (finalRecommendations.isNotEmpty()) {
+                    HomeShelf(
+                        id = "recommendations",
+                        title = "Recomendaciones para ti",
+                        items = finalRecommendations
+                    )
+                } else null
+
+                // ── B3. "Álbumes y sencillos populares" (explore + cruce con artistas que le gustan)
+                val newReleases = explore?.newReleaseAlbums.orEmpty()
+                val popularAlbumsShelf = if (newReleases.isNotEmpty()) {
+                    val (fromFavoriteArtists, otherReleases) = newReleases.partition { album ->
+                        likedArtistIds.isNotEmpty() && album.artists?.any { it.id != null && likedArtistIds.contains(it.id) } == true
+                    }
+                    val sortedAlbums = (fromFavoriteArtists + otherReleases).distinctBy { it.browseId }.take(20)
+                    HomeShelf(
+                        id = "popular_albums",
+                        title = "Álbumes y sencillos populares",
+                        items = sortedAlbums
+                    )
+                } else null
+
+                // ── B4. "Artistas para ti" (artistas relacionados con likes, o trending para cuentas nuevas)
+                val popularArtistsShelf = if (likedArtistIds.isNotEmpty()) {
+                    val seedArtists = likedArtistIds.take(3)
+                    val artistScoreMap = mutableMapOf<String, Pair<ArtistItem, Int>>()
+                    coroutineScope {
+                        val jobs = seedArtists.map { artistId ->
+                            async(Dispatchers.IO) {
+                                recommendationSemaphore.withPermit {
+                                    runCatching {
+                                        YouTubeRepository.getRelatedArtists(artistId).getOrNull().orEmpty()
+                                    }.getOrDefault(emptyList())
+                                }
+                            }
+                        }
+                        jobs.map { it.await() }.forEach { list ->
+                            list.forEach { artist ->
+                                if (!likedArtistIds.contains(artist.id)) {
+                                    val current = artistScoreMap[artist.id]
+                                    val score = (current?.second ?: 0) + 1
+                                    artistScoreMap[artist.id] = Pair(artist, score)
+                                }
+                            }
+                        }
+                    }
+                    val sortedArtists = artistScoreMap.values
+                        .sortedByDescending { it.second }
+                        .map { it.first }
+                        .distinctBy { it.id }
+                        .take(15)
+
+                    if (sortedArtists.isNotEmpty()) {
+                        HomeShelf(
+                            id = "popular_artists",
+                            title = "Artistas para ti",
+                            items = sortedArtists
+                        )
+                    } else null
+                } else {
+                    val homeArtists = home?.sections
+                        ?.flatMap { it.items }
+                        ?.filterIsInstance<ArtistItem>()
+                        ?.distinctBy { it.id }
+                        ?.take(15)
+                        .orEmpty()
+                    if (homeArtists.isNotEmpty()) {
+                        HomeShelf(
+                            id = "popular_artists",
+                            title = "Artistas para ti",
+                            items = homeArtists
+                        )
+                    } else null
+                }
+
+                // ── Secciones adicionales del home de YouTube Music (evitando duplicar estantes)
+                val additionalShelves = home?.sections?.mapNotNull { section ->
+                    val validItems = section.items.filter { it is SongItem || it is AlbumItem || it is ArtistItem }
+                    val lowerTitle = section.title.lowercase()
+                    if (validItems.isNotEmpty() &&
+                        !lowerTitle.contains("vuelve a escuchar") &&
+                        !lowerTitle.contains("escuchado recientemente") &&
+                        !lowerTitle.contains("quick picks") &&
+                        !lowerTitle.contains("artistas para ti")) {
+                        HomeShelf(
+                            id = "yt_section_${section.title.hashCode()}",
+                            title = section.title,
+                            items = validItems
+                        )
+                    } else null
+                }.orEmpty()
+
+                // Consolidar estantes
+                val allShelves = listOfNotNull(
+                    recentlyPlayedShelf,
+                    recommendationsShelf,
+                    popularAlbumsShelf,
+                    popularArtistsShelf
+                ) + additionalShelves
+
+                _homeShelves.value = allShelves
+                lastHomeContentTime = System.currentTimeMillis()
+
+                // Prefetch de URLs de reproducción de las canciones iniciales para reproducción instantánea
+                val prefetchSongIds = (finalRecommendations.take(3) + historySongs.take(3)).map { it.id }.distinct()
+                if (prefetchSongIds.isNotEmpty()) {
+                    prefetchStreamUrls(prefetchSongIds)
+                }
+
+            } catch (e: Exception) {
+                _errorMessage.value = e.message ?: "Error al cargar contenido de Stream"
+            } finally {
+                _isLoadingHome.value = false
+            }
         }
     }
+
 
     fun loadUserPlaylists() {
         viewModelScope.launch {
