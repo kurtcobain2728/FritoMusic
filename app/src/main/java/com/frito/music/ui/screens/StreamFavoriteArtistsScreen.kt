@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
@@ -31,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,6 +56,9 @@ fun StreamFavoriteArtistsScreen(
 ) {
     val appColors = LocalAppColors.current
     val favoriteArtists by FavoriteArtistsManager.favoriteArtists.collectAsState()
+    val gridState = rememberSaveable(key = "stream_fav_artists_grid", saver = LazyGridState.Saver) {
+        LazyGridState()
+    }
 
     Column(
         modifier = Modifier
@@ -137,6 +142,7 @@ fun StreamFavoriteArtistsScreen(
             }
         } else {
             LazyVerticalGrid(
+                state = gridState,
                 columns = GridCells.Fixed(3),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 48.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),

@@ -53,6 +53,13 @@ import com.frito.music.ui.theme.ThemeViewModel
 import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.ui.theme.AppAnimations
 
+data class StreamNavEntry(
+    val screen: String,
+    val artistId: String? = null,
+    val albumId: String? = null,
+    val playlistId: String? = null
+)
+
 class MainActivity : ComponentActivity() {
 
     /**
@@ -134,7 +141,72 @@ class MainActivity : ComponentActivity() {
                     var selectedStreamArtistId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
                     var selectedStreamAlbumId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
                     var selectedStreamPlaylistId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
-                    var previousStreamSubScreen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+                    var isNavigatingBack by remember { mutableStateOf(false) }
+
+                    val streamNavStack = androidx.compose.runtime.saveable.rememberSaveable(
+                        saver = androidx.compose.runtime.saveable.listSaver(
+                            save = { list ->
+                                list.map { "${it.screen}|${it.artistId.orEmpty()}|${it.albumId.orEmpty()}|${it.playlistId.orEmpty()}" }
+                            },
+                            restore = { savedList ->
+                                val list = mutableStateListOf<StreamNavEntry>()
+                                savedList.forEach { str ->
+                                    val parts = str.split("|")
+                                    list.add(
+                                        StreamNavEntry(
+                                            screen = parts.getOrElse(0) { "" },
+                                            artistId = parts.getOrNull(1)?.ifEmpty { null },
+                                            albumId = parts.getOrNull(2)?.ifEmpty { null },
+                                            playlistId = parts.getOrNull(3)?.ifEmpty { null }
+                                        )
+                                    )
+                                }
+                                list
+                            }
+                        )
+                    ) {
+                        mutableStateListOf<StreamNavEntry>()
+                    }
+
+                    val pushStreamScreen: (StreamNavEntry) -> Unit = { entry ->
+                        isNavigatingBack = false
+                        streamNavStack.add(entry)
+                        currentSubScreen = entry.screen
+                        if (entry.artistId != null) selectedStreamArtistId = entry.artistId
+                        if (entry.albumId != null) selectedStreamAlbumId = entry.albumId
+                        if (entry.playlistId != null) selectedStreamPlaylistId = entry.playlistId
+                    }
+
+                    val popStreamScreen: () -> Boolean = {
+                        isNavigatingBack = true
+                        if (streamNavStack.isNotEmpty()) {
+                            streamNavStack.removeAt(streamNavStack.lastIndex)
+                        }
+                        if (streamNavStack.isNotEmpty()) {
+                            val prev = streamNavStack.last()
+                            currentSubScreen = prev.screen
+                            selectedStreamArtistId = prev.artistId
+                            selectedStreamAlbumId = prev.albumId
+                            selectedStreamPlaylistId = prev.playlistId
+                            true
+                        } else {
+                            currentSubScreen = null
+                            selectedStreamArtistId = null
+                            selectedStreamAlbumId = null
+                            selectedStreamPlaylistId = null
+                            false
+                        }
+                    }
+
+                    LaunchedEffect(currentSubScreen) {
+                        if (currentSubScreen == null) {
+                            streamNavStack.clear()
+                            selectedStreamArtistId = null
+                            selectedStreamAlbumId = null
+                            selectedStreamPlaylistId = null
+                        }
+                    }
+
                     var verificationTarget by remember { mutableStateOf<Pair<String, String>?>(null) } // se reconstruye vía deep link / banner
                     var showYouTubeLogin by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
 
@@ -169,35 +241,30 @@ class MainActivity : ComponentActivity() {
                     if (showPlayerScreen) {
                         showPlayerScreen = false
                     } else if (currentSubScreen == "playlist_detail") {
+                        isNavigatingBack = true
                         currentSubScreen = "listas"
                         selectedPlaylist = null
                     } else if (currentSubScreen == "artist_detail" || currentSubScreen == "album_detail" || currentSubScreen == "session_verification") {
+                        isNavigatingBack = true
                         currentSubScreen = "descargar"
                         selectedArtistId = null
                         selectedAlbumId = null
                         verificationTarget = null
-                    } else if (currentSubScreen == "stream_artist_detail") {
-                        currentSubScreen = previousStreamSubScreen
-                        previousStreamSubScreen = null
-                        selectedStreamArtistId = null
-                    } else if (currentSubScreen == "stream_favorite_artists" || currentSubScreen == "stream_all_artists") {
-                        currentSubScreen = null
-                    } else if (currentSubScreen == "stream_album_detail") {
-                        currentSubScreen = previousStreamSubScreen ?: if (selectedStreamArtistId != null) "stream_artist_detail" else null
-                        previousStreamSubScreen = null
-                        selectedStreamAlbumId = null
-                    } else if (currentSubScreen == "stream_playlist_detail") {
-                        currentSubScreen = "stream_playlists"
-                        selectedStreamPlaylistId = null
+                    } else if (currentSubScreen?.startsWith("stream_") == true) {
+                        if (!popStreamScreen()) {
+                            currentSubScreen = null
+                        }
                     } else if (currentSubScreen == "online_playlist_detail") {
+                        isNavigatingBack = true
                         currentSubScreen = "listas"
                         selectedStreamPlaylistId = null
-                    } else if (currentSubScreen == "stream_playlists") {
-                        currentSubScreen = null
                     } else if (showYouTubeLogin) {
                         showYouTubeLogin = false
                     } else if (currentSubScreen != null) {
+                        isNavigatingBack = true
                         currentSubScreen = null
+                    } else if (currentTab == "stream" && (streamViewModel.searchResults.value != null || streamViewModel.isSearching.value)) {
+                        streamViewModel.clearSearch()
                     } else if (currentTab == "inicio" &&
                         homeViewModel.currentNode.value != null &&
                         homeViewModel.currentNode.value?.path != "/") {
@@ -298,7 +365,7 @@ class MainActivity : ComponentActivity() {
                                         AppAnimations.DURATION_MEDIUM,
                                         easing = FastOutSlowInEasing
                                     )
-                                    if (targetState != null) {
+                                    if (!isNavigatingBack && targetState != null) {
                                         // Entrando a una subpantalla: crece desde la derecha
                                         (slideInHorizontally(
                                             initialOffsetX = { fullWidth -> (fullWidth * 0.45f).toInt() },
@@ -315,7 +382,7 @@ class MainActivity : ComponentActivity() {
                                                     fadeOut(tween(200, easing = FastOutSlowInEasing))
                                             )
                                     } else {
-                                        // Volviendo a tabs: se aleja hacia la izquierda
+                                        // Volviendo hacia atrás: entra desde la izquierda y sale hacia la derecha
                                         (slideInHorizontally(
                                             initialOffsetX = { fullWidth -> -(fullWidth * 0.45f).toInt() },
                                             animationSpec = slideSpec
@@ -431,13 +498,10 @@ class MainActivity : ComponentActivity() {
                                                     streamViewModel = streamViewModel,
                                                     playerViewModel = playerViewModel,
                                                     onNavigateToAlbum = { albumId ->
-                                                        selectedStreamAlbumId = albumId
-                                                        previousStreamSubScreen = "stream_artist_detail"
-                                                        currentSubScreen = "stream_album_detail"
+                                                        pushStreamScreen(StreamNavEntry(screen = "stream_album_detail", albumId = albumId))
                                                     },
                                                     onBack = {
-                                                        currentSubScreen = null
-                                                        selectedStreamArtistId = null
+                                                        popStreamScreen()
                                                     }
                                                 )
                                             }
@@ -449,9 +513,7 @@ class MainActivity : ComponentActivity() {
                                                     streamViewModel = streamViewModel,
                                                     playerViewModel = playerViewModel,
                                                     onBack = {
-                                                        currentSubScreen = previousStreamSubScreen ?: if (selectedStreamArtistId != null) "stream_artist_detail" else null
-                                                        previousStreamSubScreen = null
-                                                        selectedStreamAlbumId = null
+                                                        popStreamScreen()
                                                     }
                                                 )
                                             }
@@ -460,8 +522,7 @@ class MainActivity : ComponentActivity() {
                                             StreamPlaylistsScreen(
                                                 streamViewModel = streamViewModel,
                                                 onPlaylistClick = { playlistId ->
-                                                    selectedStreamPlaylistId = playlistId
-                                                    currentSubScreen = "stream_playlist_detail"
+                                                    pushStreamScreen(StreamNavEntry(screen = "stream_playlist_detail", playlistId = playlistId))
                                                 }
                                             )
                                         }
@@ -472,8 +533,7 @@ class MainActivity : ComponentActivity() {
                                                     streamViewModel = streamViewModel,
                                                     playerViewModel = playerViewModel,
                                                     onBack = {
-                                                        currentSubScreen = "stream_playlists"
-                                                        selectedStreamPlaylistId = null
+                                                        popStreamScreen()
                                                     }
                                                 )
                                             }
@@ -485,29 +545,29 @@ class MainActivity : ComponentActivity() {
                                                     onlineLibraryViewModel = onlineLibraryViewModel,
                                                     streamViewModel = streamViewModel,
                                                     playerViewModel = playerViewModel,
-                                                    onBack = { currentSubScreen = "listas"; selectedStreamPlaylistId = null }
+                                                    onBack = {
+                                                        isNavigatingBack = true
+                                                        currentSubScreen = "listas"
+                                                        selectedStreamPlaylistId = null
+                                                    }
                                                 )
                                             }
                                         }
                                         "stream_favorite_artists" -> {
                                             StreamFavoriteArtistsScreen(
                                                 onArtistClick = { id ->
-                                                    selectedStreamArtistId = id
-                                                    previousStreamSubScreen = "stream_favorite_artists"
-                                                    currentSubScreen = "stream_artist_detail"
+                                                    pushStreamScreen(StreamNavEntry(screen = "stream_artist_detail", artistId = id))
                                                 },
-                                                onBack = { currentSubScreen = null }
+                                                onBack = { popStreamScreen() }
                                             )
                                         }
                                         "stream_all_artists" -> {
                                             StreamAllArtistsScreen(
                                                 streamViewModel = streamViewModel,
                                                 onArtistClick = { id ->
-                                                    selectedStreamArtistId = id
-                                                    previousStreamSubScreen = "stream_all_artists"
-                                                    currentSubScreen = "stream_artist_detail"
+                                                    pushStreamScreen(StreamNavEntry(screen = "stream_artist_detail", artistId = id))
                                                 },
-                                                onBack = { currentSubScreen = null }
+                                                onBack = { popStreamScreen() }
                                             )
                                         }
                                         "extensiones" -> ExtensionsScreen(onBack = { currentSubScreen = null })
@@ -565,39 +625,35 @@ class MainActivity : ComponentActivity() {
                                                 streamViewModel = streamViewModel,
                                                 playerViewModel = playerViewModel,
                                                 onNavigateToArtist = { id ->
-                                                    selectedStreamArtistId = id
-                                                    previousStreamSubScreen = null
-                                                    currentSubScreen = "stream_artist_detail"
+                                                    pushStreamScreen(StreamNavEntry(screen = "stream_artist_detail", artistId = id))
                                                 },
                                                 onNavigateToAlbum = { albumId ->
-                                                    selectedStreamAlbumId = albumId
-                                                    previousStreamSubScreen = null
-                                                    currentSubScreen = "stream_album_detail"
+                                                    pushStreamScreen(StreamNavEntry(screen = "stream_album_detail", albumId = albumId))
                                                 },
                                                 onNavigateToLogin = {
                                                     showYouTubeLogin = true
                                                 },
                                                 onNavigateToPlaylists = {
-                                                    currentSubScreen = "stream_playlists"
+                                                    pushStreamScreen(StreamNavEntry(screen = "stream_playlists"))
                                                 },
                                                 onNavigateToFavoriteArtists = {
-                                                    currentSubScreen = "stream_favorite_artists"
+                                                    pushStreamScreen(StreamNavEntry(screen = "stream_favorite_artists"))
                                                 },
                                                 onNavigateToAllArtists = {
-                                                    currentSubScreen = "stream_all_artists"
+                                                    pushStreamScreen(StreamNavEntry(screen = "stream_all_artists"))
                                                 }
                                             )
                                             "mas" -> MoreScreen(
                                                 favoritesCount = favorites.size,
                                                 playlistsCount = playlists.size,
-                                                onNavigateToFavorites = { currentSubScreen = "favoritos" },
-                                                onNavigateToPlaylists = { currentSubScreen = "listas" },
-                                                onNavigateToEqualizer = { currentSubScreen = "ecualizador" },
-                                                onNavigateToAppearance = { currentSubScreen = "apariencia" },
-                                                onNavigateToDonations = { currentSubScreen = "donaciones" },
-                                                onNavigateToDownload = { currentSubScreen = "descargar" },
-                                                onNavigateToDownloadsManager = { currentSubScreen = "gestor_descargas" },
-                                                onNavigateToExtensions = { currentSubScreen = "extensiones" }
+                                                onNavigateToFavorites = { isNavigatingBack = false; currentSubScreen = "favoritos" },
+                                                onNavigateToPlaylists = { isNavigatingBack = false; currentSubScreen = "listas" },
+                                                onNavigateToEqualizer = { isNavigatingBack = false; currentSubScreen = "ecualizador" },
+                                                onNavigateToAppearance = { isNavigatingBack = false; currentSubScreen = "apariencia" },
+                                                onNavigateToDonations = { isNavigatingBack = false; currentSubScreen = "donaciones" },
+                                                onNavigateToDownload = { isNavigatingBack = false; currentSubScreen = "descargar" },
+                                                onNavigateToDownloadsManager = { isNavigatingBack = false; currentSubScreen = "gestor_descargas" },
+                                                onNavigateToExtensions = { isNavigatingBack = false; currentSubScreen = "extensiones" }
                                             )
                                             else -> HomeScreen(homeViewModel = homeViewModel, playerViewModel = playerViewModel, isPlayerOpen = showPlayerScreen || currentAudio != null)
                                         }

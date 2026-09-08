@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,6 +15,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,14 +45,12 @@ fun YouTubePlaylistDetailScreen(
     val isLoading by streamViewModel.isLoadingPlaylists.collectAsState()
     val errorMessage by streamViewModel.errorMessage.collectAsState()
 
-    LaunchedEffect(playlistId) {
-        streamViewModel.loadPlaylistSongs(playlistId)
+    val listState = rememberSaveable(key = "yt_playlist_$playlistId", saver = LazyListState.Saver) {
+        LazyListState()
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            streamViewModel.clearSelectedPlaylist()
-        }
+    LaunchedEffect(playlistId) {
+        streamViewModel.loadPlaylistSongs(playlistId)
     }
 
     Column(
@@ -85,7 +85,10 @@ fun YouTubePlaylistDetailScreen(
             val playlist = page.playlist
             val songs = page.songs
 
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize()
+            ) {
                 // Header
                 item {
                     Box(modifier = Modifier.fillMaxWidth().height(340.dp)) {

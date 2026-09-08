@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,14 +56,12 @@ fun StreamArtistDetailScreen(
     val isLoading by streamViewModel.isLoadingArtist.collectAsState()
     val errorMessage by streamViewModel.errorMessage.collectAsState()
 
-    LaunchedEffect(artistId) {
-        streamViewModel.loadArtistDetails(artistId)
+    val listState = rememberSaveable(key = "artist_$artistId", saver = LazyListState.Saver) {
+        LazyListState()
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            streamViewModel.clearSelectedArtist()
-        }
+    LaunchedEffect(artistId) {
+        streamViewModel.loadArtistDetails(artistId)
     }
 
     Column(
@@ -107,7 +107,10 @@ fun StreamArtistDetailScreen(
                 section.items.any { it is AlbumItem }
             }
 
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize()
+            ) {
                 // Header
                 item {
                     Box(modifier = Modifier.fillMaxWidth().height(340.dp)) {

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -38,6 +39,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -105,7 +107,9 @@ fun StreamAllArtistsScreen(
         sourceArtists.filterNot { favoriteArtistIds.contains(it.id) }
     }
 
-    val gridState = rememberLazyGridState()
+    val gridState = rememberSaveable(key = "stream_all_artists_grid", saver = LazyGridState.Saver) {
+        LazyGridState()
+    }
 
     // Paginación infinita: detectar cuando el usuario se acerca al final del scroll
     LaunchedEffect(gridState, displayedArtists.size) {

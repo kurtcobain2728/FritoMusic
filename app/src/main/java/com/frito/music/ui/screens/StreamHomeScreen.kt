@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -16,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,6 +58,9 @@ fun StreamHomeScreen(
     val favoriteArtistIds = remember(favoriteArtists) {
         favoriteArtists.map { it.id }.filter { it.isNotBlank() }.toSet()
     }
+    val listState = rememberSaveable(key = "stream_home_list_state", saver = LazyListState.Saver) {
+        LazyListState()
+    }
 
     // Artistas recomendados de respaldo (excluyendo los que ya son favoritos)
     val recommendedArtists = remember(homePage, favoriteArtistIds) {
@@ -83,6 +88,7 @@ fun StreamHomeScreen(
         modifier = modifier.fillMaxSize()
     ) {
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {

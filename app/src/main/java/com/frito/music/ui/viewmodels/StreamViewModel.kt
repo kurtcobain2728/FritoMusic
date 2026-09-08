@@ -60,6 +60,10 @@ class StreamViewModel : ViewModel() {
     private val _artistResults = MutableStateFlow<List<ArtistItem>?>(null)
     val artistResults: StateFlow<List<ArtistItem>?> = _artistResults.asStateFlow()
 
+    private val artistPagesCache = mutableMapOf<String, ArtistPage>()
+    private val albumPagesCache = mutableMapOf<String, AlbumPage>()
+    private val playlistPagesCache = mutableMapOf<String, PlaylistPage>()
+
     private val _selectedArtist = MutableStateFlow<ArtistPage?>(null)
     val selectedArtist: StateFlow<ArtistPage?> = _selectedArtist.asStateFlow()
 
@@ -344,7 +348,16 @@ class StreamViewModel : ViewModel() {
         }
     }
     
-    fun loadArtistDetails(browseId: String) {
+    fun loadArtistDetails(browseId: String, forceRefresh: Boolean = false) {
+        if (!forceRefresh) {
+            val cached = artistPagesCache[browseId]
+            if (cached != null) {
+                _selectedArtist.value = cached
+                _isLoadingArtist.value = false
+                return
+            }
+        }
+
         viewModelScope.launch {
             _isLoadingArtist.value = true
             _errorMessage.value = null
@@ -354,6 +367,7 @@ class StreamViewModel : ViewModel() {
             }
             result
                 .onSuccess { artistPage ->
+                    artistPagesCache[browseId] = artistPage
                     _selectedArtist.value = artistPage
                     val songIds = artistPage.sections.flatMap { it.items }.filterIsInstance<SongItem>().map { it.id }
                     prefetchStreamUrls(songIds)
@@ -370,7 +384,16 @@ class StreamViewModel : ViewModel() {
         _selectedArtist.value = null
     }
 
-    fun loadAlbumDetails(browseId: String) {
+    fun loadAlbumDetails(browseId: String, forceRefresh: Boolean = false) {
+        if (!forceRefresh) {
+            val cached = albumPagesCache[browseId]
+            if (cached != null) {
+                _selectedAlbum.value = cached
+                _isLoadingAlbum.value = false
+                return
+            }
+        }
+
         viewModelScope.launch {
             _isLoadingAlbum.value = true
             _errorMessage.value = null
@@ -380,6 +403,7 @@ class StreamViewModel : ViewModel() {
             }
             result
                 .onSuccess { albumPage ->
+                    albumPagesCache[browseId] = albumPage
                     _selectedAlbum.value = albumPage
                     prefetchStreamUrls(albumPage.songs.map { it.id })
                 }
@@ -829,7 +853,16 @@ class StreamViewModel : ViewModel() {
         }
     }
 
-    fun loadPlaylistSongs(playlistId: String) {
+    fun loadPlaylistSongs(playlistId: String, forceRefresh: Boolean = false) {
+        if (!forceRefresh) {
+            val cached = playlistPagesCache[playlistId]
+            if (cached != null) {
+                _selectedPlaylistSongs.value = cached
+                _isLoadingPlaylists.value = false
+                return
+            }
+        }
+
         viewModelScope.launch {
             _isLoadingPlaylists.value = true
             _errorMessage.value = null
@@ -839,6 +872,7 @@ class StreamViewModel : ViewModel() {
             }
             result
                 .onSuccess { playlistPage ->
+                    playlistPagesCache[playlistId] = playlistPage
                     _selectedPlaylistSongs.value = playlistPage
                     // Prefetch de las primeras canciones de la playlist
                     prefetchStreamUrls(playlistPage.songs.map { it.id })
