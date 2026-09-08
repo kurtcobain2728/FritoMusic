@@ -70,7 +70,7 @@ fun YouTubeLogoutModal(
 
             // Account Name
             Text(
-                text = accountName.ifEmpty { "Usuario de YouTube" },
+                text = accountName.ifEmpty { "Usuario conectado" },
                 color = appColors.textPrimary,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,

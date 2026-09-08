@@ -58,7 +58,7 @@ fun YouTubeLoginScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Iniciar sesión en YouTube", color = Color.White) },
+                title = { Text("Iniciar sesión", color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(

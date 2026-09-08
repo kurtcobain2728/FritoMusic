@@ -112,10 +112,15 @@ fun StreamAllArtistsScreen(
     }
 
     // Paginación infinita: detectar cuando el usuario se acerca al final del scroll
-    LaunchedEffect(gridState, displayedArtists.size) {
+    LaunchedEffect(gridState, displayedArtists.size, isLoadingMoreArtists, isRefreshingArtists) {
         snapshotFlow { gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
             .collect { lastVisibleIndex ->
-                if (lastVisibleIndex != null && lastVisibleIndex >= displayedArtists.size - 6) {
+                if (lastVisibleIndex != null &&
+                    displayedArtists.size >= 12 &&
+                    lastVisibleIndex >= displayedArtists.size - 4 &&
+                    !isLoadingMoreArtists &&
+                    !isRefreshingArtists
+                ) {
                     streamViewModel.loadMoreArtists()
                 }
             }

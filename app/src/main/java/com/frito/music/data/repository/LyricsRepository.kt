@@ -101,54 +101,91 @@ class LyricsRepository(private val context: Context) {
             return@withContext lrcNoDur
         }
 
-        // ── 5. LRCLIB /api/search (búsqueda difusa priorizando letras sincronizadas) ──
-        val searchResult = fetchFromLrclibSearch(cleanTitle, cleanArtist)
+        // ── 5. LRCLIB /api/search (búsqueda validando artista, título y duración) ──
+        val searchResult = fetchFromLrclibSearch(cleanTitle, cleanArtist, durationSeconds)
         if (searchResult != null && searchResult.isSynced) {
             saveToDiskCache(cacheKey, searchResult)
             return@withContext searchResult
         }
 
-        // ── 6. Musixmatch: Solo si tiene subtítulos LRC sincronizados ──
+        // ── 6. Musixmatch: Solo si tiene subtítulos LRC sincronizados validados ──
         val mxmSynced = fetchMusixmatchSynced(cleanTitle, cleanArtist)
         if (mxmSynced != null && mxmSynced.isSynced) {
             saveToDiskCache(cacheKey, mxmSynced)
             return@withContext mxmSynced
         }
 
-        // ── 7. Búsqueda LRCLIB solo con el título limpio ──
-        if (cleanTitle != title) {
-            val searchTitleOnly = fetchFromLrclibSearch(cleanTitle, "")
-            if (searchTitleOnly != null && searchTitleOnly.isSynced) {
-                saveToDiskCache(cacheKey, searchTitleOnly)
-                return@withContext searchTitleOnly
-            }
-        }
+        // ── 7. Letra oficial asociada al video de YouTube (100% auténtica de la canción) ──
+        val ytLyricsPlain = if (!videoId.isNullOrBlank()) {
+            runCatching { YouTubeRepository.getLyrics(videoId).getOrNull() }.getOrNull()?.takeIf { it.isNotBlank() }
+        } else null
 
-        // ── 8. Si no hay sincronización nativa, convertir texto plano a sincronizado estimado ──
-        // Para que NINGUNA canción se quede en "texto plano" y todas luzcan en LRCLIB 1/1
+        // ── 8. Fallback de texto plano verificado (LRCLIB legítimo, Musixmatch o YouTube oficial) ──
         val plainFallback = lrcWithDur?.plainLyrics
             ?: lrcNoDur?.plainLyrics
             ?: searchResult?.plainLyrics
+            ?: ytLyricsPlain
             ?: fetchMusixmatchPlain(cleanTitle, cleanArtist)
-            ?: (!videoId.isNullOrBlank()).let {
-                if (it) runCatching { YouTubeRepository.getLyrics(videoId!!).getOrNull() }.getOrNull() else null
-            }
 
         if (!plainFallback.isNullOrBlank()) {
             val estimatedLines = createEstimatedSyncedLines(plainFallback, durationSeconds)
-            val convertedData = LyricsData(
-                title = title,
-                artist = artist,
-                lines = estimatedLines,
-                plainLyrics = plainFallback,
-                isSynced = estimatedLines.isNotEmpty(),
-                source = "LRCLIB"
-            )
-            saveToDiskCache(cacheKey, convertedData)
-            return@withContext convertedData
+            if (estimatedLines.isNotEmpty()) {
+                val convertedData = LyricsData(
+                    title = title,
+                    artist = artist,
+                    lines = estimatedLines,
+                    plainLyrics = plainFallback,
+                    isSynced = true,
+                    source = "LRCLIB"
+                )
+                saveToDiskCache(cacheKey, convertedData)
+                return@withContext convertedData
+            }
         }
 
+        // Si no existe ninguna letra auténtica verificada, no retornar caracteres al azar
         null
+    }
+
+    private fun normalizeForMatch(str: String): String {
+        return str.lowercase()
+            .replace(Regex("""[^\p{L}\p{Nd}\s]"""), "")
+            .trim()
+    }
+
+    private fun hasSignificantTokenOverlap(s1: String, s2: String): Boolean {
+        val tokens1 = s1.split("\\s+".toRegex()).filter { it.length > 1 }.toSet()
+        val tokens2 = s2.split("\\s+".toRegex()).filter { it.length > 1 }.toSet()
+        if (tokens1.isEmpty() || tokens2.isEmpty()) return false
+        val common = tokens1.intersect(tokens2)
+        return common.isNotEmpty()
+    }
+
+    private fun matchesTrackAndArtist(
+        candTrack: String,
+        candArtist: String,
+        targetTrack: String,
+        targetArtist: String
+    ): Boolean {
+        val normCandTrack = normalizeForMatch(candTrack)
+        val normTargetTrack = normalizeForMatch(targetTrack)
+        if (normCandTrack.isBlank() || normTargetTrack.isBlank()) return false
+
+        val trackMatches = normCandTrack.contains(normTargetTrack) ||
+                normTargetTrack.contains(normCandTrack) ||
+                hasSignificantTokenOverlap(normCandTrack, normTargetTrack)
+        if (!trackMatches) return false
+
+        val normCandArtist = normalizeForMatch(candArtist)
+        val normTargetArtist = normalizeForMatch(targetArtist)
+        if (normTargetArtist.isNotBlank() && normCandArtist.isNotBlank()) {
+            val artistMatches = normCandArtist.contains(normTargetArtist) ||
+                    normTargetArtist.contains(normCandArtist) ||
+                    hasSignificantTokenOverlap(normCandArtist, normTargetArtist)
+            if (!artistMatches) return false
+        }
+
+        return true
     }
 
     private fun fetchFromLrclibGet(title: String, artist: String, durationSec: Long?): LyricsData? {
@@ -179,7 +216,7 @@ class LyricsRepository(private val context: Context) {
         }.getOrNull()
     }
 
-    private fun fetchFromLrclibSearch(title: String, artist: String): LyricsData? {
+    private fun fetchFromLrclibSearch(title: String, artist: String, durationSec: Long? = null): LyricsData? {
         return runCatching {
             val query = if (artist.isNotBlank()) "$artist $title" else title
             val url = URL("$LRCLIB_BASE_URL/search?q=" + URLEncoder.encode(query, "UTF-8"))
@@ -197,6 +234,25 @@ class LyricsRepository(private val context: Context) {
 
                 for (i in 0 until array.length()) {
                     val item = array.getJSONObject(i)
+                    // Descartar pistas puramente instrumentales
+                    if (item.optBoolean("instrumental", false)) continue
+
+                    val candTrack = item.optString("trackName", "")
+                    val candArtist = item.optString("artistName", "")
+
+                    // Validar que el candidato realmente pertenezca a la canción y artista buscados
+                    if (!matchesTrackAndArtist(candTrack, candArtist, title, artist)) {
+                        continue
+                    }
+
+                    // Si se conoce la duración, descartar discrepancias absurdas (> 20 segundos)
+                    val candDuration = item.optLong("duration", 0L)
+                    if (durationSec != null && durationSec > 0 && candDuration > 0) {
+                        if (Math.abs(candDuration - durationSec) > 20) {
+                            continue
+                        }
+                    }
+
                     val synced = item.optString("syncedLyrics", "").takeIf { it.isNotBlank() }
                     val plain = item.optString("plainLyrics", "").takeIf { it.isNotBlank() }
                     if (synced != null) {
@@ -313,6 +369,10 @@ class LyricsRepository(private val context: Context) {
 
             if (trackList.length() == 0) return@runCatching null
             val trackObj = trackList.getJSONObject(0).optJSONObject("track") ?: return@runCatching null
+            val candTrack = trackObj.optString("track_name", "")
+            val candArtist = trackObj.optString("artist_name", "")
+            if (!matchesTrackAndArtist(candTrack, candArtist, title, artist)) return@runCatching null
+
             val trackId = trackObj.optLong("track_id", 0L)
             val hasSubtitles = trackObj.optInt("has_subtitles", 0)
 
@@ -369,7 +429,11 @@ class LyricsRepository(private val context: Context) {
             val searchJson = JSONObject(conn.inputStream.bufferedReader().use { it.readText() })
             val trackList = searchJson.optJSONObject("message")?.optJSONObject("body")?.optJSONArray("track_list") ?: return@runCatching null
             if (trackList.length() == 0) return@runCatching null
-            val trackId = trackList.getJSONObject(0).optJSONObject("track")?.optLong("track_id", 0L) ?: return@runCatching null
+            val trackObj = trackList.getJSONObject(0).optJSONObject("track") ?: return@runCatching null
+            val candTrack = trackObj.optString("track_name", "")
+            val candArtist = trackObj.optString("artist_name", "")
+            if (!matchesTrackAndArtist(candTrack, candArtist, title, artist)) return@runCatching null
+            val trackId = trackObj.optLong("track_id", 0L)
             if (trackId == 0L) return@runCatching null
 
             val lyricsUrl = URL("$MUSIXMATCH_BASE_URL/track.lyrics.get?track_id=$trackId&app_id=$MUSIXMATCH_APP_ID&usertoken=$token")

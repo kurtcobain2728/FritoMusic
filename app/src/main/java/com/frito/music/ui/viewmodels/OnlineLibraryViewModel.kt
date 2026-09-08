@@ -60,7 +60,7 @@ class OnlineLibraryViewModel : ViewModel() {
                 val rev = _likedSongIds.value.toMutableSet()
                 if (liked) rev.remove(videoId) else rev.add(videoId)
                 _likedSongIds.value = rev
-                _onlineError.value = "No se pudo actualizar en YouTube Music"
+                _onlineError.value = "No se pudo actualizar en la biblioteca online"
             }
         }
     }

@@ -199,7 +199,7 @@ fun StreamScreen(
                 .height(56.dp),
             placeholder = {
                 Text(
-                    text = "Buscar en YouTube Music...",
+                    text = "Buscar canciones, artistas...",
                     color = appColors.textSecondary,
                     fontSize = 14.sp
                 )

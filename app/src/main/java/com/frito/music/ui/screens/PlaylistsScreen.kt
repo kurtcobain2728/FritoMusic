@@ -153,7 +153,7 @@ fun PlaylistsScreen(
             text = {
                 Text(
                     if (playlistToDeleteIsOnline)
-                        "Se eliminará de tu cuenta de YouTube Music. Esta acción no se puede deshacer."
+                        "Se eliminará de tu cuenta sincronizada. Esta acción no se puede deshacer."
                     else
                         "Esta lista se eliminará de tu dispositivo. Esta acción no se puede deshacer.",
                     color = appColors.textSecondary
@@ -407,7 +407,7 @@ private fun PlaylistsOnlineContent(
     when {
         !com.frito.music.data.repository.YouTubeLoginManager.isLoggedIn() -> {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Inicia sesión para ver tus listas de YouTube Music", color = appColors.textSecondary, fontSize = 16.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(32.dp))
+                Text("Inicia sesión para ver tus listas en la nube", color = appColors.textSecondary, fontSize = 16.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(32.dp))
             }
         }
         else -> {
@@ -431,7 +431,7 @@ private fun PlaylistsOnlineContent(
                 when {
                     isLoading && playlists.isEmpty() -> Box(Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = appColors.accent) }
                     playlists.isEmpty() -> Box(Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) {
-                        Text(error ?: "No tienes listas en YouTube Music", color = if (error != null) Color.Red else appColors.textSecondary, fontSize = 16.sp, modifier = Modifier.padding(32.dp))
+                        Text(error ?: "No tienes listas en tu biblioteca online", color = if (error != null) Color.Red else appColors.textSecondary, fontSize = 16.sp, modifier = Modifier.padding(32.dp))
                     }
                     else -> LazyColumn(
                         modifier = Modifier.fillMaxSize().weight(1f),
@@ -462,7 +462,7 @@ private fun PlaylistsOnlineContent(
                                     Text(pl.title, color = appColors.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     Text(pl.songCountText ?: "", color = appColors.textSecondary, fontSize = 14.sp)
                                 }
-                                // X para eliminar la playlist online (de YouTube Music)
+                                // X para eliminar la playlist online
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "Eliminar lista",
@@ -482,7 +482,7 @@ private fun PlaylistsOnlineContent(
     if (showCreate) {
         AlertDialog(
             onDismissRequest = { showCreate = false },
-            title = { Text("Nueva lista en YouTube Music", color = appColors.textPrimary) },
+            title = { Text("Nueva lista de reproducción", color = appColors.textPrimary) },
             text = {
                 OutlinedTextField(
                     value = newName,

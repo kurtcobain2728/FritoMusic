@@ -5,9 +5,13 @@ import com.frito.music.data.models.LyricLine
 object LrcParser {
 
     private val TIME_TAG_REGEX = Regex("""\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]""")
+    private val SYLLABLE_TAG_REGEX = Regex("""<(\d{1,2}:\d{2}(?:\.\d{1,3})?|\d+)>""")
+    private val KARAOKE_TAG_REGEX = Regex("""\{[^}]*\}""")
+    private val METADATA_TAG_REGEX = Regex("""^\[(ti|ar|al|by|offset|re|ve|length):.*\]""", RegexOption.IGNORE_CASE)
 
     /**
-     * Parsea una cadena de texto en formato LRC estándar a una lista ordenada de LyricLine.
+     * Parsea una cadena de texto en formato LRC estándar o extendido a una lista ordenada de LyricLine.
+     * Limpia etiquetas de tiempo por palabra/sílaba, efectos karaoke y metadatos no musicales.
      */
     fun parse(lrcContent: String): List<LyricLine> {
         if (lrcContent.isBlank()) return emptyList()
@@ -19,12 +23,25 @@ object LrcParser {
             val trimmed = line.trim()
             if (trimmed.isEmpty()) continue
 
-            // Ignorar encabezados de metadatos como [ar:artista], [ti:titulo], [length:03:45], etc.
+            // Ignorar líneas que son exclusivamente metadatos del archivo LRC
+            if (METADATA_TAG_REGEX.matches(trimmed)) continue
+
             val allMatches = TIME_TAG_REGEX.findAll(trimmed).toList()
             if (allMatches.isEmpty()) continue
 
-            // El texto de la letra es la porción restante tras remover todas las etiquetas de tiempo
-            val text = trimmed.replace(TIME_TAG_REGEX, "").trim()
+            // Remover etiquetas de tiempo de línea, marcas por sílaba (<00:12.34>) y tags karaoke ({...})
+            val text = trimmed
+                .replace(TIME_TAG_REGEX, "")
+                .replace(SYLLABLE_TAG_REGEX, "")
+                .replace(KARAOKE_TAG_REGEX, "")
+                .replace("&amp;", "&")
+                .replace("&quot;", "\"")
+                .replace("&#39;", "'")
+                .replace("&apos;", "'")
+                .trim()
+
+            // Si la línea quedó vacía tras retirar las marcas de tiempo, omitir
+            if (text.isEmpty()) continue
 
             for (match in allMatches) {
                 val minutes = match.groupValues[1].toLongOrNull() ?: continue

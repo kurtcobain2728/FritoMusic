@@ -671,7 +671,7 @@ fun QualityInfo(audio: AudioFile?) {
     val appColors = LocalAppColors.current
 
     val qualityText = if (audio?.path?.startsWith("http") == true) {
-        "Streaming • YouTube Music"
+        "Streaming • En línea"
     } else {
         // No inventamos sample rate: mostramos solo el formato real del archivo
         val extension = audio?.path?.substringAfterLast(".")?.uppercase() ?: "AUDIO"

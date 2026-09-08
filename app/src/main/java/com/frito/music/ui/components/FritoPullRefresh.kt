@@ -28,9 +28,7 @@ fun FritoPullRefresh(
     }
 
     LaunchedEffect(isRefreshing) {
-        if (isRefreshing) {
-            pullRefreshState.startRefresh()
-        } else {
+        if (!isRefreshing) {
             pullRefreshState.endRefresh()
         }
     }
@@ -40,11 +38,13 @@ fun FritoPullRefresh(
     ) {
         content()
 
-        PullToRefreshContainer(
-            state = pullRefreshState,
-            modifier = Modifier.align(Alignment.TopCenter),
-            containerColor = Color(0xFF282828),
-            contentColor = Color(0xFF1DB954)
-        )
+        if (pullRefreshState.verticalOffset > 0f || pullRefreshState.isRefreshing) {
+            PullToRefreshContainer(
+                state = pullRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter),
+                containerColor = Color(0xFF282828),
+                contentColor = Color(0xFF1DB954)
+            )
+        }
     }
 }

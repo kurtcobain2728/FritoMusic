@@ -309,7 +309,7 @@ private fun FavoritesOnlineContent(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Outlined.MusicNote, contentDescription = null, tint = appColors.textSecondary.copy(alpha = 0.5f), modifier = Modifier.size(80.dp))
                     Spacer(Modifier.height(16.dp))
-                    Text("Inicia sesión para ver tus favoritos de YouTube Music", color = appColors.textSecondary, fontSize = 16.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 32.dp))
+                    Text("Inicia sesión para ver tus favoritos sincronizados", color = appColors.textSecondary, fontSize = 16.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 32.dp))
                 }
             }
         }

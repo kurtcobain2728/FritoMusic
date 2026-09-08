@@ -61,7 +61,7 @@ fun StreamTutorialScreen(
                     1 -> TutorialPage(
                         icon = Icons.Default.AccountCircle,
                         title = "Iniciar Sesión",
-                        description = "Inicia sesión con tu cuenta de YouTube Music para acceder a playlists, recomendaciones y más."
+                        description = "Inicia sesión con tu cuenta para acceder a playlists sincronizadas, recomendaciones y más."
                     )
                     2 -> TutorialPage(
                         icon = Icons.Default.PlayArrow,
