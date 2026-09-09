@@ -186,25 +186,33 @@ class MainActivity : ComponentActivity() {
                     val context = androidx.compose.ui.platform.LocalContext.current
                     var backPressedTime by remember { mutableStateOf(0L) }
 
-                    // Re-escanear la biblioteca cuando una descarga termina con éxito,
-                    // para que la canción nueva aparezca sin reiniciar la app.
+                    // Re-escanear la biblioteca cuando una descarga NUEVA termina con éxito,
+                    // evitando rescaneos masivos en el arranque inicial.
                     androidx.compose.runtime.DisposableEffect(homeViewModel, context) {
                         val seenSucceeded = HashSet<String>()
-                        val observer = object : androidx.lifecycle.Observer<MutableList<androidx.work.WorkInfo>> {
-                            override fun onChanged(infos: MutableList<androidx.work.WorkInfo>) {
-                            infos.filter { it.state == androidx.work.WorkInfo.State.SUCCEEDED }
-                                .forEach { info ->
-                                    if (seenSucceeded.add(info.id.toString())) {
-                                        homeViewModel.rescan()
-                                    }
+                        var isInitialLoad = true
+                        val observer = androidx.lifecycle.Observer<MutableList<androidx.work.WorkInfo>> { infos ->
+                            val succeeded = infos.filter { it.state == androidx.work.WorkInfo.State.SUCCEEDED }
+                            if (isInitialLoad) {
+                                succeeded.forEach { seenSucceeded.add(it.id.toString()) }
+                                isInitialLoad = false
+                                return@Observer
+                            }
+                            var hasNew = false
+                            succeeded.forEach { info ->
+                                if (seenSucceeded.add(info.id.toString())) {
+                                    hasNew = true
                                 }
+                            }
+                            if (hasNew) {
+                                homeViewModel.rescan()
+                            }
                         }
+                        val liveData = androidx.work.WorkManager.getInstance(context)
+                            .getWorkInfosByTagLiveData("download")
+                        liveData.observeForever(observer)
+                        onDispose { liveData.removeObserver(observer) }
                     }
-                    val liveData = androidx.work.WorkManager.getInstance(context)
-                        .getWorkInfosByTagLiveData("download")
-                    liveData.observeForever(observer)
-                    onDispose { liveData.removeObserver(observer) }
-                }
 
                 androidx.activity.compose.BackHandler(enabled = true) {
                     if (showPlayerScreen) {

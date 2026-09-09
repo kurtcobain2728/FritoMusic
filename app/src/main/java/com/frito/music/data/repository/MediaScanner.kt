@@ -27,8 +27,9 @@ class MediaScanner(private val context: Context) {
             MediaStore.Audio.Media.DATE_ADDED
         )
         
-        // Excluimos tonos de llamada, alarmas, etc si es posible, y excluimos la carpeta Android
-        val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0 AND ${MediaStore.Audio.Media.DATA} NOT LIKE '%/Android/%'"
+        // Excluimos tonos de llamada, alarmas y archivos no musicales usando el índice nativo
+        val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
+        val folderCoversCache = HashMap<String, String?>()
 
         try {
             context.contentResolver.query(uri, projection, selection, null, "${MediaStore.Audio.Media.TITLE} ASC")?.use { cursor ->
@@ -44,6 +45,7 @@ class MediaScanner(private val context: Context) {
 
                 while (cursor.moveToNext()) {
                     val path = cursor.getString(dataColumn) ?: continue
+                    if (path.contains("/Android/", ignoreCase = true)) continue
 
                     val rawTitle = cursor.getString(titleColumn)
                     val rawArtist = cursor.getString(artistColumn)
@@ -67,43 +69,61 @@ class MediaScanner(private val context: Context) {
                             rawArtist.equals("Unknown Artist", ignoreCase = true) ||
                             rawArtist.equals("Unknown", ignoreCase = true)
 
-                        finalArtist = if (isArtistUnknown && parentDir != null) {
+                        val grandParent = parentDir?.parentFile
+                        val hasAlbumSubfolder = grandParent != null &&
+                            !grandParent.name.equals("FritoMusic", ignoreCase = true) &&
+                            !grandParent.name.equals("Music", ignoreCase = true) &&
+                            grandParent.name.isNotBlank()
+
+                        finalArtist = if (!isArtistUnknown && !rawArtist.isNullOrBlank()) {
+                            rawArtist
+                        } else if (hasAlbumSubfolder) {
+                            grandParent!!.name
+                        } else if (parentDir != null && !parentDir.name.equals("FritoMusic", ignoreCase = true)) {
                             parentDir.name
                         } else if (file.name.contains(" - ")) {
-                            file.nameWithoutExtension.substringBefore(" - ").trim()
+                            file.nameWithoutExtension.replace("""^\d{1,3}\s*[-.]\s*""".toRegex(), "").substringBefore(" - ").trim()
                         } else {
-                            rawArtist ?: "Artista Desconocido"
+                            "Artista Desconocido"
                         }
 
                         val isTitleUnknown = rawTitle.isNullOrBlank() ||
                             rawTitle.equals("<unknown>", ignoreCase = true) ||
                             rawTitle.equals("Desconocido", ignoreCase = true)
 
-                        finalTitle = if (isTitleUnknown) {
-                            if (file.name.contains(" - ")) {
-                                file.nameWithoutExtension.substringAfter(" - ").trim()
-                            } else {
-                                file.nameWithoutExtension
-                            }
-                        } else {
+                        val titleCandidate = if (!isTitleUnknown && !rawTitle.isNullOrBlank()) {
                             rawTitle
+                        } else if (file.name.contains(" - ")) {
+                            file.nameWithoutExtension.substringAfter(" - ").trim()
+                        } else {
+                            file.nameWithoutExtension
                         }
+                        finalTitle = titleCandidate.replace("""^\d{1,3}\s*[-.]\s*""".toRegex(), "").trim().ifEmpty { file.nameWithoutExtension }
 
                         val isAlbumUnknown = rawAlbum.isNullOrBlank() ||
                             rawAlbum.equals("<unknown>", ignoreCase = true) ||
                             rawAlbum.equals("Álbum Desconocido", ignoreCase = true)
 
-                        finalAlbum = if (isAlbumUnknown && parentDir != null) {
-                            parentDir.name
+                        finalAlbum = if (!isAlbumUnknown && !rawAlbum.isNullOrBlank()) {
+                            rawAlbum
+                        } else if (hasAlbumSubfolder) {
+                            parentDir!!.name
                         } else {
-                            rawAlbum ?: "Álbum Desconocido"
+                            "Álbum Desconocido"
                         }
 
                         val songCover = if (parentDir != null) File(parentDir, "${file.nameWithoutExtension}.jpg") else null
-                        val folderCover = if (parentDir != null) File(parentDir, "cover.jpg") else null
+                        val parentPath = parentDir?.absolutePath
+                        val folderCoverUri = if (parentPath != null) {
+                            folderCoversCache.getOrPut(parentPath) {
+                                val fc = File(parentDir, "cover.jpg")
+                                if (fc.exists()) Uri.fromFile(fc).toString() else null
+                            }
+                        } else null
+
                         resolvedAlbumUri = when {
                             songCover?.exists() == true -> Uri.fromFile(songCover).toString()
-                            folderCover?.exists() == true -> Uri.fromFile(folderCover).toString()
+                            folderCoverUri != null -> folderCoverUri
                             else -> defaultAlbumUri
                         }
                     } else {

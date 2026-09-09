@@ -78,9 +78,10 @@ fun StreamScreen(
         YouTubeLoginManager.isLoggedIn()
     }
 
-    LaunchedEffect(isLoggedIn) {
-        if (isLoggedIn) {
-            streamViewModel.loadHomeContent()
+    LaunchedEffect(Unit) {
+        // Al entrar a Stream, si aún no se han cargado las recomendaciones y no hay una carga activa, cargamos sin cancelar la que esté en curso
+        if (streamViewModel.homeShelves.value.size < 2 && !streamViewModel.isLoadingHome.value) {
+            streamViewModel.loadHomeContent(forceRefresh = false)
         }
     }
     
@@ -138,24 +139,24 @@ fun StreamScreen(
                     )
                 }
                 Spacer(modifier = Modifier.width(4.dp))
-
-                // Refresh button
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .clickable { streamViewModel.loadHomeContent(forceRefresh = true) }
-                        .padding(horizontal = 8.dp, vertical = 8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Actualizar Stream",
-                        tint = appColors.textPrimary,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
             }
+
+            // Refresh button
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .clickable { streamViewModel.loadHomeContent(forceRefresh = true) }
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Actualizar Stream",
+                    tint = appColors.textPrimary,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
 
             // Login button
             Row(
@@ -305,62 +306,25 @@ fun StreamScreen(
                 }
             }
             searchResults == null && searchQuery.isEmpty() -> {
-                if (isLoggedIn) {
-                    StreamHomeScreen(
-                        homeShelves = homeShelves,
-                        homePage = homePage,
-                        explorePage = explorePage,
-                        isLoading = isLoadingHome,
-                        recentlyPlayed = recentlyPlayed,
-                        onPlaySong = { song, sectionSongs ->
-                            streamViewModel.playArtistSong(song, playerViewModel, queueSongs = sectionSongs)
-                        },
-                        onAlbumClick = { browseId ->
-                            onNavigateToAlbum(browseId)
-                        },
-                        onArtistClick = { browseId ->
-                            onNavigateToArtist(browseId)
-                        },
-                        onSeeAllArtists = onNavigateToAllArtists,
-                        onRefresh = { streamViewModel.loadHomeContent(forceRefresh = true) },
-                        modifier = Modifier.weight(1f)
-                    )
-                } else {
-                    // Login Prompt
-                    Box(
-                        modifier = Modifier.fillMaxWidth().weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(32.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.MusicNote,
-                                contentDescription = null,
-                                tint = appColors.textSecondary.copy(alpha = 0.5f),
-                                modifier = Modifier.size(80.dp)
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "Inicia sesión para ver contenido recomendado",
-                                color = appColors.textSecondary.copy(alpha = 0.7f),
-                                fontSize = 16.sp,
-                                textAlign = TextAlign.Center,
-                                lineHeight = 22.sp
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Button(
-                                onClick = { onNavigateToLogin() },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF1DB954)
-                                )
-                            ) {
-                                Text("Iniciar sesión")
-                            }
-                        }
-                    }
-                }
+                StreamHomeScreen(
+                    homeShelves = homeShelves,
+                    homePage = homePage,
+                    explorePage = explorePage,
+                    isLoading = isLoadingHome,
+                    recentlyPlayed = recentlyPlayed,
+                    onPlaySong = { song, sectionSongs ->
+                        streamViewModel.playArtistSong(song, playerViewModel, queueSongs = sectionSongs)
+                    },
+                    onAlbumClick = { browseId ->
+                        onNavigateToAlbum(browseId)
+                    },
+                    onArtistClick = { browseId ->
+                        onNavigateToArtist(browseId)
+                    },
+                    onSeeAllArtists = onNavigateToAllArtists,
+                    onRefresh = { streamViewModel.loadHomeContent(forceRefresh = true) },
+                    modifier = Modifier.weight(1f)
+                )
             }
             else -> {
                 // Tabs

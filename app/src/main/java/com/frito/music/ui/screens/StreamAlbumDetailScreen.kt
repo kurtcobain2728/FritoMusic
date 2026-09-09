@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -26,6 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.frito.music.ui.components.AlbumDownloadQualityBottomSheet
 import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.ui.viewmodels.PlayerViewModel
 import com.frito.music.ui.viewmodels.StreamViewModel
@@ -49,6 +51,7 @@ fun StreamAlbumDetailScreen(
     val listState = rememberSaveable(key = "album_$albumId", saver = LazyListState.Saver) {
         LazyListState()
     }
+    var showAlbumDownloadSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(albumId) {
         streamViewModel.loadAlbumDetails(albumId)
@@ -85,6 +88,7 @@ fun StreamAlbumDetailScreen(
             val page = albumPage!!
             val album = page.album
             val songs = page.songs
+            val artistName = album.artists?.joinToString(", ") { it.name } ?: "Artista"
 
             LazyColumn(
                 state = listState,
@@ -147,7 +151,7 @@ fun StreamAlbumDetailScreen(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = album.artists?.joinToString(", ") { it.name } ?: "Álbum",
+                                text = artistName,
                                 color = Color.White.copy(alpha = 0.7f),
                                 fontSize = 16.sp
                             )
@@ -162,32 +166,74 @@ fun StreamAlbumDetailScreen(
                     }
                 }
 
-                // Play All button
+                // Play All and Obtain Album buttons
                 if (songs.isNotEmpty()) {
                     item {
-                        Button(
-                            onClick = {
-                                streamViewModel.playAlbumSong(songs.first(), playerViewModel, queueSongs = songs)
-                            },
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 8.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF1DB954)
-                            ),
-                            shape = RoundedCornerShape(24.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.PlayArrow,
-                                contentDescription = null,
-                                tint = Color.White
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Reproducir todo",
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Button(
+                                onClick = {
+                                    streamViewModel.playAlbumSong(songs.first(), playerViewModel, queueSongs = songs)
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF1DB954)
+                                ),
+                                shape = RoundedCornerShape(24.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Reproducir todo",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+
+                            Button(
+                                onClick = {
+                                    showAlbumDownloadSheet = true
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = appColors.accent
+                                ),
+                                shape = RoundedCornerShape(24.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Download,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Obtener Álbum",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
                     }
                 }
@@ -203,6 +249,16 @@ fun StreamAlbumDetailScreen(
 
                 // Bottom spacing
                 item { Spacer(modifier = Modifier.height(40.dp)) }
+            }
+
+            if (showAlbumDownloadSheet) {
+                AlbumDownloadQualityBottomSheet(
+                    albumTitle = album.title,
+                    artistName = artistName,
+                    albumArtUrl = album.thumbnail,
+                    songs = songs,
+                    onDismiss = { showAlbumDownloadSheet = false }
+                )
             }
         }
     }

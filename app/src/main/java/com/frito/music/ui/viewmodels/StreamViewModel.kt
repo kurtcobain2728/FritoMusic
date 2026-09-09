@@ -175,10 +175,8 @@ class StreamViewModel : ViewModel() {
                 )
             )
         }
-        // Precarga en background automática en cuanto se abre la app si hay sesión activa
-        if (com.frito.music.data.repository.YouTubeLoginManager.isLoggedIn()) {
-            loadHomeContent()
-        }
+        // Precarga en background automática en cuanto se abre la app
+        loadHomeContent()
     }
 
     /**
@@ -225,7 +223,9 @@ class StreamViewModel : ViewModel() {
                         prefetchStreamUrls(results.map { it.videoId })
                     }
                     .onFailure { error ->
-                        _errorMessage.value = error.message ?: "Error searching"
+                        if (error !is kotlinx.coroutines.CancellationException) {
+                            _errorMessage.value = error.message ?: "Error searching"
+                        }
                         _searchResults.value = null
                     }
 
@@ -422,7 +422,9 @@ class StreamViewModel : ViewModel() {
                     prefetchStreamUrls(songIds)
                 }
                 .onFailure { error ->
-                    _errorMessage.value = error.message ?: "Error loading artist"
+                    if (error !is kotlinx.coroutines.CancellationException) {
+                        _errorMessage.value = error.message ?: "Error loading artist"
+                    }
                 }
 
             _isLoadingArtist.value = false
@@ -457,7 +459,9 @@ class StreamViewModel : ViewModel() {
                     prefetchStreamUrls(albumPage.songs.map { it.id })
                 }
                 .onFailure { error ->
-                    _errorMessage.value = error.message ?: "Error loading album"
+                    if (error !is kotlinx.coroutines.CancellationException) {
+                        _errorMessage.value = error.message ?: "Error loading album"
+                    }
                 }
 
             _isLoadingAlbum.value = false
@@ -475,6 +479,8 @@ class StreamViewModel : ViewModel() {
         _errorMessage.value = null
     }
 
+    private var homeJob: Job? = null
+
     fun loadHomeContent(forceRefresh: Boolean = false) {
         val now = System.currentTimeMillis()
         // Si no es refresco forzado y ya tenemos recomendaciones completas (> 1 shelf) y están recientes (<3 min), saltar
@@ -482,7 +488,13 @@ class StreamViewModel : ViewModel() {
             return
         }
 
-        viewModelScope.launch {
+        // Si ya hay una carga en progreso y no se está forzando refresco, dejar que continúe
+        if (!forceRefresh && homeJob?.isActive == true) {
+            return
+        }
+
+        homeJob?.cancel()
+        homeJob = viewModelScope.launch {
             _isLoadingHome.value = true
             _errorMessage.value = null
 
@@ -573,43 +585,7 @@ class StreamViewModel : ViewModel() {
                     )
                 } else null
 
-                // ── B3. "Álbumes y sencillos populares"
-                // Extraemos álbumes oficiales de Explore + secciones de Home + 1-2 artistas favoritos en paralelo
-                val homeAlbums = home?.sections
-                    ?.flatMap { it.items }
-                    ?.filterIsInstance<AlbumItem>()
-                    ?.distinctBy { it.browseId }
-                    .orEmpty()
-
-                val newReleaseAlbums = explore?.newReleaseAlbums.orEmpty()
-
-                val topArtistsForAlbums = favoriteArtists.filter { it.id.isNotBlank() }.take(2)
-                val artistAlbums = if (topArtistsForAlbums.isNotEmpty()) {
-                    coroutineScope {
-                        topArtistsForAlbums.map { artist ->
-                            async(Dispatchers.IO) {
-                                runCatching {
-                                    YouTubeRepository.getArtistAlbums(artist.id, artist.title).getOrNull().orEmpty()
-                                }.getOrDefault(emptyList())
-                            }
-                        }.map { it.await() }.flatten()
-                    }
-                } else emptyList()
-
-                val finalAlbums = (artistAlbums + homeAlbums + newReleaseAlbums)
-                    .distinctBy { it.browseId }
-                    .shuffled()
-                    .take(20)
-
-                val popularAlbumsShelf = if (finalAlbums.isNotEmpty()) {
-                    HomeShelf(
-                        id = "popular_albums",
-                        title = "Álbumes y sencillos populares",
-                        items = finalAlbums
-                    )
-                } else null
-
-                // ── B4. "Artistas para ti"
+                // ── B3. "Artistas para ti"
                 // Extraer semillas de favoritos, historial de reproducción y likes
                 val favArtistSeeds = favoriteArtists.filter { it.id.isNotBlank() }
                 val historyArtistNames = historySongs.flatMap { it.artists }
@@ -693,7 +669,10 @@ class StreamViewModel : ViewModel() {
                         !lowerTitle.contains("escuchado recientemente") &&
                         !lowerTitle.contains("quick picks") &&
                         !lowerTitle.contains("artistas para ti") &&
-                        !lowerTitle.contains("recomendaciones")) {
+                        !lowerTitle.contains("recomendaciones") &&
+                        !lowerTitle.contains("álbumes y sencillos") &&
+                        !lowerTitle.contains("albumes y sencillos") &&
+                        !lowerTitle.contains("albums & singles")) {
                         HomeShelf(
                             id = "yt_section_${section.title.hashCode()}",
                             title = section.title,
@@ -706,7 +685,6 @@ class StreamViewModel : ViewModel() {
                 val allShelves = listOfNotNull(
                     recentlyPlayedShelf,
                     recommendationsShelf,
-                    popularAlbumsShelf,
                     popularArtistsShelf
                 ) + additionalShelves
 
@@ -724,6 +702,9 @@ class StreamViewModel : ViewModel() {
                     initPaginatedArtists(forceRefresh = forceRefresh)
                 }
 
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                // Si la corutina se cancela por refresco o navegación, no es un error para el usuario
+                throw e
             } catch (e: Exception) {
                 _errorMessage.value = e.message ?: "Error al cargar contenido de Stream"
             } finally {

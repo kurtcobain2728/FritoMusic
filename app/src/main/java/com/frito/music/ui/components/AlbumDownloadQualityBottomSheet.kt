@@ -32,21 +32,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.frito.music.downloader.OnlineMusicDownloadWorker
 import com.frito.music.downloader.OnlineQuality
 import com.frito.music.ui.theme.LocalAppColors
+import com.music.innertube.models.SongItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DownloadQualityBottomSheet(
-    videoId: String,
-    title: String,
-    artist: String,
+fun AlbumDownloadQualityBottomSheet(
+    albumTitle: String,
+    artistName: String,
     albumArtUrl: String? = null,
-    albumName: String? = null,
+    songs: List<SongItem>,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -65,39 +64,56 @@ fun DownloadQualityBottomSheet(
         }
     }
 
-    fun startDownload(quality: OnlineQuality) {
-        val downloadRequest = OneTimeWorkRequestBuilder<OnlineMusicDownloadWorker>()
-            .addTag("download")
-            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-            .setInputData(
-                workDataOf(
-                    OnlineMusicDownloadWorker.KEY_VIDEO_ID to videoId,
-                    OnlineMusicDownloadWorker.KEY_TITLE to title,
-                    OnlineMusicDownloadWorker.KEY_ARTIST to artist,
-                    OnlineMusicDownloadWorker.KEY_QUALITY to quality.id,
-                    OnlineMusicDownloadWorker.KEY_ALBUM_ART_URL to (albumArtUrl ?: ""),
-                    OnlineMusicDownloadWorker.KEY_ALBUM_NAME to (albumName ?: ""),
-                    "video_id" to videoId,
-                    "trackId" to videoId,
-                    "videoId" to videoId,
-                    "title" to title,
-                    "trackName" to title,
-                    "artist" to artist,
-                    "artistName" to artist,
-                    "quality" to quality.id,
-                    "albumArtUrl" to (albumArtUrl ?: ""),
-                    "thumbnailUrl" to (albumArtUrl ?: ""),
-                    "albumName" to (albumName ?: ""),
-                    "album" to (albumName ?: "")
-                )
-            )
-            .build()
+    fun startAlbumDownload(quality: OnlineQuality) {
+        if (songs.isEmpty()) {
+            Toast.makeText(context, "El álbum no contiene canciones para descargar", Toast.LENGTH_SHORT).show()
+            onDismiss()
+            return
+        }
 
-        WorkManager.getInstance(context).enqueue(downloadRequest)
+        val workRequests = songs.mapIndexed { index, song ->
+            val trackNum = index + 1
+            val songArtist = song.artists.firstOrNull()?.name?.ifBlank { artistName } ?: artistName
+            val songThumbnail = song.thumbnail.ifBlank { albumArtUrl ?: "" }
+
+            OneTimeWorkRequestBuilder<OnlineMusicDownloadWorker>()
+                .addTag("download")
+                .addTag("album_download")
+                .setInputData(
+                    workDataOf(
+                        OnlineMusicDownloadWorker.KEY_VIDEO_ID to song.id,
+                        OnlineMusicDownloadWorker.KEY_TITLE to song.title,
+                        OnlineMusicDownloadWorker.KEY_ARTIST to songArtist,
+                        OnlineMusicDownloadWorker.KEY_QUALITY to quality.id,
+                        OnlineMusicDownloadWorker.KEY_ALBUM_ART_URL to songThumbnail,
+                        OnlineMusicDownloadWorker.KEY_ALBUM_NAME to albumTitle,
+                        OnlineMusicDownloadWorker.KEY_TRACK_NUMBER to trackNum,
+                        OnlineMusicDownloadWorker.KEY_TOTAL_TRACKS to songs.size,
+                        // Claves de respaldo para compatibilidad
+                        "video_id" to song.id,
+                        "trackId" to song.id,
+                        "videoId" to song.id,
+                        "title" to song.title,
+                        "trackName" to song.title,
+                        "artist" to songArtist,
+                        "artistName" to songArtist,
+                        "quality" to quality.id,
+                        "albumArtUrl" to songThumbnail,
+                        "thumbnailUrl" to songThumbnail,
+                        "albumName" to albumTitle,
+                        "album" to albumTitle,
+                        "trackNumber" to trackNum,
+                        "totalTracks" to songs.size
+                    )
+                )
+                .build()
+        }
+
+        WorkManager.getInstance(context).enqueue(workRequests)
         Toast.makeText(
             context,
-            "Descarga iniciada: $title (${quality.badge})",
-            Toast.LENGTH_SHORT
+            "Descargando álbum: $albumTitle (${songs.size} canciones en ${quality.badge})",
+            Toast.LENGTH_LONG
         ).show()
         onDismiss()
     }
@@ -105,7 +121,7 @@ fun DownloadQualityBottomSheet(
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { _ ->
-            selectedQualityForDownload?.let { startDownload(it) }
+            selectedQualityForDownload?.let { startAlbumDownload(it) }
         }
     )
 
@@ -121,7 +137,7 @@ fun DownloadQualityBottomSheet(
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             return
         }
-        startDownload(quality)
+        startAlbumDownload(quality)
     }
 
     val legacyPermissionLauncher = rememberLauncherForActivityResult(
@@ -149,7 +165,7 @@ fun DownloadQualityBottomSheet(
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 36.dp)
         ) {
-            // Header
+            // Encabezado
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
@@ -162,7 +178,7 @@ fun DownloadQualityBottomSheet(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Rounded.Download,
+                        imageVector = Icons.Rounded.Album,
                         contentDescription = null,
                         tint = appColors.accent,
                         modifier = Modifier.size(24.dp)
@@ -171,14 +187,14 @@ fun DownloadQualityBottomSheet(
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "DESCARGAR CANCIÓN",
+                        text = "DESCARGAR ÁLBUM COMPLETO",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = appColors.accent,
                         letterSpacing = 1.sp
                     )
                     Text(
-                        text = title,
+                        text = albumTitle,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                         color = appColors.textPrimary,
@@ -186,7 +202,7 @@ fun DownloadQualityBottomSheet(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = artist,
+                        text = "$artistName • ${songs.size} canciones",
                         fontSize = 13.sp,
                         color = appColors.textSecondary,
                         maxLines = 1,
@@ -209,7 +225,7 @@ fun DownloadQualityBottomSheet(
             Spacer(modifier = Modifier.height(12.dp))
 
             // Opción 1: Normal (160 kbps)
-            QualityOptionCard(
+            AlbumQualityOptionCard(
                 icon = Icons.Rounded.MusicNote,
                 title = "Normal (YouTube Music)",
                 subtitle = "Opus ~160 kbps • Rápida y garantizada",
@@ -223,7 +239,7 @@ fun DownloadQualityBottomSheet(
             Spacer(modifier = Modifier.height(10.dp))
 
             // Opción 2: Media (320 kbps)
-            QualityOptionCard(
+            AlbumQualityOptionCard(
                 icon = Icons.Rounded.HighQuality,
                 title = "Media (Alta Fidelidad)",
                 subtitle = "AAC / MP3 320 kbps • Excelente balance",
@@ -237,7 +253,7 @@ fun DownloadQualityBottomSheet(
             Spacer(modifier = Modifier.height(10.dp))
 
             // Opción 3: Alta (FLAC) - Próximamente (no seleccionable)
-            QualityOptionCard(
+            AlbumQualityOptionCard(
                 icon = Icons.Rounded.GraphicEq,
                 title = "Alta (Lossless)",
                 subtitle = "FLAC Sin Pérdida • Próximamente",
@@ -248,10 +264,17 @@ fun DownloadQualityBottomSheet(
             )
 
             Spacer(modifier = Modifier.height(14.dp))
+
             Text(
-                text = "Se guardará en: Almacenamiento Principal / FritoMusic / $artist /",
+                text = "Se guardará en: Almacenamiento Principal / FritoMusic / $artistName / $albumTitle /",
                 fontSize = 11.sp,
                 color = appColors.textSecondary.copy(alpha = 0.7f)
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "Orden de pistas: 01, 02, 03... indexado automáticamente en Inicio",
+                fontSize = 11.sp,
+                color = appColors.textSecondary.copy(alpha = 0.6f)
             )
         }
     }
@@ -279,7 +302,7 @@ fun DownloadQualityBottomSheet(
             },
             text = {
                 Text(
-                    text = "Para guardar y organizar tu música directamente en la carpeta FritoMusic de tu almacenamiento principal, se requiere conceder acceso al almacenamiento.",
+                    text = "Para guardar y organizar el álbum directamente en la carpeta FritoMusic / $artistName / $albumTitle de tu almacenamiento principal, se requiere conceder acceso al almacenamiento.",
                     fontSize = 14.sp,
                     color = appColors.textSecondary
                 )
@@ -318,7 +341,7 @@ fun DownloadQualityBottomSheet(
 }
 
 @Composable
-private fun QualityOptionCard(
+private fun AlbumQualityOptionCard(
     icon: ImageVector,
     title: String,
     subtitle: String,

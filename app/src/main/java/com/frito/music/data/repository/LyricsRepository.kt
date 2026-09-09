@@ -74,6 +74,16 @@ class LyricsRepository(private val context: Context) {
                             isSynced = true,
                             source = "LRCLIB"
                         )
+                    } else {
+                        val estimatedLines = createEstimatedSyncedLines(content, durationSeconds)
+                        return@withContext LyricsData(
+                            title = title,
+                            artist = artist,
+                            lines = estimatedLines,
+                            plainLyrics = content,
+                            isSynced = estimatedLines.isNotEmpty(),
+                            source = "LRCLIB"
+                        )
                     }
                 }
             }
@@ -83,6 +93,7 @@ class LyricsRepository(private val context: Context) {
         if (!forceRefresh) {
             val cached = getFromDiskCache(cacheKey, title, artist, durationSeconds)
             if (cached != null) {
+                saveToDiskCache(cacheKey, cached, localFilePath)
                 return@withContext cached
             }
         }
@@ -90,28 +101,28 @@ class LyricsRepository(private val context: Context) {
         // ── 3. LRCLIB /api/get con duración ──
         val lrcWithDur = fetchFromLrclibGet(cleanTitle, cleanArtist, durationSeconds)
         if (lrcWithDur != null && lrcWithDur.isSynced) {
-            saveToDiskCache(cacheKey, lrcWithDur)
+            saveToDiskCache(cacheKey, lrcWithDur, localFilePath)
             return@withContext lrcWithDur
         }
 
         // ── 4. LRCLIB /api/get sin restricción estricta de duración ──
         val lrcNoDur = fetchFromLrclibGet(cleanTitle, cleanArtist, null)
         if (lrcNoDur != null && lrcNoDur.isSynced) {
-            saveToDiskCache(cacheKey, lrcNoDur)
+            saveToDiskCache(cacheKey, lrcNoDur, localFilePath)
             return@withContext lrcNoDur
         }
 
         // ── 5. LRCLIB /api/search (búsqueda validando artista, título y duración) ──
         val searchResult = fetchFromLrclibSearch(cleanTitle, cleanArtist, durationSeconds)
         if (searchResult != null && searchResult.isSynced) {
-            saveToDiskCache(cacheKey, searchResult)
+            saveToDiskCache(cacheKey, searchResult, localFilePath)
             return@withContext searchResult
         }
 
         // ── 6. Musixmatch: Solo si tiene subtítulos LRC sincronizados validados ──
         val mxmSynced = fetchMusixmatchSynced(cleanTitle, cleanArtist)
         if (mxmSynced != null && mxmSynced.isSynced) {
-            saveToDiskCache(cacheKey, mxmSynced)
+            saveToDiskCache(cacheKey, mxmSynced, localFilePath)
             return@withContext mxmSynced
         }
 
@@ -138,7 +149,7 @@ class LyricsRepository(private val context: Context) {
                     isSynced = true,
                     source = "LRCLIB"
                 )
-                saveToDiskCache(cacheKey, convertedData)
+                saveToDiskCache(cacheKey, convertedData, localFilePath)
                 return@withContext convertedData
             }
         }
@@ -510,7 +521,7 @@ class LyricsRepository(private val context: Context) {
         }.getOrNull()
     }
 
-    private fun saveToDiskCache(cacheKey: String, data: LyricsData) {
+    private fun saveToDiskCache(cacheKey: String, data: LyricsData, localFilePath: String? = null) {
         runCatching {
             val file = File(getCacheDir(), "$cacheKey.json")
             val json = JSONObject().apply {
@@ -531,10 +542,37 @@ class LyricsRepository(private val context: Context) {
             }
             file.writeText(json.toString())
         }
+
+        // Si tenemos la ruta de un archivo local de música, guardar también el archivo .lrc homónimo en su carpeta
+        if (!localFilePath.isNullOrBlank() && !localFilePath.startsWith("http")) {
+            runCatching {
+                val dotIndex = localFilePath.lastIndexOf('.')
+                if (dotIndex > 0) {
+                    val lrcFile = File(localFilePath.substring(0, dotIndex) + ".lrc")
+                    val lrcText = if (data.lines.isNotEmpty()) {
+                        val sb = StringBuilder()
+                        data.lines.forEach { line ->
+                            val min = line.timestampMs / 60000
+                            val sec = (line.timestampMs % 60000) / 1000
+                            val hundredths = (line.timestampMs % 1000) / 10
+                            sb.append(String.format("[%02d:%02d.%02d]%s\n", min, sec, hundredths, line.text))
+                        }
+                        sb.toString()
+                    } else {
+                        data.plainLyrics ?: ""
+                    }
+                    if (lrcText.isNotBlank()) {
+                        lrcFile.writeText(lrcText)
+                        Log.d(TAG, "Letra guardada en archivo local: ${lrcFile.absolutePath}")
+                    }
+                }
+            }
+        }
     }
 
     private fun cleanMetadata(title: String, artist: String): Pair<String, String> {
         var cleanTitle = title
+            .replace("""^\d{1,3}\s*[-.]\s*""".toRegex(), "") // Quitar número de pista como "01 - " o "01. "
             .replace("""(?i)\s*[\(\[](?:official\s*(?:video|audio|music\s*video|lyric\s*video)|video\s*oficial|audio\s*oficial|video|audio|remaster(?:ed)?(?:\s*\d{4})?|deluxe(?:\s*edition)?|hd|4k)[\)\]]""".toRegex(), "")
             .replace("""(?i)\s*[\(\[](?:ft\.|feat\.).*?[\)\]]""".toRegex(), "")
             .trim()

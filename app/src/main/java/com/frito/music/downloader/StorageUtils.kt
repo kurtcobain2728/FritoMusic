@@ -123,19 +123,28 @@ object StorageUtils {
     }
 
     /**
-     * Crea un archivo físico directamente en /storage/emulated/0/FritoMusic/{safeArtist}/{safeTrack}.{ext}
+     * Crea un archivo físico directamente en /storage/emulated/0/FritoMusic/{safeArtist}/{safeAlbum}/{safeTrack}.{ext}
      * Si no existe la carpeta FritoMusic en la raíz, la crea.
      * Si no existe la carpeta del Artista, la crea.
+     * Si se especifica albumName, crea la subcarpeta del Álbum dentro del Artista.
+     * Si se especifica trackNumber (> 0), formatea el nombre con ceros a la izquierda (ej: "01 - Nombre.m4a").
      */
     fun createDirectAudioFile(
         artistName: String,
         trackName: String,
-        extension: String = "mp3"
+        extension: String = "mp3",
+        albumName: String? = null,
+        trackNumber: Int? = null
     ): File {
         val safeArtist = sanitizeFilename(artistName).ifEmpty { "Desconocido" }
         val safeTrack = sanitizeFilename(trackName).ifEmpty { "Pista Desconocida" }
         val cleanExtension = extension.removePrefix(".").lowercase().ifEmpty { "mp3" }
-        val fileName = "$safeTrack.$cleanExtension"
+
+        val fileName = if (trackNumber != null && trackNumber > 0) {
+            String.format("%02d - %s.%s", trackNumber, safeTrack, cleanExtension)
+        } else {
+            "$safeTrack.$cleanExtension"
+        }
 
         @Suppress("DEPRECATION")
         val rootDir = Environment.getExternalStorageDirectory()
@@ -144,20 +153,23 @@ object StorageUtils {
             (fritoMusicDir.exists() || fritoMusicDir.mkdirs()) && fritoMusicDir.canWrite()
         }.getOrDefault(false)
 
-        return if (canUseRoot) {
-            val artistDir = File(fritoMusicDir, safeArtist)
-            if (!artistDir.exists()) artistDir.mkdirs()
-            File(artistDir, fileName)
-        } else {
+        val baseDir = if (canUseRoot) fritoMusicDir else {
             // Fallback a Music/FritoMusic si el sistema no permite escribir directamente en la raíz
             @Suppress("DEPRECATION")
             val publicDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
-            val fallbackFrito = File(publicDir, "FritoMusic")
-            if (!fallbackFrito.exists()) fallbackFrito.mkdirs()
-            val artistDir = File(fallbackFrito, safeArtist)
-            if (!artistDir.exists()) artistDir.mkdirs()
-            File(artistDir, fileName)
+            File(publicDir, "FritoMusic").apply { if (!exists()) mkdirs() }
         }
+
+        val artistDir = File(baseDir, safeArtist).apply { if (!exists()) mkdirs() }
+
+        val targetDir = if (!albumName.isNullOrBlank()) {
+            val safeAlbum = sanitizeFilename(albumName).ifEmpty { "Álbum" }
+            File(artistDir, safeAlbum).apply { if (!exists()) mkdirs() }
+        } else {
+            artistDir
+        }
+
+        return File(targetDir, fileName)
     }
 
     /**
@@ -170,6 +182,7 @@ object StorageUtils {
         title: String? = null,
         artist: String? = null,
         album: String? = null,
+        trackNumber: Int? = null,
         onComplete: ((Uri?) -> Unit)? = null
     ) {
         val cleanExtension = file.extension.lowercase()
@@ -188,12 +201,13 @@ object StorageUtils {
             arrayOf(file.absolutePath),
             arrayOf(mimeType)
         ) { _, uri ->
-            if (uri != null && (title != null || artist != null || album != null)) {
+            if (uri != null && (title != null || artist != null || album != null || trackNumber != null)) {
                 runCatching {
                     val values = ContentValues().apply {
                         if (!title.isNullOrBlank()) put(MediaStore.Audio.Media.TITLE, title)
                         if (!artist.isNullOrBlank()) put(MediaStore.Audio.Media.ARTIST, artist)
                         if (!album.isNullOrBlank()) put(MediaStore.Audio.Media.ALBUM, album)
+                        if (trackNumber != null && trackNumber > 0) put(MediaStore.Audio.Media.TRACK, trackNumber)
                     }
                     context.contentResolver.update(uri, values, null, null)
                 }.onFailure {

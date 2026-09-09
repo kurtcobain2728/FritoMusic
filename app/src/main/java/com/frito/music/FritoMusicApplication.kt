@@ -6,12 +6,14 @@ import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
+import com.frito.music.downloader.OnlineMusicDownloadWorker
 import com.frito.music.utils.potoken.PoTokenGenerator
 
 class FritoMusicApplication : Application(), ImageLoaderFactory {
     override fun onCreate() {
         super.onCreate()
         PoTokenGenerator.init(this)
+        OnlineMusicDownloadWorker.createNotificationChannels(this)
     }
 
     override fun newImageLoader(): ImageLoader {

@@ -166,7 +166,30 @@ fun StreamHomeScreen(
                                     }
                                 }
                             }
-                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+                    }
+                }
+
+                if (isLoading) {
+                    item(key = "stream_loading_indicator") {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 20.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.5.dp,
+                                color = Color(0xFF1DB954)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Cargando recomendaciones y artistas...",
+                                fontSize = 13.sp,
+                                color = appColors.textSecondary
+                            )
                         }
                     }
                 }

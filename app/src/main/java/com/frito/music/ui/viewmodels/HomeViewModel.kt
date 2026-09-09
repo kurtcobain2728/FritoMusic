@@ -30,31 +30,48 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _allAudios = MutableStateFlow<List<AudioFile>>(emptyList())
     val allAudios: StateFlow<List<AudioFile>> = _allAudios.asStateFlow()
 
+    private var scanJob: kotlinx.coroutines.Job? = null
+
+    init {
+        // Iniciar escaneo en background tan pronto como se crea el ViewModel en MainActivity
+        scanMusic()
+    }
+
     fun scanMusic() {
         if (_rootNode.value != null && _allAudios.value.isNotEmpty()) return // Ya está escaneado con canciones
-        viewModelScope.launch {
+        if (scanJob?.isActive == true) return
+        scanJob = viewModelScope.launch {
             scanInternal()
         }
     }
 
     /**
-     * Re-escaneo forzado: reconstruye el árbol y la lista plana.
-     * Se llama cuando una descarga termina para que la nueva canción aparezca.
+     * Re-escaneo forzado: reconstruye el árbol y la lista plana de forma fluida.
+     * Se llama cuando una descarga termina para que la nueva canción aparezca sin parpadear la pantalla.
      */
     fun rescan() {
-        viewModelScope.launch {
+        if (scanJob?.isActive == true) return
+        scanJob = viewModelScope.launch {
             scanInternal()
         }
     }
 
     private suspend fun scanInternal() {
-        _isLoading.value = true
+        // Solo mostrar spinner en la carga en frío inicial si no hay contenido previo
+        if (_rootNode.value == null) {
+            _isLoading.value = true
+        }
         try {
             val root = kotlinx.coroutines.withContext(Dispatchers.IO) {
                 scanner.scanLocalAudio()
             }
             _rootNode.value = root
-            _currentNode.value = root
+            val current = _currentNode.value
+            if (current == null || current.path == "/" || current.path.isEmpty()) {
+                _currentNode.value = root
+            } else {
+                _currentNode.value = findNodeByPath(root, current.path) ?: root
+            }
             _allAudios.value = flattenAudios(root)
         } catch (e: Exception) {
             android.util.Log.e("HomeViewModel", "Error al escanear música: ${e.message}")

@@ -2,7 +2,9 @@ package com.frito.music.downloader
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.util.Log
@@ -11,6 +13,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import com.frito.music.MainActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -35,8 +38,11 @@ class OnlineMusicDownloadWorker(
         const val KEY_QUALITY = "quality"
         const val KEY_ALBUM_ART_URL = "album_art_url"
         const val KEY_ALBUM_NAME = "album_name"
+        const val KEY_TRACK_NUMBER = "track_number"
+        const val KEY_TOTAL_TRACKS = "total_tracks"
 
         const val CHANNEL_ID = "frito_music_downloads"
+        const val CHANNEL_ID_COMPLETE = "frito_music_downloads_complete"
         private const val TAG = "OnlineMusicDownloadWorker"
 
         const val PROGRESS = "progress"
@@ -45,6 +51,58 @@ class OnlineMusicDownloadWorker(
         const val TOTAL_MB = "total_mb"
         const val TRACK_NAME = "track_name"
         const val ARTIST_NAME = "artist_name"
+
+        fun createNotificationChannels(context: Context) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+                val progressChannel = NotificationChannel(
+                    CHANNEL_ID,
+                    "Descargas en Progreso",
+                    NotificationManager.IMPORTANCE_LOW
+                ).apply {
+                    description = "Muestra el progreso y velocidad de descarga en tiempo real"
+                    setShowBadge(false)
+                }
+
+                val completeChannel = NotificationChannel(
+                    CHANNEL_ID_COMPLETE,
+                    "Descargas Completadas",
+                    NotificationManager.IMPORTANCE_DEFAULT
+                ).apply {
+                    description = "Avisa cuando una canción termina de descargarse"
+                    setShowBadge(true)
+                }
+
+                notificationManager.createNotificationChannel(progressChannel)
+                notificationManager.createNotificationChannel(completeChannel)
+            }
+        }
+    }
+
+    override suspend fun getForegroundInfo(): ForegroundInfo {
+        val videoId = inputData.getString(KEY_VIDEO_ID)
+            ?: inputData.getString("trackId")
+            ?: inputData.getString("videoId")
+            ?: ""
+
+        val trackName = inputData.getString(KEY_TITLE)
+            ?: inputData.getString("trackName")
+            ?: inputData.getString("title")
+            ?: "Descargando canción"
+
+        val artistName = inputData.getString(KEY_ARTIST)
+            ?: inputData.getString("artistName")
+            ?: inputData.getString("artist")
+            ?: ""
+
+        val trackNumber = inputData.getInt(KEY_TRACK_NUMBER, 0).let { if (it > 0) it else null }
+            ?: inputData.getInt("trackNumber", 0).let { if (it > 0) it else null }
+        val totalTracks = inputData.getInt(KEY_TOTAL_TRACKS, 0).let { if (it > 0) it else null }
+            ?: inputData.getInt("totalTracks", 0).let { if (it > 0) it else null }
+
+        val notificationId = Math.abs((videoId.ifEmpty { trackName }).hashCode())
+        return createForegroundInfo(notificationId, trackName, artistName, trackNumber, totalTracks)
     }
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
@@ -74,6 +132,12 @@ class OnlineMusicDownloadWorker(
             ?: inputData.getString("album")
             ?: ""
 
+        val trackNumber = inputData.getInt(KEY_TRACK_NUMBER, 0).let { if (it > 0) it else null }
+            ?: inputData.getInt("trackNumber", 0).let { if (it > 0) it else null }
+
+        val totalTracks = inputData.getInt(KEY_TOTAL_TRACKS, 0).let { if (it > 0) it else null }
+            ?: inputData.getInt("totalTracks", 0).let { if (it > 0) it else null }
+
         val qualityStr = inputData.getString(KEY_QUALITY)
             ?: inputData.getString("quality")
             ?: "normal"
@@ -84,11 +148,12 @@ class OnlineMusicDownloadWorker(
             else -> OnlineQuality.NORMAL
         }
 
-        createChannel()
-        val notificationId = (videoId.ifEmpty { trackName }).hashCode()
+        createNotificationChannels(applicationContext)
+        val notificationId = Math.abs((videoId.ifEmpty { trackName }).hashCode())
+        val completionNotificationId = notificationId + 100000
 
         runCatching {
-            setForeground(createForegroundInfo(notificationId, trackName))
+            setForeground(createForegroundInfo(notificationId, trackName, artistName, trackNumber, totalTracks))
         }.onFailure {
             Log.w(TAG, "No se pudo establecer foreground info: ${it.message}")
         }
@@ -110,7 +175,12 @@ class OnlineMusicDownloadWorker(
         val tempFile = File(tempDir, "temp_${System.currentTimeMillis()}.tmp")
 
         try {
-            updateNotification(notificationId, trackName, 0, 100, "Resolviendo mejor calidad...", "")
+            val resolvingText = if (trackNumber != null && totalTracks != null && totalTracks > 1) {
+                "Pista $trackNumber de $totalTracks • Resolviendo calidad..."
+            } else {
+                "Resolviendo mejor calidad..."
+            }
+            updateNotification(notificationId, trackName, 0, 100, resolvingText, "", artistName, trackNumber, totalTracks)
 
             val resolvedResult = OnlineQualityResolver.resolve(
                 context = applicationContext,
@@ -123,7 +193,7 @@ class OnlineMusicDownloadWorker(
             if (resolvedResult.isFailure) {
                 val err = resolvedResult.exceptionOrNull()?.message ?: "No se pudo obtener enlace de descarga"
                 Log.e(TAG, "Fallo al resolver track: $err")
-                updateNotification(notificationId, trackName, 0, 100, "Error: $err", "")
+                showErrorNotification(completionNotificationId, trackName, artistName, err)
                 return@withContext Result.failure(
                     workDataOf(
                         "error" to err,
@@ -150,7 +220,7 @@ class OnlineMusicDownloadWorker(
             val response = client.newCall(request).execute()
             if (!response.isSuccessful) {
                 val msg = "Error HTTP ${response.code}"
-                updateNotification(notificationId, trackName, 0, 100, msg, "")
+                showErrorNotification(completionNotificationId, trackName, artistName, msg)
                 return@withContext Result.failure(
                     workDataOf(
                         "error" to msg,
@@ -160,13 +230,17 @@ class OnlineMusicDownloadWorker(
                 )
             }
 
-            val body = response.body ?: return@withContext Result.failure(
-                workDataOf(
-                    "error" to "Cuerpo de respuesta vacío",
-                    "trackName" to trackName,
-                    "artistName" to artistName
+            val body = response.body ?: run {
+                val msg = "Cuerpo de respuesta vacío"
+                showErrorNotification(completionNotificationId, trackName, artistName, msg)
+                return@withContext Result.failure(
+                    workDataOf(
+                        "error" to msg,
+                        "trackName" to trackName,
+                        "artistName" to artistName
+                    )
                 )
-            )
+            }
             val totalBytes = body.contentLength()
             val totalMb = if (totalBytes > 0) totalBytes / (1024f * 1024f) else 0f
 
@@ -215,7 +289,7 @@ class OnlineMusicDownloadWorker(
                                 )
                             )
                             val progressText = if (totalMb > 0) String.format("%.1f / %.1f MB", downloadedMb, totalMb) else String.format("%.1f MB", downloadedMb)
-                            updateNotification(notificationId, trackName, percent, 100, progressText, speedText)
+                            updateNotification(notificationId, trackName, percent, 100, progressText, speedText, artistName, trackNumber, totalTracks)
                         }
                     }
                 }
@@ -223,7 +297,7 @@ class OnlineMusicDownloadWorker(
 
             if (!tempFile.exists() || tempFile.length() == 0L) {
                 tempFile.delete()
-                updateNotification(notificationId, trackName, 0, 100, "Error: archivo vacío", "")
+                updateNotification(notificationId, trackName, 0, 100, "Error: archivo vacío", "", artistName, trackNumber, totalTracks)
                 return@withContext Result.failure(
                     workDataOf(
                         "error" to "Archivo descargado vacío",
@@ -233,8 +307,14 @@ class OnlineMusicDownloadWorker(
                 )
             }
 
-            // Mover al destino final en Almacenamiento Principal / FritoMusic / <Artista> / <Canción>.<ext>
-            val destinationFile = StorageUtils.createDirectAudioFile(artistName, trackName, finalExtension)
+            // Mover al destino final en Almacenamiento Principal / FritoMusic / <Artista> / [<Álbum>/] <01 - Canción>.<ext>
+            val destinationFile = StorageUtils.createDirectAudioFile(
+                artistName = artistName,
+                trackName = trackName,
+                extension = finalExtension,
+                albumName = albumName.ifEmpty { null },
+                trackNumber = trackNumber
+            )
             tempFile.copyTo(destinationFile, overwrite = true)
             tempFile.delete()
 
@@ -277,17 +357,57 @@ class OnlineMusicDownloadWorker(
                 }
             }
 
-            // 2. Indexar en MediaStore con metadatos para que aparezca de inmediato en "Inicio"
+            // 2. Descargar y guardar la letra sincronizada (.lrc) para reproducción 100% OFFLINE
+            runCatching {
+                val lyricsRepo = com.frito.music.data.repository.LyricsRepository(applicationContext)
+                val lyrics = lyricsRepo.getLyrics(
+                    title = trackName,
+                    artist = artistName,
+                    videoId = videoId.takeIf { it.isNotBlank() },
+                    localFilePath = destinationFile.absolutePath
+                )
+                if (lyrics != null) {
+                    val lrcFile = File(destinationFile.parentFile, "${destinationFile.nameWithoutExtension}.lrc")
+                    val lrcContent = if (lyrics.lines.isNotEmpty()) {
+                        val sb = StringBuilder()
+                        lyrics.lines.forEach { line ->
+                            val min = line.timestampMs / 60000
+                            val sec = (line.timestampMs % 60000) / 1000
+                            val hundredths = (line.timestampMs % 1000) / 10
+                            sb.append(String.format("[%02d:%02d.%02d]%s\n", min, sec, hundredths, line.text))
+                        }
+                        sb.toString()
+                    } else {
+                        lyrics.plainLyrics ?: ""
+                    }
+                    if (lrcContent.isNotBlank() && !lrcFile.exists()) {
+                        lrcFile.writeText(lrcContent)
+                        Log.d(TAG, "Letra sincronizada descargada y guardada en: ${lrcFile.absolutePath}")
+                    }
+                }
+            }.onFailure {
+                Log.w(TAG, "No se pudo obtener letra para $trackName: ${it.message}")
+            }
+
+            // 3. Indexar en MediaStore con metadatos para que aparezca de inmediato en "Inicio"
             StorageUtils.scanAudioFile(
                 context = applicationContext,
                 file = destinationFile,
                 title = trackName,
                 artist = artistName,
-                album = albumName.ifEmpty { artistName }
+                album = albumName.ifEmpty { artistName },
+                trackNumber = trackNumber
             )
 
             Log.d(TAG, "Descarga completada y guardada en: ${destinationFile.absolutePath}")
-            updateNotification(notificationId, trackName, 100, 100, "Descarga completada", "✔", artistName)
+            showCompletionNotification(
+                completionNotificationId = completionNotificationId,
+                trackName = trackName,
+                artistName = artistName,
+                albumName = albumName,
+                trackNumber = trackNumber,
+                totalTracks = totalTracks
+            )
             setProgressAsync(
                 workDataOf(
                     PROGRESS to 100,
@@ -299,7 +419,7 @@ class OnlineMusicDownloadWorker(
                     TOTAL_MB to (destinationFile.length() / (1024f * 1024f))
                 )
             )
-            delay(1000)
+            delay(500)
 
             Result.success(
                 workDataOf(
@@ -311,7 +431,7 @@ class OnlineMusicDownloadWorker(
         } catch (e: Exception) {
             Log.e(TAG, "Error durante la descarga online", e)
             tempFile.delete()
-            updateNotification(notificationId, trackName, 0, 100, "Error: ${e.message}", "", artistName)
+            showErrorNotification(completionNotificationId, trackName, artistName, e.message ?: "Error desconocido")
             Result.failure(
                 workDataOf(
                     "error" to (e.message ?: "Error desconocido"),
@@ -352,25 +472,35 @@ class OnlineMusicDownloadWorker(
         }
     }
 
-    private fun createChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "Descargas de Música"
-            val descriptionText = "Muestra el progreso de descargas de Frito Music"
-            val importance = NotificationManager.IMPORTANCE_LOW
-            val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
-                description = descriptionText
-            }
-            notificationManager.createNotificationChannel(channel)
+    private fun createForegroundInfo(
+        notificationId: Int,
+        trackName: String,
+        artistName: String = "",
+        trackNumber: Int? = null,
+        totalTracks: Int? = null
+    ): ForegroundInfo {
+        val title = if (trackNumber != null && totalTracks != null && totalTracks > 1) {
+            "($trackNumber/$totalTracks) $trackName"
+        } else {
+            trackName
         }
-    }
+        val content = if (artistName.isNotBlank() && artistName != "Artista desconocido") {
+            if (trackNumber != null && totalTracks != null && totalTracks > 1) {
+                "$artistName • Pista $trackNumber de $totalTracks"
+            } else {
+                artistName
+            }
+        } else "Iniciando descarga..."
 
-    private fun createForegroundInfo(notificationId: Int, trackName: String, artistName: String = ""): ForegroundInfo {
         val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
-            .setContentTitle(trackName)
-            .setContentText(if (artistName.isNotBlank() && artistName != "Artista desconocido") artistName else "Iniciando descarga...")
+            .setContentTitle(title)
+            .setContentText(content)
             .setSmallIcon(android.R.drawable.stat_sys_download)
             .setProgress(100, 0, true)
             .setOngoing(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOnlyAlertOnce(true)
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()
 
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -387,23 +517,112 @@ class OnlineMusicDownloadWorker(
         max: Int,
         text: String,
         subText: String,
-        artistName: String = ""
+        artistName: String = "",
+        trackNumber: Int? = null,
+        totalTracks: Int? = null
     ) {
         runCatching {
+            val title = if (trackNumber != null && totalTracks != null && totalTracks > 1) {
+                "($trackNumber/$totalTracks) $trackName"
+            } else {
+                trackName
+            }
             val content = if (artistName.isNotBlank() && artistName != "Artista desconocido") {
                 "$artistName • $text"
             } else {
                 text
             }
+            val effectiveSubText = if (trackNumber != null && totalTracks != null && totalTracks > 1) {
+                if (subText.isNotBlank()) "$subText • $trackNumber/$totalTracks" else "$trackNumber/$totalTracks"
+            } else {
+                subText
+            }
+            val isIndeterminate = progress == 0 && text.contains("Resolviendo")
             val builder = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
-                .setContentTitle(trackName)
+                .setContentTitle(title)
                 .setContentText(content)
-                .setSubText(subText)
+                .setSubText(effectiveSubText)
                 .setSmallIcon(if (progress >= 100) android.R.drawable.stat_sys_download_done else android.R.drawable.stat_sys_download)
-                .setProgress(max, progress, progress == 0 && text.contains("Resolviendo"))
-                .setOngoing(progress < 100)
+                .setProgress(max, progress, isIndeterminate)
+                .setOngoing(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setOnlyAlertOnce(true)
+                .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
 
             notificationManager.notify(notificationId, builder.build())
+        }
+    }
+
+    private fun showCompletionNotification(
+        completionNotificationId: Int,
+        trackName: String,
+        artistName: String = "",
+        albumName: String = "",
+        trackNumber: Int? = null,
+        totalTracks: Int? = null
+    ) {
+        runCatching {
+            val intent = Intent(applicationContext, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            val pendingIntent = PendingIntent.getActivity(
+                applicationContext,
+                completionNotificationId,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val isAlbum = trackNumber != null && totalTracks != null && totalTracks > 1
+            val isLastTrack = isAlbum && trackNumber == totalTracks
+
+            val titleText = when {
+                isLastTrack && albumName.isNotBlank() -> "¡Álbum completo descargado!"
+                isAlbum -> "($trackNumber/$totalTracks) $trackName"
+                else -> trackName
+            }
+
+            val content = when {
+                isLastTrack && albumName.isNotBlank() -> "$albumName • $artistName"
+                isAlbum -> "$artistName • Pista $trackNumber de $totalTracks descargada"
+                artistName.isNotBlank() && artistName != "Artista desconocido" -> "$artistName • Descarga completada"
+                else -> "Descarga completada con éxito"
+            }
+
+            val builder = NotificationCompat.Builder(applicationContext, CHANNEL_ID_COMPLETE)
+                .setContentTitle(titleText)
+                .setContentText(content)
+                .setSmallIcon(android.R.drawable.stat_sys_download_done)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .setOngoing(false)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+
+            notificationManager.notify(completionNotificationId, builder.build())
+        }
+    }
+
+    private fun showErrorNotification(
+        completionNotificationId: Int,
+        trackName: String,
+        artistName: String = "",
+        errorMessage: String
+    ) {
+        runCatching {
+            val content = if (artistName.isNotBlank() && artistName != "Artista desconocido") {
+                "$artistName • $errorMessage"
+            } else {
+                errorMessage
+            }
+
+            val builder = NotificationCompat.Builder(applicationContext, CHANNEL_ID_COMPLETE)
+                .setContentTitle("Error al descargar: $trackName")
+                .setContentText(content)
+                .setSmallIcon(android.R.drawable.stat_notify_error)
+                .setAutoCancel(true)
+                .setOngoing(false)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+
+            notificationManager.notify(completionNotificationId, builder.build())
         }
     }
 }
