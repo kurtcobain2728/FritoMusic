@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.frito.music.utils.resize
 import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.ui.viewmodels.OnlineLibraryViewModel
 import com.frito.music.ui.viewmodels.StreamViewModel
@@ -89,7 +90,7 @@ fun OnlinePlaylistDetailScreen(
                         Text("Reproducir todo", color = com.frito.music.ui.theme.textColorForBackground(appColors.accent), fontWeight = FontWeight.Bold)
                     }
                 }
-                itemsIndexed(songs) { index, song ->
+                itemsIndexed(songs, key = { index, song -> "${song.id}_$index" }) { index, song ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -102,7 +103,7 @@ fun OnlinePlaylistDetailScreen(
                             modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF1A1A1A)),
                             contentAlignment = Alignment.Center
                         ) {
-                            if (song.thumbnail.isNotEmpty()) AsyncImage(model = song.thumbnail, contentDescription = song.title, modifier = Modifier.fillMaxSize())
+                            if (song.thumbnail.isNotEmpty()) AsyncImage(model = song.thumbnail.resize(width = 112), contentDescription = song.title, modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
                             else Icon(Icons.Default.MusicNote, contentDescription = null, tint = appColors.textSecondary)
                         }
                         Spacer(Modifier.width(12.dp))

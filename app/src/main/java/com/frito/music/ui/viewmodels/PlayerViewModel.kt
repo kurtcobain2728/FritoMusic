@@ -44,8 +44,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     val lyricsState: StateFlow<LyricsUiState> = _lyricsState.asStateFlow()
     private var lyricsJob: Job? = null
 
-    fun setPreparingAudio(audio: AudioFile) {
+    fun setPreparingAudio(audio: AudioFile, videoId: String? = null) {
         _currentAudio.value = audio
+        _currentVideoId.value = videoId
         loadLyricsForCurrentAudio()
     }
 
@@ -57,8 +58,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         if (controller != null && controller.mediaItemCount > 0 && controller.currentMediaItem != null) {
             _currentAudio.value = audioFilesMap[controller.currentMediaItem!!.mediaId]
                 ?: _currentAudio.value
+            _currentVideoId.value = videoIdsByMediaId[controller.currentMediaItem!!.mediaId]
+                ?: _currentVideoId.value
         } else {
             _currentAudio.value = null
+            _currentVideoId.value = null
         }
         loadLyricsForCurrentAudio()
     }
@@ -170,7 +174,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                         _positionMs.value = pos
                         _progress.value = (pos.toFloat() / dur.toFloat()).coerceIn(0f, 1f)
                     }
-                    delay(50L)
+                    delay(250L)
                 } else {
                     delay(500L)
                 }
@@ -184,7 +188,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
      * lo que elimina colisiones entre pistas distintas.
      * Devuelve las claves mediaId generadas, alineadas con [audios].
      */
-    private fun buildAndSetQueue(audios: List<AudioFile>, startIndex: Int): List<String> {
+    private fun buildAndSetQueue(
+        audios: List<AudioFile>,
+        startIndex: Int,
+        videoIds: List<String>? = null
+    ): List<String> {
         val controller = mediaController ?: return emptyList()
         queueGeneration++
 
@@ -215,11 +223,17 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 else -> Uri.fromFile(File(audio.path))
             }
 
-            MediaItem.Builder()
+            val vid = videoIds?.getOrNull(index)
+            val builder = MediaItem.Builder()
                 .setMediaId(key)
                 .setUri(uri)
                 .setMediaMetadata(metadataBuilder.build())
-                .build()
+
+            if (!vid.isNullOrEmpty()) {
+                builder.setCustomCacheKey(vid)
+            }
+
+            builder.build()
         }
 
         controller.setMediaItems(mediaItems, startIndex, C.TIME_UNSET)
@@ -244,7 +258,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         videoIds: List<String>,
         resolver: suspend (videoId: String) -> String?
     ) {
-        val keys = buildAndSetQueue(audios, startIndex)
+        val keys = buildAndSetQueue(audios, startIndex, videoIds)
         if (keys.size != videoIds.size) return
         streamResolver = resolver
         keys.forEachIndexed { index, key ->
@@ -274,7 +288,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                         val c = mediaController ?: return@withContext
                         if (idx < c.mediaItemCount) {
                             val item = c.getMediaItemAt(idx)
-                            c.replaceMediaItem(idx, item.buildUpon().setUri(Uri.parse(url)).build())
+                            c.replaceMediaItem(
+                                idx,
+                                item.buildUpon()
+                                    .setUri(Uri.parse(url))
+                                    .setCustomCacheKey(videoIds[idx])
+                                    .build()
+                            )
                         }
                     }
                 }
@@ -306,7 +326,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 if (current.mediaId != currentItem.mediaId) return@withContext
                 if (!url.isNullOrEmpty()) {
                     pendingStreamVideoIds.remove(current.mediaId)
-                    c.replaceMediaItem(index, current.buildUpon().setUri(Uri.parse(url)).build())
+                    c.replaceMediaItem(
+                        index,
+                        current.buildUpon()
+                            .setUri(Uri.parse(url))
+                            .setCustomCacheKey(videoId)
+                            .build()
+                    )
                     // Pre-resolver solo la siguiente canción si aún está pendiente
                     val nextIdx = index + 1
                     if (nextIdx < c.mediaItemCount) {
@@ -318,7 +344,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                                 if (!nextUrl.isNullOrEmpty()) {
                                     kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                                         if (generationAtStart == queueGeneration && pendingStreamVideoIds.remove(nextItem.mediaId) != null) {
-                                            c.replaceMediaItem(nextIdx, nextItem.buildUpon().setUri(Uri.parse(nextUrl)).build())
+                                            c.replaceMediaItem(
+                                                nextIdx,
+                                                nextItem.buildUpon()
+                                                    .setUri(Uri.parse(nextUrl))
+                                                    .setCustomCacheKey(nextVideoId)
+                                                    .build()
+                                            )
                                         }
                                     }
                                 }
@@ -351,7 +383,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 if (generation != queueGeneration) return@withContext
                 if (!url.isNullOrEmpty()) {
                     pendingStreamVideoIds.remove(currentItem.mediaId)
-                    c.replaceMediaItem(index, currentItem.buildUpon().setUri(Uri.parse(url)).build())
+                    c.replaceMediaItem(
+                        index,
+                        currentItem.buildUpon()
+                            .setUri(Uri.parse(url))
+                            .setCustomCacheKey(videoId)
+                            .build()
+                    )
                     c.prepare()
                     c.play()
                 } else {

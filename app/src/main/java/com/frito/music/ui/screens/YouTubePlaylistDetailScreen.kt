@@ -30,6 +30,7 @@ import coil.compose.AsyncImage
 import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.ui.viewmodels.PlayerViewModel
 import com.frito.music.ui.viewmodels.StreamViewModel
+import com.frito.music.utils.resize
 import com.music.innertube.models.SongItem
 
 @Composable
@@ -95,7 +96,7 @@ fun YouTubePlaylistDetailScreen(
                         Box(modifier = Modifier.fillMaxSize().background(Color.DarkGray)) {
                             if (playlist.thumbnail != null) {
                                 AsyncImage(
-                                    model = playlist.thumbnail,
+                                    model = playlist.thumbnail.resize(width = 500),
                                     contentDescription = playlist.title,
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop
@@ -226,7 +227,7 @@ fun YouTubePlaylistDetailScreen(
                 }
 
                 // Songs list
-                itemsIndexed(songs) { index, song ->
+                itemsIndexed(songs, key = { index, song -> "${song.id}_$index" }) { index, song ->
                     YouTubePlaylistSongItem(
                         index = index + 1,
                         song = song,
@@ -284,7 +285,7 @@ fun YouTubePlaylistSongItem(
         ) {
             if (song.thumbnail != null) {
                 AsyncImage(
-                    model = song.thumbnail,
+                    model = song.thumbnail.resize(width = 112),
                     contentDescription = song.title,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop

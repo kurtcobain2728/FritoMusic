@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.frito.music.utils.resize
 import com.frito.music.data.models.StreamableTrack
 import com.frito.music.data.repository.YouTubeLoginManager
 import com.frito.music.ui.components.YouTubeLogoutModal
@@ -77,7 +78,7 @@ fun StreamScreen(
         YouTubeLoginManager.isLoggedIn()
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(isLoggedIn) {
         if (isLoggedIn) {
             streamViewModel.loadHomeContent()
         }
@@ -422,7 +423,7 @@ fun StreamScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = 24.dp, top = 8.dp)
                     ) {
-                        items(results) { track ->
+                        items(results, key = { it.videoId }) { track ->
                             StreamTrackItem(
                                 track = track,
                                 onClick = { streamViewModel.playTrack(track, playerViewModel, queue = results) }
@@ -434,7 +435,7 @@ fun StreamScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = 24.dp, top = 8.dp)
                     ) {
-                        items(artists) { artist ->
+                        items(artists, key = { it.id }) { artist ->
                             StreamArtistItem(
                                 artist = artist,
                                 onClick = { onNavigateToArtist(artist.id) }
@@ -493,9 +494,10 @@ fun StreamTrackItem(
         ) {
             if (track.thumbnailUrl.isNotEmpty()) {
                 AsyncImage(
-                    model = track.thumbnailUrl,
+                    model = track.thumbnailUrl.resize(width = 112),
                     contentDescription = track.title,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
                 )
             } else {
                 Icon(
@@ -571,9 +573,9 @@ fun StreamArtistItem(
                 .background(Color(0xFF1A1A1A)),
             contentAlignment = Alignment.Center
         ) {
-            if (artist.thumbnail != null && artist.thumbnail!!.isNotEmpty()) {
+            if (!artist.thumbnail.isNullOrEmpty()) {
                 AsyncImage(
-                    model = artist.thumbnail,
+                    model = artist.thumbnail.resize(width = 112),
                     contentDescription = artist.title,
                     modifier = Modifier
                         .fillMaxSize()

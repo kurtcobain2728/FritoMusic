@@ -36,6 +36,7 @@ import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.ui.viewmodels.PlayerViewModel
 import com.frito.music.ui.viewmodels.StreamViewModel
 import com.frito.music.utils.ImageUtils
+import com.frito.music.utils.resize
 import com.music.innertube.models.AlbumItem
 import com.music.innertube.models.SongItem
 
@@ -115,9 +116,9 @@ fun StreamArtistDetailScreen(
                 item {
                     Box(modifier = Modifier.fillMaxWidth().height(340.dp)) {
                         Box(modifier = Modifier.fillMaxSize().background(Color.DarkGray)) {
-                            if (artist.thumbnail != null && artist.thumbnail!!.isNotEmpty()) {
+                            if (!artist.thumbnail.isNullOrEmpty()) {
                                 AsyncImage(
-                                    model = ImageUtils.highRes(artist.thumbnail),
+                                    model = artist.thumbnail.resize(width = 500),
                                     contentDescription = artist.title,
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop
@@ -211,7 +212,7 @@ fun StreamArtistDetailScreen(
                         }
                     }
 
-                    itemsIndexed(songs) { index, song ->
+                    itemsIndexed(songs, key = { index, song -> "${song.id}_$index" }) { index, song ->
                         StreamArtistSongItem(
                             index = index + 1,
                             song = song,
@@ -240,7 +241,7 @@ fun StreamArtistDetailScreen(
                                 contentPadding = PaddingValues(horizontal = 16.dp),
                                 horizontalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
-                                items(albums) { album ->
+                                items(albums, key = { it.browseId }) { album ->
                                     StreamAlbumCard(
                                         title = album.title,
                                         subtitle = album.artists?.joinToString(", ") { it.name } ?: "Álbum",
@@ -291,7 +292,7 @@ fun StreamArtistSongItem(
         ) {
             if (song.thumbnail.isNotEmpty()) {
                 AsyncImage(
-                    model = song.thumbnail,
+                    model = song.thumbnail.resize(width = 112),
                     contentDescription = song.title,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
@@ -364,7 +365,7 @@ fun StreamAlbumCard(
         ) {
             if (!imageUrl.isNullOrEmpty()) {
                 AsyncImage(
-                    model = imageUrl,
+                    model = imageUrl.resize(width = 320),
                     contentDescription = title,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop

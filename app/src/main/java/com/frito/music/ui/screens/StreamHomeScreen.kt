@@ -28,6 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.frito.music.utils.resize
 import com.frito.music.data.repository.FavoriteArtistsManager
 import com.frito.music.ui.components.FritoPullRefresh
 import com.frito.music.ui.theme.LocalAppColors
@@ -134,7 +135,17 @@ fun StreamHomeScreen(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 val shelfSongs = displayItems.filterIsInstance<SongItem>()
-                                items(displayItems) { item ->
+                                items(
+                                    displayItems,
+                                    key = { item ->
+                                        when (item) {
+                                            is SongItem -> "${shelf.id}_song_${item.id}"
+                                            is AlbumItem -> "${shelf.id}_album_${item.browseId}"
+                                            is ArtistItem -> "${shelf.id}_artist_${item.id}"
+                                            else -> "${shelf.id}_${item.hashCode()}"
+                                        }
+                                    }
+                                ) { item ->
                                     when (item) {
                                         is SongItem -> SongCard(
                                             song = item,
@@ -175,7 +186,7 @@ fun StreamHomeScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             val recentQueue = recentlyPlayed.take(10)
-                            items(recentQueue) { song ->
+                            items(recentQueue, key = { it.id }) { song ->
                                 SongCard(
                                     song = song,
                                     onClick = { onPlaySong(song, recentQueue) }
@@ -216,7 +227,7 @@ fun StreamHomeScreen(
                             contentPadding = PaddingValues(horizontal = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            items(recommendedArtists.take(15)) { artist ->
+                            items(recommendedArtists.take(15), key = { it.id }) { artist ->
                                 ArtistCard(
                                     artist = artist,
                                     onClick = {
@@ -244,7 +255,17 @@ fun StreamHomeScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             val sectionSongs = section.items.filterIsInstance<SongItem>().take(10)
-                            items(section.items.take(10)) { item ->
+                            items(
+                                section.items.take(10),
+                                key = { item ->
+                                    when (item) {
+                                        is SongItem -> "${section.title}_song_${item.id}"
+                                        is AlbumItem -> "${section.title}_album_${item.browseId}"
+                                        is ArtistItem -> "${section.title}_artist_${item.id}"
+                                        else -> "${section.title}_${item.hashCode()}"
+                                    }
+                                }
+                            ) { item ->
                                 when (item) {
                                     is SongItem -> SongCard(
                                         song = item,
@@ -283,7 +304,7 @@ fun StreamHomeScreen(
                                 contentPadding = PaddingValues(horizontal = 16.dp),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                items(page.newReleaseAlbums.take(10)) { album ->
+                                items(page.newReleaseAlbums.take(10), key = { it.browseId }) { album ->
                                     AlbumCard(
                                         album = album,
                                         onClick = { onAlbumClick(album.browseId) }
@@ -316,7 +337,7 @@ fun SongCard(song: SongItem, onClick: () -> Unit) {
         ) {
             if (song.thumbnail.isNotEmpty()) {
                 AsyncImage(
-                    model = song.thumbnail,
+                    model = song.thumbnail.resize(width = 320),
                     contentDescription = song.title,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
@@ -370,7 +391,7 @@ fun ArtistCard(artist: ArtistItem, onClick: () -> Unit) {
         ) {
             if (!artist.thumbnail.isNullOrEmpty()) {
                 AsyncImage(
-                    model = artist.thumbnail,
+                    model = artist.thumbnail.resize(width = 240),
                     contentDescription = artist.title,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
@@ -413,7 +434,7 @@ fun AlbumCard(album: AlbumItem, onClick: () -> Unit) {
         ) {
             if (album.thumbnail.isNotEmpty()) {
                 AsyncImage(
-                    model = album.thumbnail,
+                    model = album.thumbnail.resize(width = 320),
                     contentDescription = album.title,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop

@@ -57,6 +57,7 @@ import com.frito.music.ui.components.FritoPullRefresh
 import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.ui.viewmodels.StreamViewModel
 import com.frito.music.utils.ImageUtils
+import com.frito.music.utils.resize
 import com.music.innertube.models.ArtistItem
 
 @Composable
@@ -252,7 +253,7 @@ private fun AllArtistGridItem(
             ) {
                 if (!artist.thumbnail.isNullOrEmpty()) {
                     AsyncImage(
-                        model = ImageUtils.highRes(artist.thumbnail),
+                        model = artist.thumbnail.resize(width = 240),
                         contentDescription = artist.title,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop

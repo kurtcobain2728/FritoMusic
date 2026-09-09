@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.frito.music.utils.resize
 import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.ui.viewmodels.StreamViewModel
 import com.music.innertube.models.PlaylistItem
@@ -101,7 +102,7 @@ fun StreamPlaylistsScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 24.dp, top = 8.dp)
                 ) {
-                    items(userPlaylists) { playlist ->
+                    items(userPlaylists, key = { it.id }) { playlist ->
                         PlaylistItem(
                             playlist = playlist,
                             onClick = { onPlaylistClick(playlist.id) }
@@ -137,7 +138,7 @@ private fun PlaylistItem(
         ) {
             if (!playlist.thumbnail.isNullOrEmpty()) {
                 AsyncImage(
-                    model = playlist.thumbnail,
+                    model = playlist.thumbnail.resize(width = 112),
                     contentDescription = playlist.title,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop

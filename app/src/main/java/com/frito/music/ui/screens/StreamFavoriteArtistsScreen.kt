@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.frito.music.utils.ImageUtils
+import com.frito.music.utils.resize
 import com.frito.music.data.repository.FavoriteArtistsManager
 import com.frito.music.ui.theme.LocalAppColors
 import com.music.innertube.models.ArtistItem
@@ -189,7 +190,7 @@ private fun FavoriteArtistGridItem(
             ) {
                 if (!artist.thumbnail.isNullOrEmpty()) {
                     AsyncImage(
-                        model = ImageUtils.highRes(artist.thumbnail),
+                        model = artist.thumbnail.resize(width = 240),
                         contentDescription = artist.title,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop

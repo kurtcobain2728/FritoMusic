@@ -39,12 +39,14 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import androidx.compose.ui.platform.LocalContext
 import com.frito.music.utils.ImageUtils
+import com.frito.music.utils.resize
 import com.frito.music.ui.viewmodels.OnlineLibraryViewModel
 import com.frito.music.ui.viewmodels.PlayerViewModel
 import com.frito.music.ui.viewmodels.StreamViewModel
 import androidx.media3.common.Player
 import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.data.models.AudioFile
+import com.frito.music.data.models.LyricsUiState
 import com.frito.music.ui.components.AddToYouTubePlaylistModal
 import com.frito.music.ui.components.SyncedLyricsView
 
@@ -63,10 +65,7 @@ fun PlayerScreen(
     onClose: () -> Unit
 ) {
     val isPlaying by viewModel.isPlaying.collectAsState()
-    val progress by viewModel.progress.collectAsState()
     val currentAudio by viewModel.currentAudio.collectAsState()
-    val positionMs by viewModel.positionMs.collectAsState()
-    val durationMs by viewModel.durationMs.collectAsState()
     val shuffleModeEnabled by viewModel.shuffleModeEnabled.collectAsState()
     val repeatMode by viewModel.repeatMode.collectAsState()
     val isCurrentFavorite by viewModel.isCurrentFavorite.collectAsState()
@@ -272,25 +271,13 @@ fun PlayerScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Waveform Progress Bar
-            WaveformProgress(
-                progress = progress,
-                onProgressChange = { viewModel.seekTo(it) },
-                isPlaying = isPlaying && !showLyrics,
-                appColors = appColors,
-                modifier = Modifier.padding(horizontal = 24.dp)
+            // Waveform Progress Bar & Timestamps (aislado para evitar recomponer la pantalla completa)
+            PlayerProgressSection(
+                viewModel = viewModel,
+                isPlaying = isPlaying,
+                showLyrics = showLyrics,
+                appColors = appColors
             )
-
-            // Timestamps
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(formatDuration(positionMs), color = appColors.textSecondary, fontSize = 12.sp)
-                Text(formatDuration(durationMs), color = appColors.textSecondary, fontSize = 12.sp)
-            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -421,16 +408,12 @@ fun PlayerScreen(
                 animationSpec = androidx.compose.animation.core.tween(300)
             )
         ) {
-            SyncedLyricsView(
+            PlayerLyricsSection(
+                viewModel = viewModel,
                 lyricsState = lyricsState,
-                positionMs = positionMs,
-                onSeekTo = { viewModel.seekToMs(it) },
-                onClose = { showLyrics = false },
-                onRefresh = { viewModel.loadLyricsForCurrentAudio(forceRefresh = true) },
-                albumArtUri = currentAudio?.albumUri,
-                title = currentAudio?.title.orEmpty(),
-                artist = currentAudio?.artist.orEmpty(),
-                accentColor = appColors.accent
+                currentAudio = currentAudio,
+                appColors = appColors,
+                onClose = { showLyrics = false }
             )
         }
 
@@ -479,7 +462,7 @@ fun PlayerScreen(
                                 Text("Crear lista de reproducción", color = appColors.textPrimary, fontSize = 16.sp)
                             }
                         }
-                        items(playlists) { playlist ->
+                        items(playlists, key = { it.id }) { playlist ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -689,7 +672,6 @@ fun QualityInfo(audio: AudioFile?) {
 fun MiniPlayer(viewModel: PlayerViewModel, onClick: () -> Unit, onSwipeUp: () -> Unit) {
     val currentAudio by viewModel.currentAudio.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
-    val progress by viewModel.progress.collectAsState()
     val appColors = LocalAppColors.current
 
     val audio = currentAudio ?: return
@@ -705,13 +687,9 @@ fun MiniPlayer(viewModel: PlayerViewModel, onClick: () -> Unit, onSwipeUp: () ->
             modifier = Modifier.fillMaxWidth()
         ) {
             Column {
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(2.dp),
-                    color = appColors.accent,
-                    trackColor = Color.Transparent,
+                MiniPlayerProgressBar(
+                    viewModel = viewModel,
+                    accentColor = appColors.accent
                 )
                 // Feedback táctil: la tarjeta se hunde ligeramente al presionar
                 val miniInteraction = remember { MutableInteractionSource() }
@@ -760,7 +738,7 @@ fun MiniPlayer(viewModel: PlayerViewModel, onClick: () -> Unit, onSwipeUp: () ->
                             val miniCtx = androidx.compose.ui.platform.LocalContext.current
                             AsyncImage(
                                 model = ImageRequest.Builder(miniCtx)
-                                    .data(ImageUtils.highRes(audio.albumUri))
+                                    .data(audio.albumUri.resize(width = 96))
                                     .crossfade(300)
                                     .build(),
                                 contentDescription = "Album Art",
@@ -801,3 +779,77 @@ fun MiniPlayer(viewModel: PlayerViewModel, onClick: () -> Unit, onSwipeUp: () ->
         }
     }
 }
+
+@Composable
+private fun PlayerProgressSection(
+    viewModel: PlayerViewModel,
+    isPlaying: Boolean,
+    showLyrics: Boolean,
+    appColors: com.frito.music.ui.theme.AppColors,
+    modifier: Modifier = Modifier
+) {
+    val progress by viewModel.progress.collectAsState()
+    val positionMs by viewModel.positionMs.collectAsState()
+    val durationMs by viewModel.durationMs.collectAsState()
+
+    Column(modifier = modifier) {
+        // Waveform Progress Bar
+        WaveformProgress(
+            progress = progress,
+            onProgressChange = { viewModel.seekTo(it) },
+            isPlaying = isPlaying && !showLyrics,
+            appColors = appColors,
+            modifier = Modifier.padding(horizontal = 24.dp)
+        )
+
+        // Timestamps
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(formatDuration(positionMs), color = appColors.textSecondary, fontSize = 12.sp)
+            Text(formatDuration(durationMs), color = appColors.textSecondary, fontSize = 12.sp)
+        }
+    }
+}
+
+@Composable
+private fun PlayerLyricsSection(
+    viewModel: PlayerViewModel,
+    lyricsState: LyricsUiState,
+    currentAudio: AudioFile?,
+    appColors: com.frito.music.ui.theme.AppColors,
+    onClose: () -> Unit
+) {
+    val positionMs by viewModel.positionMs.collectAsState()
+    SyncedLyricsView(
+        lyricsState = lyricsState,
+        positionMs = positionMs,
+        onSeekTo = { viewModel.seekToMs(it) },
+        onClose = onClose,
+        onRefresh = { viewModel.loadLyricsForCurrentAudio(forceRefresh = true) },
+        albumArtUri = currentAudio?.albumUri,
+        title = currentAudio?.title.orEmpty(),
+        artist = currentAudio?.artist.orEmpty(),
+        accentColor = appColors.accent
+    )
+}
+
+@Composable
+private fun MiniPlayerProgressBar(
+    viewModel: PlayerViewModel,
+    accentColor: androidx.compose.ui.graphics.Color
+) {
+    val progress by viewModel.progress.collectAsState()
+    androidx.compose.material3.LinearProgressIndicator(
+        progress = { progress },
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(2.dp),
+        color = accentColor,
+        trackColor = androidx.compose.ui.graphics.Color.Transparent,
+    )
+}
+

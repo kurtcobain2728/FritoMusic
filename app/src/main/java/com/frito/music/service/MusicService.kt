@@ -2,6 +2,7 @@ package com.frito.music.service
 
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
@@ -28,12 +29,16 @@ class MusicService : MediaSessionService() {
                 // Clave de caché estable: el videoId en vez de la URL completa
                 // (las URLs de YouTube expiran; con videoId la caché sirve entre sesiones)
                 .setCacheKeyFactory { dataSpec ->
-                    val url = dataSpec.uri.toString()
-                    val vParam = Regex("[?&]v=([A-Za-z0-9_-]{6,})").find(url)?.groupValues?.get(1)
+                    val customKey = dataSpec.key
                     when {
-                        !vParam.isNullOrEmpty() -> "audio_$vParam"
-                        !dataSpec.key.isNullOrEmpty() -> dataSpec.key!!
-                        else -> url
+                        !customKey.isNullOrEmpty() -> {
+                            if (customKey.startsWith("video_")) customKey else "video_$customKey"
+                        }
+                        else -> {
+                            val url = dataSpec.uri.toString()
+                            val vParam = Regex("[?&]v=([A-Za-z0-9_-]{6,})").find(url)?.groupValues?.get(1)
+                            if (!vParam.isNullOrEmpty()) "video_$vParam" else url
+                        }
                     }
                 }
         } ?: defaultDataSource
@@ -47,7 +52,8 @@ class MusicService : MediaSessionService() {
         cache = try {
             val cacheDir = File(cacheDir, "stream-cache")
             val evictor = LeastRecentlyUsedCacheEvictor(500 * 1024 * 1024L) // 500MB
-            SimpleCache(cacheDir, evictor)
+            val databaseProvider = StandaloneDatabaseProvider(this)
+            SimpleCache(cacheDir, evictor, databaseProvider)
         } catch (e: Exception) {
             android.util.Log.w("MusicService", "No se pudo iniciar la caché de streams", e)
             null
@@ -55,11 +61,12 @@ class MusicService : MediaSessionService() {
         
         val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
             .setBufferDurationsMs(
-                10_000,  // minBufferMs
-                30_000,  // maxBufferMs
-                700,     // bufferForPlaybackMs (default 2500ms -> arranque más rápido)
-                1_500    // bufferForPlaybackAfterRebufferMs
+                15_000,  // minBufferMs (15s antes de pausar buffering)
+                50_000,  // maxBufferMs (hasta 50s de buffer)
+                500,     // bufferForPlaybackMs (inicio instantáneo: 500ms requeridos)
+                1_000    // bufferForPlaybackAfterRebufferMs (1s tras re-buffer)
             )
+            .setPrioritizeTimeOverSizeThresholds(true)
             .build()
 
         val player = ExoPlayer.Builder(this)
