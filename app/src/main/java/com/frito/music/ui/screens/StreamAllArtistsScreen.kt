@@ -103,9 +103,11 @@ fun StreamAllArtistsScreen(
         (shelfArtists + fallbackArtists).filter { it.id.isNotBlank() }.distinctBy { it.id }
     }
 
-    // EXCLUSIÓN ESTRICTA: Los artistas guardados en favoritos no salen en recomendaciones
+    // EXCLUSIÓN ESTRICTA: Los artistas guardados en favoritos no salen en recomendaciones y deben tener imagen
     val displayedArtists = remember(sourceArtists, favoriteArtistIds) {
-        sourceArtists.filterNot { favoriteArtistIds.contains(it.id) }
+        sourceArtists
+            .filterNot { favoriteArtistIds.contains(it.id) }
+            .filter { !it.thumbnail.isNullOrBlank() }
     }
 
     val gridState = rememberSaveable(key = "stream_all_artists_grid", saver = LazyGridState.Saver) {

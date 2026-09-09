@@ -305,6 +305,16 @@ class StreamViewModel : ViewModel() {
         endpoint = null
     )
 
+    private fun createSeedArtist(id: String, name: String) = ArtistItem(
+        id = id,
+        title = name,
+        thumbnail = null,
+        channelId = null,
+        playEndpoint = null,
+        shuffleEndpoint = null,
+        radioEndpoint = null
+    )
+
     fun recordPlayedSong(song: SongItem) {
         if (song.id.isBlank() || !song.isRealMusicTrack()) return
         StreamHistoryManager.recordSong(song)
@@ -600,38 +610,70 @@ class StreamViewModel : ViewModel() {
                 } else null
 
                 // ── B4. "Artistas para ti"
-                // Extraemos artistas de las secciones del Home y a lo sumo 2 relacionados
-                val homeArtists = home?.sections
-                    ?.flatMap { it.items }
-                    ?.filterIsInstance<ArtistItem>()
-                    ?.filterNot { favoriteArtistIds.contains(it.id) || favoriteArtistNames.contains(it.title.trim().lowercase()) }
-                    ?.distinctBy { it.id }
-                    .orEmpty()
+                // Extraer semillas de favoritos, historial de reproducción y likes
+                val favArtistSeeds = favoriteArtists.filter { it.id.isNotBlank() }
+                val historyArtistNames = historySongs.flatMap { it.artists }
+                    .map { it.name }
+                    .filter { it.isNotBlank() }
+                val likedArtistNames = likedSongs.flatMap { it.artists }
+                    .map { it.name }
+                    .filter { it.isNotBlank() }
 
-                val topArtistsForRelated = favoriteArtists.filter { it.id.isNotBlank() }.take(2)
-                val relatedArtists = if (topArtistsForRelated.isNotEmpty() && homeArtists.size < 10) {
+                val seedArtistIds = (favArtistSeeds.map { it.id } +
+                    historySongs.flatMap { it.artists }.mapNotNull { it.id } +
+                    likedSongs.flatMap { it.artists }.mapNotNull { it.id })
+                    .filter { it.isNotBlank() }
+                    .distinct()
+                    .take(4)
+
+                val seedArtistNames = (favArtistSeeds.map { it.title } + historyArtistNames + likedArtistNames)
+                    .filter { it.isNotBlank() }
+                    .distinct()
+                    .take(4)
+
+                // 1. Obtener artistas relacionados de YouTube Music (traen thumbnail garantizado)
+                val relatedArtists: List<ArtistItem> = if (seedArtistIds.isNotEmpty()) {
                     coroutineScope {
-                        topArtistsForRelated.map { artist ->
+                        seedArtistIds.map { id ->
                             async(Dispatchers.IO) {
                                 runCatching {
-                                    YouTubeRepository.getRelatedArtists(artist.id).getOrNull().orEmpty()
+                                    YouTubeRepository.getRelatedArtists(id).getOrNull().orEmpty()
                                 }.getOrDefault(emptyList())
                             }
                         }.map { it.await() }.flatten()
                     }
                 } else emptyList()
 
-                val finalArtists = (homeArtists + relatedArtists)
+                // 2. Si relatedArtists tiene pocos elementos, buscar artistas por nombre (traen thumbnail oficial de canal)
+                val searchedArtists: List<ArtistItem> = if (relatedArtists.size < 12 && seedArtistNames.isNotEmpty()) {
+                    coroutineScope {
+                        seedArtistNames.take(2).map { name ->
+                            async(Dispatchers.IO) {
+                                runCatching {
+                                    YouTubeRepository.searchArtists(name).getOrNull().orEmpty()
+                                }.getOrDefault(emptyList())
+                            }
+                        }.map { it.await() }.flatten()
+                    }
+                } else emptyList()
+
+                // 3. Artistas directos de las secciones de Home (traen thumbnail garantizado)
+                val directHomeArtists: List<ArtistItem> = home?.sections
+                    ?.flatMap { it.items }
+                    ?.filterIsInstance<ArtistItem>()
+                    .orEmpty()
+
+                // 4. Consolidar ÚNICAMENTE artistas con thumbnail válido (NUNCA null o vacío)
+                val candidateArtists: List<ArtistItem> = (relatedArtists + searchedArtists + directHomeArtists)
+                    .filter { !it.thumbnail.isNullOrBlank() }
                     .filterNot { favoriteArtistIds.contains(it.id) || favoriteArtistNames.contains(it.title.trim().lowercase()) }
                     .distinctBy { it.id }
-                    .shuffled()
-                    .take(15)
 
-                val popularArtistsShelf = if (finalArtists.isNotEmpty()) {
+                val popularArtistsShelf = if (candidateArtists.isNotEmpty()) {
                     HomeShelf(
                         id = "popular_artists",
                         title = "Artistas para ti",
-                        items = finalArtists
+                        items = candidateArtists.shuffled().take(20)
                     )
                 } else null
 
@@ -701,14 +743,18 @@ class StreamViewModel : ViewModel() {
             val favs = FavoriteArtistsManager.favoriteArtists.value
             val favIds = favs.map { it.id }.filter { it.isNotBlank() }.toSet()
             val historySeeds = _recentlyPlayed.value.flatMap { it.artists }.mapNotNull { it.id }.filter { it.isNotBlank() }
+            val likedSeeds = _tasteProfile.value?.likedSongs?.flatMap { it.artists }?.mapNotNull { it.id }?.filter { it.isNotBlank() }.orEmpty()
+            val exploreSeeds = _explorePage.value?.newReleaseAlbums?.flatMap { it.artists.orEmpty() }?.mapNotNull { it.id }.orEmpty()
             val homeSeeds = _homePage.value?.sections?.flatMap { it.items }?.filterIsInstance<ArtistItem>()?.map { it.id }.orEmpty()
 
             synchronized(artistDiscoveryQueue) {
                 artistDiscoveryQueue.clear()
                 seenArtistIds.clear()
-                seenArtistIds.addAll(favIds) // Artistas favoritos no deben recomendarse
+                seenArtistIds.addAll(favIds) // Artistas favoritos no deben duplicarse aquí
 
-                val seeds = (favs.map { it.id } + historySeeds + homeSeeds).distinct().filter { it.isNotBlank() }
+                val seeds = (favs.map { it.id } + historySeeds + likedSeeds + exploreSeeds + homeSeeds)
+                    .distinct()
+                    .filter { it.isNotBlank() }
                 artistDiscoveryQueue.addAll(seeds.shuffled())
             }
 
@@ -727,7 +773,7 @@ class StreamViewModel : ViewModel() {
                 }
                 related.forEach { artist ->
                     val isFav = FavoriteArtistsManager.isFavorite(artist.id)
-                    if (!isFav && !seenArtistIds.contains(artist.id)) {
+                    if (!isFav && !seenArtistIds.contains(artist.id) && !artist.thumbnail.isNullOrBlank()) {
                         seenArtistIds.add(artist.id)
                         initialList.add(artist)
                         synchronized(artistDiscoveryQueue) {
@@ -767,7 +813,7 @@ class StreamViewModel : ViewModel() {
                     }
                     related.forEach { artist ->
                         val isFav = FavoriteArtistsManager.isFavorite(artist.id)
-                        if (!isFav && !seenArtistIds.contains(artist.id)) {
+                        if (!isFav && !seenArtistIds.contains(artist.id) && !artist.thumbnail.isNullOrBlank()) {
                             seenArtistIds.add(artist.id)
                             newArtists.add(artist)
                             synchronized(artistDiscoveryQueue) {
@@ -784,7 +830,7 @@ class StreamViewModel : ViewModel() {
                         }
                         searchResults.forEach { artist ->
                             val isFav = FavoriteArtistsManager.isFavorite(artist.id)
-                            if (!isFav && !seenArtistIds.contains(artist.id)) {
+                            if (!isFav && !seenArtistIds.contains(artist.id) && !artist.thumbnail.isNullOrBlank()) {
                                 seenArtistIds.add(artist.id)
                                 newArtists.add(artist)
                                 synchronized(artistDiscoveryQueue) {

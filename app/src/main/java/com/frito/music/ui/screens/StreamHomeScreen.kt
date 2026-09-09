@@ -96,9 +96,10 @@ fun StreamHomeScreen(
             if (homeShelves.isNotEmpty()) {
                 // ─── Renderizado dinámico de carruseles curados por el algoritmo ───
                 homeShelves.forEach { shelf ->
-                    // EXCLUSIÓN ESTRICTA: Filtrar artistas favoritos de las recomendaciones
+                    // EXCLUSIÓN INTELIGENTE: Filtrar artistas favoritos de las recomendaciones si hay alternativas
                     val displayItems = if (shelf.id == "popular_artists" || shelf.title.contains("Artistas para ti", ignoreCase = true)) {
-                        shelf.items.filterNot { it is ArtistItem && favoriteArtistIds.contains(it.id) }
+                        val filtered = shelf.items.filterNot { it is ArtistItem && favoriteArtistIds.contains(it.id) }
+                        if (filtered.isNotEmpty()) filtered else shelf.items
                     } else {
                         shelf.items
                     }

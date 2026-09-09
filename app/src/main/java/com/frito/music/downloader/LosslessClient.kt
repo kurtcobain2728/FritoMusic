@@ -38,7 +38,8 @@ object LosslessClient {
         val artist: String,
         val durationSeconds: Int,
         val streamable: Boolean,
-        val maxBitDepth: Int
+        val maxBitDepth: Int,
+        val artworkUrl: String? = null
     )
 
     // Formatos en orden de máxima fidelidad
@@ -110,7 +111,8 @@ object LosslessClient {
                         extension = "flac",
                         bitRate = qualityLabel,
                         resolvedQuality = OnlineQuality.HIGH,
-                        fallbackUsed = false
+                        fallbackUsed = false,
+                        artworkUrl = candidate.artworkUrl
                     )
                 }
             }
@@ -149,6 +151,12 @@ object LosslessClient {
                 val item = items.getJSONObject(i)
                 val performer = item.optJSONObject("performer")
                 val artistName = performer?.optString("name", "") ?: ""
+                val albumObj = item.optJSONObject("album")
+                val imageObj = albumObj?.optJSONObject("image")
+                val artUrl = imageObj?.optString("large")
+                    ?: imageObj?.optString("thumbnail")
+                    ?: albumObj?.optString("cover")
+
                 list.add(
                     QobuzCandidate(
                         id = item.optLong("id", 0L),
@@ -156,7 +164,8 @@ object LosslessClient {
                         artist = artistName,
                         durationSeconds = item.optInt("duration", 0),
                         streamable = item.optBoolean("streamable", true),
-                        maxBitDepth = item.optInt("maximum_bit_depth", 16)
+                        maxBitDepth = item.optInt("maximum_bit_depth", 16),
+                        artworkUrl = artUrl
                     )
                 )
             }

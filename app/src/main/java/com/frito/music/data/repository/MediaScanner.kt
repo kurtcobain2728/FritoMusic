@@ -30,42 +30,108 @@ class MediaScanner(private val context: Context) {
         // Excluimos tonos de llamada, alarmas, etc si es posible, y excluimos la carpeta Android
         val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0 AND ${MediaStore.Audio.Media.DATA} NOT LIKE '%/Android/%'"
 
-        context.contentResolver.query(uri, projection, selection, null, "${MediaStore.Audio.Media.TITLE} ASC")?.use { cursor ->
-            val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
-            val titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
-            val artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
-            val dataColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
-            val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
-            val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
-            val albumIdColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
-            val albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
-            val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
+        try {
+            context.contentResolver.query(uri, projection, selection, null, "${MediaStore.Audio.Media.TITLE} ASC")?.use { cursor ->
+                val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
+                val titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
+                val artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
+                val dataColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
+                val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
+                val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
+                val albumIdColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
+                val albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
+                val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
 
-            while (cursor.moveToNext()) {
-                val path = cursor.getString(dataColumn)
-                if (path == null) continue
+                while (cursor.moveToNext()) {
+                    val path = cursor.getString(dataColumn) ?: continue
 
-                val albumId = cursor.getLong(albumIdColumn)
-                val albumUri = Uri.parse("content://media/external/audio/albumart/$albumId").toString()
+                    val rawTitle = cursor.getString(titleColumn)
+                    val rawArtist = cursor.getString(artistColumn)
+                    val rawAlbum = cursor.getString(albumColumn)
+                    val albumId = cursor.getLong(albumIdColumn)
+                    val defaultAlbumUri = if (albumId > 0) "content://media/external/audio/albumart/$albumId" else null
 
-                val audioFile = AudioFile(
-                    id = cursor.getLong(idColumn),
-                    title = cursor.getString(titleColumn) ?: "Desconocido",
-                    artist = cursor.getString(artistColumn) ?: "Artista Desconocido",
-                    path = path,
-                    durationMs = cursor.getLong(durationColumn),
-                    sizeBytes = cursor.getLong(sizeColumn),
-                    albumUri = albumUri,
-                    album = cursor.getString(albumColumn) ?: "Álbum Desconocido",
-                    dateAdded = cursor.getLong(dateAddedColumn)
-                )
-                
-                val file = File(path)
-                val parentDir = file.parentFile
-                if (parentDir != null) {
-                    insertIntoTree(rootNode, parentDir, audioFile)
+                    val isFritoMusic = path.contains("/FritoMusic/", ignoreCase = true)
+                    val file = File(path)
+                    val parentDir = file.parentFile
+
+                    val finalArtist: String
+                    val finalTitle: String
+                    val finalAlbum: String
+                    val resolvedAlbumUri: String?
+
+                    if (isFritoMusic) {
+                        val isArtistUnknown = rawArtist.isNullOrBlank() ||
+                            rawArtist.equals("<unknown>", ignoreCase = true) ||
+                            rawArtist.equals("Artista Desconocido", ignoreCase = true) ||
+                            rawArtist.equals("Unknown Artist", ignoreCase = true) ||
+                            rawArtist.equals("Unknown", ignoreCase = true)
+
+                        finalArtist = if (isArtistUnknown && parentDir != null) {
+                            parentDir.name
+                        } else if (file.name.contains(" - ")) {
+                            file.nameWithoutExtension.substringBefore(" - ").trim()
+                        } else {
+                            rawArtist ?: "Artista Desconocido"
+                        }
+
+                        val isTitleUnknown = rawTitle.isNullOrBlank() ||
+                            rawTitle.equals("<unknown>", ignoreCase = true) ||
+                            rawTitle.equals("Desconocido", ignoreCase = true)
+
+                        finalTitle = if (isTitleUnknown) {
+                            if (file.name.contains(" - ")) {
+                                file.nameWithoutExtension.substringAfter(" - ").trim()
+                            } else {
+                                file.nameWithoutExtension
+                            }
+                        } else {
+                            rawTitle
+                        }
+
+                        val isAlbumUnknown = rawAlbum.isNullOrBlank() ||
+                            rawAlbum.equals("<unknown>", ignoreCase = true) ||
+                            rawAlbum.equals("Álbum Desconocido", ignoreCase = true)
+
+                        finalAlbum = if (isAlbumUnknown && parentDir != null) {
+                            parentDir.name
+                        } else {
+                            rawAlbum ?: "Álbum Desconocido"
+                        }
+
+                        val songCover = if (parentDir != null) File(parentDir, "${file.nameWithoutExtension}.jpg") else null
+                        val folderCover = if (parentDir != null) File(parentDir, "cover.jpg") else null
+                        resolvedAlbumUri = when {
+                            songCover?.exists() == true -> Uri.fromFile(songCover).toString()
+                            folderCover?.exists() == true -> Uri.fromFile(folderCover).toString()
+                            else -> defaultAlbumUri
+                        }
+                    } else {
+                        finalArtist = rawArtist ?: "Artista Desconocido"
+                        finalTitle = rawTitle ?: "Desconocido"
+                        finalAlbum = rawAlbum ?: "Álbum Desconocido"
+                        resolvedAlbumUri = defaultAlbumUri
+                    }
+
+                    val audioFile = AudioFile(
+                        id = cursor.getLong(idColumn),
+                        title = finalTitle,
+                        artist = finalArtist,
+                        path = path,
+                        durationMs = cursor.getLong(durationColumn),
+                        sizeBytes = cursor.getLong(sizeColumn),
+                        albumUri = resolvedAlbumUri,
+                        album = finalAlbum,
+                        dateAdded = cursor.getLong(dateAddedColumn)
+                    )
+
+                    if (parentDir != null) {
+                        insertIntoTree(rootNode, parentDir, audioFile)
+                    }
                 }
             }
+        } catch (e: Exception) {
+            android.util.Log.e("MediaScanner", "Error al escanear MediaStore: ${e.message}")
         }
         
         return@withContext rootNode

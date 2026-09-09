@@ -563,11 +563,15 @@ fun PlayerScreen(
 
         if (showDownloadQualitySheet) {
             currentAudio?.let { audio ->
-                val videoId = currentVideoId ?: audio.path.substringAfterLast("/")
+                val videoId = currentVideoId?.ifBlank { null }
+                    ?: Regex("""(?<=v=|\/vi\/|youtu\.be\/|\/shorts\/)[a-zA-Z0-9_-]{11}""").find(audio.path)?.value
+                    ?: if (audio.path.length == 11 && !audio.path.startsWith("http")) audio.path else ""
                 DownloadQualityBottomSheet(
                     videoId = videoId,
                     title = audio.title,
                     artist = audio.artist,
+                    albumArtUrl = audio.albumUri,
+                    albumName = audio.album,
                     onDismiss = { showDownloadQualitySheet = false }
                 )
             }

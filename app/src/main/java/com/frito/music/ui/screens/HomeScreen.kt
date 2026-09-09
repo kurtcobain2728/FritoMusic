@@ -56,7 +56,7 @@ fun HomeScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            homeViewModel.scanMusic()
+            homeViewModel.rescan()
         } else {
             Toast.makeText(context, "Permiso denegado. No se puede cargar la música.", Toast.LENGTH_LONG).show()
         }

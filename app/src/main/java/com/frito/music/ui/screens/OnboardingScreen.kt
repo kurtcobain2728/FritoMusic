@@ -69,6 +69,7 @@ fun OnboardingScreen(
                     onNext = { coroutineScope.launch { pagerState.animateScrollToPage(3) } }
                 )
                 3 -> ManageStoragePermissionPage(
+                    isActive = pagerState.currentPage == 3,
                     onNext = { coroutineScope.launch { pagerState.animateScrollToPage(4) } }
                 )
                 4 -> FinalPage(onFinish = onFinish)
@@ -214,7 +215,10 @@ fun StoragePermissionPage(onNext: () -> Unit) {
 }
 
 @Composable
-fun ManageStoragePermissionPage(onNext: () -> Unit) {
+fun ManageStoragePermissionPage(
+    isActive: Boolean,
+    onNext: () -> Unit
+) {
     val context = LocalContext.current
     fun checkPermission(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -228,14 +232,16 @@ fun ManageStoragePermissionPage(onNext: () -> Unit) {
     }
 
     var permissionGranted by remember { mutableStateOf(checkPermission()) }
+    var hasRequestedSettings by remember { mutableStateOf(false) }
     val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
 
-    DisposableEffect(lifecycleOwner) {
+    DisposableEffect(lifecycleOwner, isActive) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
             if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
                 val granted = checkPermission()
                 permissionGranted = granted
-                if (granted) {
+                if (isActive && hasRequestedSettings && granted) {
+                    hasRequestedSettings = false
                     onNext()
                 }
             }
@@ -256,12 +262,13 @@ fun ManageStoragePermissionPage(onNext: () -> Unit) {
         icon = Icons.Filled.CloudDownload,
         title = "Carpeta FritoMusic",
         description = "Permite guardar y organizar directamente tus canciones descargadas en la carpeta FritoMusic de tu almacenamiento principal.",
-        buttonText = if (permissionGranted) "Permiso Concedido" else "Conceder Acceso a Almacenamiento",
+        buttonText = if (permissionGranted) "Continuar" else "Conceder Acceso a Almacenamiento",
         isGranted = permissionGranted,
         onRequest = {
             if (permissionGranted) {
                 onNext()
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                hasRequestedSettings = true
                 try {
                     val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
                         data = Uri.parse("package:${context.packageName}")
@@ -402,8 +409,14 @@ fun PermissionPageContent(
         Spacer(modifier = Modifier.height(48.dp))
         
         Button(
-            onClick = onRequest,
-            enabled = !isGranted,
+            onClick = {
+                if (isGranted) {
+                    onSkip()
+                } else {
+                    onRequest()
+                }
+            },
+            enabled = true,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
@@ -416,7 +429,7 @@ fun PermissionPageContent(
                 text = buttonText,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = appColors.textPrimary
+                color = if (isGranted) Color.White else appColors.textPrimary
             )
         }
         

@@ -44,6 +44,8 @@ fun DownloadQualityBottomSheet(
     videoId: String,
     title: String,
     artist: String,
+    albumArtUrl: String? = null,
+    albumName: String? = null,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -71,6 +73,8 @@ fun DownloadQualityBottomSheet(
                     OnlineMusicDownloadWorker.KEY_TITLE to title,
                     OnlineMusicDownloadWorker.KEY_ARTIST to artist,
                     OnlineMusicDownloadWorker.KEY_QUALITY to quality.id,
+                    OnlineMusicDownloadWorker.KEY_ALBUM_ART_URL to (albumArtUrl ?: ""),
+                    OnlineMusicDownloadWorker.KEY_ALBUM_NAME to (albumName ?: ""),
                     "video_id" to videoId,
                     "trackId" to videoId,
                     "videoId" to videoId,
@@ -78,7 +82,11 @@ fun DownloadQualityBottomSheet(
                     "trackName" to title,
                     "artist" to artist,
                     "artistName" to artist,
-                    "quality" to quality.id
+                    "quality" to quality.id,
+                    "albumArtUrl" to (albumArtUrl ?: ""),
+                    "thumbnailUrl" to (albumArtUrl ?: ""),
+                    "albumName" to (albumName ?: ""),
+                    "album" to (albumName ?: "")
                 )
             )
             .build()
@@ -214,21 +222,15 @@ fun DownloadQualityBottomSheet(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Opción 3: Alta (FLAC)
+            // Opción 3: Alta (FLAC) - Próximamente (no seleccionable)
             QualityOptionCard(
                 icon = Icons.Rounded.GraphicEq,
                 title = "Alta (Lossless)",
-                subtitle = "FLAC Sin Pérdida • Calidad de estudio",
-                badge = "FLAC",
-                badgeColor = Color(0xFFFFB300),
-                onClick = {
-                    if (hasStoragePermission()) {
-                        startDownload(OnlineQuality.HIGH)
-                    } else {
-                        selectedQualityForDownload = OnlineQuality.HIGH
-                        showPermissionDialog = true
-                    }
-                }
+                subtitle = "FLAC Sin Pérdida • Próximamente",
+                badge = "Próximamente",
+                badgeColor = Color(0xFF9E9E9E),
+                enabled = false,
+                onClick = {}
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -308,31 +310,43 @@ private fun QualityOptionCard(
     subtitle: String,
     badge: String,
     badgeColor: Color,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     val appColors = LocalAppColors.current
 
-    Row(
-        modifier = Modifier
+    val cardModifier = if (enabled) {
+        Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(appColors.background.copy(alpha = 0.6f))
             .border(1.dp, appColors.textSecondary.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
-            .padding(14.dp),
+            .padding(14.dp)
+    } else {
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(appColors.background.copy(alpha = 0.3f))
+            .border(1.dp, appColors.textSecondary.copy(alpha = 0.06f), RoundedCornerShape(16.dp))
+            .padding(14.dp)
+    }
+
+    Row(
+        modifier = cardModifier,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
                 .size(40.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(badgeColor.copy(alpha = 0.12f)),
+                .background(if (enabled) badgeColor.copy(alpha = 0.12f) else Color.Gray.copy(alpha = 0.1f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = badgeColor,
+                tint = if (enabled) badgeColor else appColors.textSecondary.copy(alpha = 0.4f),
                 modifier = Modifier.size(22.dp)
             )
         }
@@ -344,12 +358,12 @@ private fun QualityOptionCard(
                 text = title,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = appColors.textPrimary
+                color = if (enabled) appColors.textPrimary else appColors.textSecondary.copy(alpha = 0.6f)
             )
             Text(
                 text = subtitle,
                 fontSize = 12.sp,
-                color = appColors.textSecondary
+                color = appColors.textSecondary.copy(alpha = if (enabled) 1f else 0.5f)
             )
         }
 
@@ -358,14 +372,14 @@ private fun QualityOptionCard(
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
-                .background(badgeColor.copy(alpha = 0.18f))
+                .background(if (enabled) badgeColor.copy(alpha = 0.18f) else Color.Gray.copy(alpha = 0.12f))
                 .padding(horizontal = 8.dp, vertical = 4.dp)
         ) {
             Text(
                 text = badge,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
-                color = badgeColor
+                color = if (enabled) badgeColor else appColors.textSecondary.copy(alpha = 0.6f)
             )
         }
     }

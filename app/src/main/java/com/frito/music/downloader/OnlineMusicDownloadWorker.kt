@@ -33,6 +33,8 @@ class OnlineMusicDownloadWorker(
         const val KEY_TITLE = "title"
         const val KEY_ARTIST = "artist"
         const val KEY_QUALITY = "quality"
+        const val KEY_ALBUM_ART_URL = "album_art_url"
+        const val KEY_ALBUM_NAME = "album_name"
 
         const val CHANNEL_ID = "frito_music_downloads"
         private const val TAG = "OnlineMusicDownloadWorker"
@@ -60,6 +62,17 @@ class OnlineMusicDownloadWorker(
             ?: inputData.getString("artistName")
             ?: inputData.getString("artist")
             ?: "Artista desconocido"
+
+        val albumArtUrl = inputData.getString(KEY_ALBUM_ART_URL)
+            ?: inputData.getString("albumArtUrl")
+            ?: inputData.getString("thumbnailUrl")
+            ?: inputData.getString("image")
+            ?: ""
+
+        val albumName = inputData.getString(KEY_ALBUM_NAME)
+            ?: inputData.getString("albumName")
+            ?: inputData.getString("album")
+            ?: ""
 
         val qualityStr = inputData.getString(KEY_QUALITY)
             ?: inputData.getString("quality")
@@ -225,11 +238,56 @@ class OnlineMusicDownloadWorker(
             tempFile.copyTo(destinationFile, overwrite = true)
             tempFile.delete()
 
-            // Indexar en MediaStore para que aparezca de inmediato en "Inicio"
-            StorageUtils.scanAudioFile(applicationContext, destinationFile)
+            // 1. Descargar y guardar la carátula en máxima resolución HD (1200x1200 / 1080p)
+            val targetCoverUrl = getHighResCoverUrl(albumArtUrl, resolved.artworkUrl, videoId)
+
+            if (!targetCoverUrl.isNullOrBlank()) {
+                runCatching {
+                    var artRequest = Request.Builder()
+                        .url(targetCoverUrl)
+                        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+                        .build()
+                    var artResponse = client.newCall(artRequest).execute()
+
+                    // Si maxresdefault da 404 (algunos videos no tienen miniatura 1080p), fallback a hqdefault
+                    if (!artResponse.isSuccessful && targetCoverUrl.contains("maxresdefault.jpg")) {
+                        val fallbackUrl = targetCoverUrl.replace("maxresdefault.jpg", "hqdefault.jpg")
+                        artRequest = Request.Builder()
+                            .url(fallbackUrl)
+                            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+                            .build()
+                        artResponse = client.newCall(artRequest).execute()
+                    }
+
+                    if (artResponse.isSuccessful) {
+                        val artBytes = artResponse.body?.bytes()
+                        if (artBytes != null && artBytes.isNotEmpty()) {
+                            val songCoverFile = File(destinationFile.parentFile, "${destinationFile.nameWithoutExtension}.jpg")
+                            val folderCoverFile = File(destinationFile.parentFile, "cover.jpg")
+                            songCoverFile.writeBytes(artBytes)
+                            if (!folderCoverFile.exists()) {
+                                folderCoverFile.writeBytes(artBytes)
+                            }
+                            StorageUtils.scanAudioFile(applicationContext, songCoverFile)
+                            Log.d(TAG, "Carátula HD descargada y guardada en: ${songCoverFile.absolutePath} (${artBytes.size / 1024} KB)")
+                        }
+                    }
+                }.onFailure {
+                    Log.w(TAG, "No se pudo descargar la carátula: ${it.message}")
+                }
+            }
+
+            // 2. Indexar en MediaStore con metadatos para que aparezca de inmediato en "Inicio"
+            StorageUtils.scanAudioFile(
+                context = applicationContext,
+                file = destinationFile,
+                title = trackName,
+                artist = artistName,
+                album = albumName.ifEmpty { artistName }
+            )
 
             Log.d(TAG, "Descarga completada y guardada en: ${destinationFile.absolutePath}")
-            updateNotification(notificationId, trackName, 100, 100, "Descarga completada", "✔")
+            updateNotification(notificationId, trackName, 100, 100, "Descarga completada", "✔", artistName)
             setProgressAsync(
                 workDataOf(
                     PROGRESS to 100,
@@ -253,7 +311,7 @@ class OnlineMusicDownloadWorker(
         } catch (e: Exception) {
             Log.e(TAG, "Error durante la descarga online", e)
             tempFile.delete()
-            updateNotification(notificationId, trackName, 0, 100, "Error: ${e.message}", "")
+            updateNotification(notificationId, trackName, 0, 100, "Error: ${e.message}", "", artistName)
             Result.failure(
                 workDataOf(
                     "error" to (e.message ?: "Error desconocido"),
@@ -261,6 +319,36 @@ class OnlineMusicDownloadWorker(
                     "artistName" to artistName
                 )
             )
+        }
+    }
+
+    private fun getHighResCoverUrl(albumArtUrl: String, resolvedArtUrl: String?, videoId: String): String? {
+        val raw = when {
+            albumArtUrl.isNotBlank() -> albumArtUrl
+            !resolvedArtUrl.isNullOrBlank() -> resolvedArtUrl
+            videoId.isNotBlank() && !videoId.startsWith("http") && videoId.length == 11 ->
+                "https://i.ytimg.com/vi/$videoId/maxresdefault.jpg"
+            else -> null
+        } ?: return null
+
+        return when {
+            raw.contains("googleusercontent.com") -> {
+                val base = if (raw.contains("=w")) raw.split("=w")[0]
+                else if (raw.contains("=s")) raw.split("=s")[0]
+                else raw
+                "$base=w1200-h1200-l90-rj"
+            }
+            raw.contains("yt3.ggpht.com") -> {
+                val base = raw.split("=")[0].split("-s")[0]
+                "$base=s1200"
+            }
+            raw.contains("i.ytimg.com") -> {
+                raw.replace(Regex("""(default|mqdefault|hqdefault|sddefault)\.jpg"""), "maxresdefault.jpg")
+            }
+            raw.contains("saavncdn.com") -> {
+                raw.replace("150x150", "500x500").replace("50x50", "500x500")
+            }
+            else -> raw
         }
     }
 
@@ -276,10 +364,10 @@ class OnlineMusicDownloadWorker(
         }
     }
 
-    private fun createForegroundInfo(notificationId: Int, trackName: String): ForegroundInfo {
+    private fun createForegroundInfo(notificationId: Int, trackName: String, artistName: String = ""): ForegroundInfo {
         val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
-            .setContentTitle("Descargando: $trackName")
-            .setContentText("Iniciando descarga...")
+            .setContentTitle(trackName)
+            .setContentText(if (artistName.isNotBlank() && artistName != "Artista desconocido") artistName else "Iniciando descarga...")
             .setSmallIcon(android.R.drawable.stat_sys_download)
             .setProgress(100, 0, true)
             .setOngoing(true)
@@ -298,12 +386,18 @@ class OnlineMusicDownloadWorker(
         progress: Int,
         max: Int,
         text: String,
-        subText: String
+        subText: String,
+        artistName: String = ""
     ) {
         runCatching {
+            val content = if (artistName.isNotBlank() && artistName != "Artista desconocido") {
+                "$artistName • $text"
+            } else {
+                text
+            }
             val builder = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
                 .setContentTitle(trackName)
-                .setContentText(text)
+                .setContentText(content)
                 .setSubText(subText)
                 .setSmallIcon(if (progress >= 100) android.R.drawable.stat_sys_download_done else android.R.drawable.stat_sys_download)
                 .setProgress(max, progress, progress == 0 && text.contains("Resolviendo"))

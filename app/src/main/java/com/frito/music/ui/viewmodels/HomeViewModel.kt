@@ -31,7 +31,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     val allAudios: StateFlow<List<AudioFile>> = _allAudios.asStateFlow()
 
     fun scanMusic() {
-        if (_rootNode.value != null) return // Ya está escaneado
+        if (_rootNode.value != null && _allAudios.value.isNotEmpty()) return // Ya está escaneado con canciones
         viewModelScope.launch {
             scanInternal()
         }
@@ -56,6 +56,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             _rootNode.value = root
             _currentNode.value = root
             _allAudios.value = flattenAudios(root)
+        } catch (e: Exception) {
+            android.util.Log.e("HomeViewModel", "Error al escanear música: ${e.message}")
         } finally {
             _isLoading.value = false
         }

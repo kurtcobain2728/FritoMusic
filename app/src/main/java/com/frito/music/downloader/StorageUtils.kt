@@ -164,7 +164,14 @@ object StorageUtils {
      * Notifica al MediaScanner de Android para que indexe inmediatamente el archivo descargado
      * y aparezca de inmediato en "Inicio" de FritoMusic y en todo el sistema.
      */
-    fun scanAudioFile(context: Context, file: File, onComplete: ((Uri?) -> Unit)? = null) {
+    fun scanAudioFile(
+        context: Context,
+        file: File,
+        title: String? = null,
+        artist: String? = null,
+        album: String? = null,
+        onComplete: ((Uri?) -> Unit)? = null
+    ) {
         val cleanExtension = file.extension.lowercase()
         val mimeType = when (cleanExtension) {
             "flac" -> "audio/flac"
@@ -172,6 +179,8 @@ object StorageUtils {
             "opus" -> "audio/opus"
             "ogg" -> "audio/ogg"
             "wav" -> "audio/wav"
+            "jpg", "jpeg" -> "image/jpeg"
+            "png" -> "image/png"
             else -> "audio/mpeg"
         }
         android.media.MediaScannerConnection.scanFile(
@@ -179,6 +188,18 @@ object StorageUtils {
             arrayOf(file.absolutePath),
             arrayOf(mimeType)
         ) { _, uri ->
+            if (uri != null && (title != null || artist != null || album != null)) {
+                runCatching {
+                    val values = ContentValues().apply {
+                        if (!title.isNullOrBlank()) put(MediaStore.Audio.Media.TITLE, title)
+                        if (!artist.isNullOrBlank()) put(MediaStore.Audio.Media.ARTIST, artist)
+                        if (!album.isNullOrBlank()) put(MediaStore.Audio.Media.ALBUM, album)
+                    }
+                    context.contentResolver.update(uri, values, null, null)
+                }.onFailure {
+                    android.util.Log.w("StorageUtils", "No se pudo actualizar metadatos MediaStore: ${it.message}")
+                }
+            }
             onComplete?.invoke(uri)
         }
     }
