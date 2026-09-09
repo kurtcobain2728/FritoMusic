@@ -46,7 +46,6 @@ import com.frito.music.ui.screens.*
 import com.frito.music.ui.theme.FritoMusicTheme
 import com.frito.music.ui.viewmodels.HomeViewModel
 import com.frito.music.ui.viewmodels.PlayerViewModel
-import com.frito.music.ui.viewmodels.DownloadViewModel
 import com.frito.music.ui.viewmodels.StreamViewModel
 import com.frito.music.ui.viewmodels.OnlineLibraryViewModel
 import com.frito.music.ui.theme.ThemeViewModel
@@ -62,29 +61,6 @@ data class StreamNavEntry(
 
 class MainActivity : ComponentActivity() {
 
-    /**
-     * Procesa el deep link spotiflac://session-grant?...&state={extensionId}&grant={grant}
-     * que llega tras la verificación de sesión firmada en el navegador.
-     */
-    private fun handleSessionGrantIntent(intent: android.content.Intent?) {
-        val uri = intent?.data ?: return
-        if (uri.scheme == "spotiflac" && uri.host == "session-grant") {
-            val extensionId = uri.getQueryParameter("state")
-            val grant = uri.getQueryParameter("grant")
-            if (!extensionId.isNullOrEmpty() && !grant.isNullOrEmpty()) {
-                com.frito.music.extensions.session.SignedSessionManager
-                    .setPendingGrant(this, extensionId, grant)
-            }
-            // Limpiar el data para no reprocesarlo en recreaciones
-            intent.data = null
-        }
-    }
-
-    override fun onNewIntent(intent: android.content.Intent) {
-        super.onNewIntent(intent)
-        handleSessionGrantIntent(intent)
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         // Edge-to-edge: dibuja bajo status/navigation bar. Los insets se manejan
         // con WindowInsets en Compose (ver padding de headers en pantallas).
@@ -99,15 +75,11 @@ class MainActivity : ComponentActivity() {
         com.frito.music.data.repository.FavoriteArtistsManager.init(this)
         com.frito.music.data.repository.StreamHistoryManager.init(this)
 
-        // Deep link de verificación de sesión (si la app se abrió desde el navegador)
-        handleSessionGrantIntent(intent)
-
         setContent {
             var showOnboarding by remember { mutableStateOf(!hasCompletedOnboardingInitial) }
             val themeViewModel: ThemeViewModel = viewModel()
             val homeViewModel: HomeViewModel = viewModel()
             val playerViewModel: PlayerViewModel = viewModel()
-            val downloadViewModel: DownloadViewModel = viewModel()
             val streamViewModel: StreamViewModel = viewModel()
             val onlineLibraryViewModel: OnlineLibraryViewModel = viewModel()
 
@@ -136,8 +108,6 @@ class MainActivity : ComponentActivity() {
                     var currentSubScreen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
                     var showPlayerScreen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
                     var selectedPlaylist by remember { mutableStateOf<Playlist?>(null) } // no parcelable: se pierde con rotación (aceptable)
-                    var selectedArtistId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
-                    var selectedAlbumId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
                     var selectedStreamArtistId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
                     var selectedStreamAlbumId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
                     var selectedStreamPlaylistId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
@@ -207,7 +177,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    var verificationTarget by remember { mutableStateOf<Pair<String, String>?>(null) } // se reconstruye vía deep link / banner
                     var showYouTubeLogin by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
 
                     val favorites by playerViewModel.favorites.collectAsState(initial = emptySet())
@@ -243,13 +212,6 @@ class MainActivity : ComponentActivity() {
                     } else if (currentSubScreen == "playlist_detail") {
                         isNavigatingBack = true
                         currentSubScreen = "listas"
-                        selectedPlaylist = null
-                    } else if (currentSubScreen == "artist_detail" || currentSubScreen == "album_detail" || currentSubScreen == "session_verification") {
-                        isNavigatingBack = true
-                        currentSubScreen = "descargar"
-                        selectedArtistId = null
-                        selectedAlbumId = null
-                        verificationTarget = null
                     } else if (currentSubScreen?.startsWith("stream_") == true) {
                         if (!popStreamScreen()) {
                             currentSubScreen = null
@@ -439,58 +401,7 @@ class MainActivity : ComponentActivity() {
                                         "ecualizador" -> EqualizerScreen(playerViewModel = playerViewModel, onBack = { currentSubScreen = null })
                                         "apariencia" -> AppearanceScreen(themeViewModel = themeViewModel, onBack = { currentSubScreen = null })
                                         "donaciones" -> DonationsScreen(onBack = { currentSubScreen = null })
-                                        "descargar" -> DownloadScreen(
-                                            onBack = { currentSubScreen = null },
-                                            onNavigateToArtist = { id ->
-                                                selectedArtistId = id
-                                                currentSubScreen = "artist_detail"
-                                            },
-                                            onNavigateToAlbum = { id ->
-                                                selectedAlbumId = id
-                                                currentSubScreen = "album_detail"
-                                            },
-                                            onNavigateToVerification = { extId, url ->
-                                                verificationTarget = extId to url
-                                                currentSubScreen = "session_verification"
-                                            },
-                                            viewModel = downloadViewModel
-                                        )
-                                        "session_verification" -> {
-                                            verificationTarget?.let { (extId, url) ->
-                                                com.frito.music.ui.screens.SessionVerificationScreen(
-                                                    extensionId = extId,
-                                                    authUrl = url,
-                                                    onBack = { currentSubScreen = "descargar" },
-                                                    onCompleted = {
-                                                        currentSubScreen = "descargar"
-                                                        downloadViewModel.refreshSessionState()
-                                                    }
-                                                )
-                                            }
-                                        }
                                         "gestor_descargas" -> DownloadsManagerScreen(onBack = { currentSubScreen = null })
-                                        "artist_detail" -> {
-                                            selectedArtistId?.let { id ->
-                                                ArtistDetailScreen(
-                                                    artistId = id,
-                                                    viewModel = downloadViewModel,
-                                                    onNavigateToAlbum = { albumId ->
-                                                        selectedAlbumId = albumId
-                                                        currentSubScreen = "album_detail"
-                                                    },
-                                                    onBack = { currentSubScreen = "descargar" }
-                                                )
-                                            }
-                                        }
-                                        "album_detail" -> {
-                                            selectedAlbumId?.let { id ->
-                                                AlbumScreen(
-                                                    albumId = id,
-                                                    viewModel = downloadViewModel,
-                                                    onBack = { currentSubScreen = "descargar" }
-                                                )
-                                            }
-                                        }
                                         "stream_artist_detail" -> {
                                             selectedStreamArtistId?.let { id ->
                                                 StreamArtistDetailScreen(
@@ -570,7 +481,6 @@ class MainActivity : ComponentActivity() {
                                                 onBack = { popStreamScreen() }
                                             )
                                         }
-                                        "extensiones" -> ExtensionsScreen(onBack = { currentSubScreen = null })
                                         else -> {
                                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                                 Text("Pantalla en construcción", color = appColors.textPrimary)
@@ -651,9 +561,7 @@ class MainActivity : ComponentActivity() {
                                                 onNavigateToEqualizer = { isNavigatingBack = false; currentSubScreen = "ecualizador" },
                                                 onNavigateToAppearance = { isNavigatingBack = false; currentSubScreen = "apariencia" },
                                                 onNavigateToDonations = { isNavigatingBack = false; currentSubScreen = "donaciones" },
-                                                onNavigateToDownload = { isNavigatingBack = false; currentSubScreen = "descargar" },
-                                                onNavigateToDownloadsManager = { isNavigatingBack = false; currentSubScreen = "gestor_descargas" },
-                                                onNavigateToExtensions = { isNavigatingBack = false; currentSubScreen = "extensiones" }
+                                                onNavigateToDownloadsManager = { isNavigatingBack = false; currentSubScreen = "gestor_descargas" }
                                             )
                                             else -> HomeScreen(homeViewModel = homeViewModel, playerViewModel = playerViewModel, isPlayerOpen = showPlayerScreen || currentAudio != null)
                                         }

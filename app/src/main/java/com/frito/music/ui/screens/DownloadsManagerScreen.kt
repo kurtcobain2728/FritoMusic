@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Observer
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
-import com.frito.music.downloader.MusicDownloadWorker
+import com.frito.music.downloader.OnlineMusicDownloadWorker
 import com.frito.music.ui.theme.LocalAppColors
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -110,10 +110,10 @@ fun DownloadItem(workInfo: WorkInfo) {
     // y progress solo tiene lo que enviamos en progress:
     
     val progressData = workInfo.progress
-    val progress = progressData.getInt(MusicDownloadWorker.PROGRESS, 0)
-    val speed = progressData.getString(MusicDownloadWorker.SPEED) ?: ""
-    val downloadedMb = progressData.getFloat(MusicDownloadWorker.DOWNLOADED_MB, 0f)
-    val totalMb = progressData.getFloat(MusicDownloadWorker.TOTAL_MB, 0f)
+    val progress = progressData.getInt(OnlineMusicDownloadWorker.PROGRESS, 0)
+    val speed = progressData.getString(OnlineMusicDownloadWorker.SPEED) ?: ""
+    val downloadedMb = progressData.getFloat(OnlineMusicDownloadWorker.DOWNLOADED_MB, 0f)
+    val totalMb = progressData.getFloat(OnlineMusicDownloadWorker.TOTAL_MB, 0f)
     val isRunning = workInfo.state == WorkInfo.State.RUNNING || workInfo.state == WorkInfo.State.ENQUEUED
 
     // El worker reporta PROGRESS (0-100). Antes se calculaba con TOTAL_MB que

@@ -78,9 +78,6 @@ dependencies {
     // Coil para imágenes
     implementation("io.coil-kt:coil-compose:2.5.0")
 
-    // JS Engine for Extensions
-    implementation("com.faendir.rhino:rhino-android:1.6.0")
-
     // kotlinx.serialization for JSON parsing
     implementation(libs.kotlinx.serialization.json)
 

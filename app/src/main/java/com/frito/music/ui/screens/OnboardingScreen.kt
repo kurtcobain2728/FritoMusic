@@ -32,12 +32,19 @@ import com.frito.music.ui.theme.AppAnimations
 import com.frito.music.ui.theme.LocalAppColors
 import kotlinx.coroutines.launch
 
+import android.content.Intent
+import android.net.Uri
+import android.os.Environment
+import android.provider.Settings
+import androidx.core.content.ContextCompat
+import android.content.pm.PackageManager
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun OnboardingScreen(
     onFinish: () -> Unit
 ) {
-    val pagerState = rememberPagerState(pageCount = { 4 })
+    val pagerState = rememberPagerState(pageCount = { 5 })
     val coroutineScope = rememberCoroutineScope()
     val appColors = LocalAppColors.current
     
@@ -61,7 +68,10 @@ fun OnboardingScreen(
                 2 -> StoragePermissionPage(
                     onNext = { coroutineScope.launch { pagerState.animateScrollToPage(3) } }
                 )
-                3 -> FinalPage(onFinish = onFinish)
+                3 -> ManageStoragePermissionPage(
+                    onNext = { coroutineScope.launch { pagerState.animateScrollToPage(4) } }
+                )
+                4 -> FinalPage(onFinish = onFinish)
             }
         }
         
@@ -72,7 +82,7 @@ fun OnboardingScreen(
                 .fillMaxWidth(),
             horizontalArrangement = Arrangement.Center
         ) {
-            repeat(4) { iteration ->
+            repeat(5) { iteration ->
                 val isSelected = pagerState.currentPage == iteration
                 val color by animateColorAsState(
                     targetValue = if (isSelected) appColors.accent else appColors.textSecondary.copy(alpha = 0.5f),
@@ -199,6 +209,72 @@ fun StoragePermissionPage(onNext: () -> Unit) {
         buttonText = if (permissionGranted) "Permiso Concedido" else "Conceder Permiso",
         isGranted = permissionGranted,
         onRequest = { launcher.launch(permissionString) },
+        onSkip = onNext
+    )
+}
+
+@Composable
+fun ManageStoragePermissionPage(onNext: () -> Unit) {
+    val context = LocalContext.current
+    fun checkPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Environment.isExternalStorageManager()
+        } else {
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    var permissionGranted by remember { mutableStateOf(checkPermission()) }
+    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                val granted = checkPermission()
+                permissionGranted = granted
+                if (granted) {
+                    onNext()
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    val legacyLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            permissionGranted = isGranted
+            if (isGranted) onNext()
+        }
+    )
+
+    PermissionPageContent(
+        icon = Icons.Filled.CloudDownload,
+        title = "Carpeta FritoMusic",
+        description = "Permite guardar y organizar directamente tus canciones descargadas en la carpeta FritoMusic de tu almacenamiento principal.",
+        buttonText = if (permissionGranted) "Permiso Concedido" else "Conceder Acceso a Almacenamiento",
+        isGranted = permissionGranted,
+        onRequest = {
+            if (permissionGranted) {
+                onNext()
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                try {
+                    val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+                        data = Uri.parse("package:${context.packageName}")
+                    }
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                    context.startActivity(intent)
+                }
+            } else {
+                legacyLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            }
+        },
         onSkip = onNext
     )
 }

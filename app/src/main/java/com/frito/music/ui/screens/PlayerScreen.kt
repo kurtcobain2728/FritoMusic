@@ -48,6 +48,8 @@ import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.data.models.AudioFile
 import com.frito.music.data.models.LyricsUiState
 import com.frito.music.ui.components.AddToYouTubePlaylistModal
+import com.frito.music.ui.components.DownloadQualityBottomSheet
+import androidx.compose.material.icons.rounded.Download
 import com.frito.music.ui.components.SyncedLyricsView
 
 fun formatDuration(ms: Long): String {
@@ -84,6 +86,7 @@ fun PlayerScreen(
     var showCreateDialog by remember { mutableStateOf(false) }
     var newPlaylistName by remember { mutableStateOf("") }
     var showAddToYouTubePlaylist by remember { mutableStateOf(false) }
+    var showDownloadQualitySheet by remember { mutableStateOf(false) }
     
     val appColors = LocalAppColors.current
 
@@ -250,6 +253,19 @@ fun PlayerScreen(
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                 }
+
+                if (isOnline) {
+                    Icon(
+                        imageVector = Icons.Rounded.Download,
+                        contentDescription = "Descargar canción",
+                        tint = appColors.textPrimary,
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clickable { showDownloadQualitySheet = true }
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                }
+
                 val favIsActive = if (isOnline) isOnlineLiked else isCurrentFavorite
                 val favTint = if (favIsActive) Color(0xFFFF6B6B) else appColors.textPrimary
                 Icon(
@@ -541,6 +557,18 @@ fun PlayerScreen(
                     streamViewModel = streamViewModel,
                     onDismiss = { showAddToYouTubePlaylist = false },
                     onPlaylistCreated = { showAddToYouTubePlaylist = false }
+                )
+            }
+        }
+
+        if (showDownloadQualitySheet) {
+            currentAudio?.let { audio ->
+                val videoId = currentVideoId ?: audio.path.substringAfterLast("/")
+                DownloadQualityBottomSheet(
+                    videoId = videoId,
+                    title = audio.title,
+                    artist = audio.artist,
+                    onDismiss = { showDownloadQualitySheet = false }
                 )
             }
         }

@@ -121,4 +121,66 @@ object StorageUtils {
             e.printStackTrace()
         }
     }
+
+    /**
+     * Crea un archivo físico directamente en /storage/emulated/0/FritoMusic/{safeArtist}/{safeTrack}.{ext}
+     * Si no existe la carpeta FritoMusic en la raíz, la crea.
+     * Si no existe la carpeta del Artista, la crea.
+     */
+    fun createDirectAudioFile(
+        artistName: String,
+        trackName: String,
+        extension: String = "mp3"
+    ): File {
+        val safeArtist = sanitizeFilename(artistName).ifEmpty { "Desconocido" }
+        val safeTrack = sanitizeFilename(trackName).ifEmpty { "Pista Desconocida" }
+        val cleanExtension = extension.removePrefix(".").lowercase().ifEmpty { "mp3" }
+        val fileName = "$safeTrack.$cleanExtension"
+
+        @Suppress("DEPRECATION")
+        val rootDir = Environment.getExternalStorageDirectory()
+        val fritoMusicDir = File(rootDir, "FritoMusic")
+        val canUseRoot = runCatching {
+            (fritoMusicDir.exists() || fritoMusicDir.mkdirs()) && fritoMusicDir.canWrite()
+        }.getOrDefault(false)
+
+        return if (canUseRoot) {
+            val artistDir = File(fritoMusicDir, safeArtist)
+            if (!artistDir.exists()) artistDir.mkdirs()
+            File(artistDir, fileName)
+        } else {
+            // Fallback a Music/FritoMusic si el sistema no permite escribir directamente en la raíz
+            @Suppress("DEPRECATION")
+            val publicDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
+            val fallbackFrito = File(publicDir, "FritoMusic")
+            if (!fallbackFrito.exists()) fallbackFrito.mkdirs()
+            val artistDir = File(fallbackFrito, safeArtist)
+            if (!artistDir.exists()) artistDir.mkdirs()
+            File(artistDir, fileName)
+        }
+    }
+
+    /**
+     * Notifica al MediaScanner de Android para que indexe inmediatamente el archivo descargado
+     * y aparezca de inmediato en "Inicio" de FritoMusic y en todo el sistema.
+     */
+    fun scanAudioFile(context: Context, file: File, onComplete: ((Uri?) -> Unit)? = null) {
+        val cleanExtension = file.extension.lowercase()
+        val mimeType = when (cleanExtension) {
+            "flac" -> "audio/flac"
+            "m4a", "aac", "mp4" -> "audio/mp4"
+            "opus" -> "audio/opus"
+            "ogg" -> "audio/ogg"
+            "wav" -> "audio/wav"
+            else -> "audio/mpeg"
+        }
+        android.media.MediaScannerConnection.scanFile(
+            context,
+            arrayOf(file.absolutePath),
+            arrayOf(mimeType)
+        ) { _, uri ->
+            onComplete?.invoke(uri)
+        }
+    }
 }
+
