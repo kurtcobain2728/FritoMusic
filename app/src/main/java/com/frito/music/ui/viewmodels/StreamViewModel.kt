@@ -926,4 +926,34 @@ class StreamViewModel : ViewModel() {
                 .onFailure { _errorMessage.value = it.message }
         }
     }
+
+    suspend fun findArtistIdByName(artistName: String): String? {
+        val cleanName = artistName
+            .replace(Regex("(?i)\\s*-\\s*topic\\b"), "")
+            .replace(Regex("(?i)\\s*vevo\\b"), "")
+            .trim()
+        if (cleanName.isBlank()) return null
+        return withContext(Dispatchers.IO) {
+            val result = com.music.innertube.YouTube.search(cleanName, com.music.innertube.YouTube.SearchFilter.FILTER_ARTIST)
+            result.getOrNull()?.items?.filterIsInstance<ArtistItem>()?.firstOrNull()?.id
+        }
+    }
+
+    suspend fun getRelatedArtists(artistName: String, currentArtistId: String): List<ArtistItem> {
+        val cleanName = artistName
+            .replace(Regex("(?i)\\s*-\\s*topic\\b"), "")
+            .replace(Regex("(?i)\\s*vevo\\b"), "")
+            .trim()
+        if (cleanName.isBlank()) return emptyList()
+        return withContext(Dispatchers.IO) {
+            try {
+                val result = com.music.innertube.YouTube.search(cleanName, com.music.innertube.YouTube.SearchFilter.FILTER_ARTIST)
+                result.getOrNull()?.items?.filterIsInstance<ArtistItem>()
+                    ?.filter { it.id != currentArtistId && !it.thumbnail.isNullOrBlank() }
+                    ?.take(15) ?: emptyList()
+            } catch (_: Exception) {
+                emptyList()
+            }
+        }
+    }
 }

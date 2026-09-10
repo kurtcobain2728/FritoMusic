@@ -40,6 +40,7 @@ import coil.request.ImageRequest
 import androidx.compose.ui.platform.LocalContext
 import com.frito.music.utils.ImageUtils
 import com.frito.music.utils.resize
+import kotlinx.coroutines.launch
 import com.frito.music.ui.viewmodels.OnlineLibraryViewModel
 import com.frito.music.ui.viewmodels.PlayerViewModel
 import com.frito.music.ui.viewmodels.StreamViewModel
@@ -64,6 +65,7 @@ fun PlayerScreen(
     viewModel: PlayerViewModel,
     streamViewModel: StreamViewModel,
     onlineLibraryViewModel: OnlineLibraryViewModel,
+    onNavigateToArtist: (String) -> Unit = {},
     onClose: () -> Unit
 ) {
     val isPlaying by viewModel.isPlaying.collectAsState()
@@ -89,6 +91,8 @@ fun PlayerScreen(
     var showDownloadQualitySheet by remember { mutableStateOf(false) }
     
     val appColors = LocalAppColors.current
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
@@ -247,10 +251,28 @@ fun PlayerScreen(
                     )
                     Text(
                         text = currentAudio?.artist ?: "",
-                        color = appColors.textSecondary,
+                        color = if (!currentAudio?.artist.isNullOrBlank()) appColors.textSecondary else appColors.textSecondary.copy(alpha = 0.5f),
                         fontSize = 16.sp,
                         maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .clickable(enabled = !currentAudio?.artist.isNullOrBlank()) {
+                                val artistName = currentAudio?.artist ?: return@clickable
+                                coroutineScope.launch {
+                                    val artistId = streamViewModel.findArtistIdByName(artistName)
+                                    if (artistId != null) {
+                                        onClose()
+                                        onNavigateToArtist(artistId)
+                                    } else {
+                                        android.widget.Toast.makeText(
+                                            context,
+                                            "No se encontró perfil para $artistName",
+                                            android.widget.Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                }
+                            }
                     )
                 }
 

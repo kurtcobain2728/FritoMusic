@@ -38,7 +38,13 @@ import com.frito.music.ui.viewmodels.StreamViewModel
 import com.frito.music.utils.ImageUtils
 import com.frito.music.utils.resize
 import com.music.innertube.models.AlbumItem
+import com.music.innertube.models.ArtistItem
 import com.music.innertube.models.SongItem
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.ui.text.style.TextAlign
+import com.frito.music.ui.theme.AppColors
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun StreamArtistDetailScreen(
@@ -46,6 +52,7 @@ fun StreamArtistDetailScreen(
     streamViewModel: StreamViewModel,
     playerViewModel: PlayerViewModel,
     onNavigateToAlbum: (String) -> Unit = {},
+    onNavigateToArtist: (String) -> Unit = {},
     onBack: () -> Unit
 ) {
     val appColors = LocalAppColors.current
@@ -106,6 +113,18 @@ fun StreamArtistDetailScreen(
             // Find album sections
             val albumSections = sections.filter { section ->
                 section.items.any { it is AlbumItem }
+            }
+
+            // Find related artists sections ("Fans might also like" / "Artistas similares")
+            val relatedArtistsSections = sections.filter { section ->
+                section.items.any { it is ArtistItem }
+            }
+
+            var fallbackRelatedArtists by remember(artist.id, artist.title) { mutableStateOf<List<ArtistItem>>(emptyList()) }
+            LaunchedEffect(artist.id, artist.title) {
+                if (relatedArtistsSections.isEmpty()) {
+                    fallbackRelatedArtists = streamViewModel.getRelatedArtists(artist.title, artist.id)
+                }
             }
 
             LazyColumn(
@@ -255,8 +274,83 @@ fun StreamArtistDetailScreen(
                     }
                 }
 
+                // Biografía / Sobre el artista o banda
+                item {
+                    ArtistBioCard(
+                        artistName = artist.title,
+                        initialBio = page.description,
+                        subscriberCount = page.subscriberCountText,
+                        monthlyListeners = page.monthlyListenerCount,
+                        appColors = appColors
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
+                // Artistas Relacionados / Fans también escuchan
+                if (relatedArtistsSections.isNotEmpty()) {
+                    relatedArtistsSections.forEach { section ->
+                        val relatedArtists = section.items.filterIsInstance<ArtistItem>().filter { !it.thumbnail.isNullOrBlank() }
+                        if (relatedArtists.isNotEmpty()) {
+                            item {
+                                val sectionTitle = if (section.title.contains("fan", ignoreCase = true) ||
+                                    section.title.contains("similar", ignoreCase = true) ||
+                                    section.title.contains("gusta", ignoreCase = true) ||
+                                    section.title.isEmpty()
+                                ) {
+                                    "Fans también escuchan"
+                                } else {
+                                    section.title
+                                }
+                                Text(
+                                    text = sectionTitle,
+                                    color = appColors.textPrimary,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                                LazyRow(
+                                    contentPadding = PaddingValues(horizontal = 16.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    items(relatedArtists, key = { it.id }) { relatedArtist ->
+                                        StreamRelatedArtistCard(
+                                            title = relatedArtist.title,
+                                            imageUrl = relatedArtist.thumbnail,
+                                            onClick = { onNavigateToArtist(relatedArtist.id) }
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(24.dp))
+                            }
+                        }
+                    }
+                } else if (fallbackRelatedArtists.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Fans también escuchan",
+                            color = appColors.textPrimary,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            items(fallbackRelatedArtists, key = { it.id }) { relatedArtist ->
+                                StreamRelatedArtistCard(
+                                    title = relatedArtist.title,
+                                    imageUrl = relatedArtist.thumbnail,
+                                    onClick = { onNavigateToArtist(relatedArtist.id) }
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(24.dp))
+                    }
+                }
+
                 // Bottom spacing
-                item { Spacer(modifier = Modifier.height(40.dp)) }
+                item { Spacer(modifier = Modifier.height(60.dp)) }
             }
         }
     }
@@ -399,3 +493,221 @@ fun StreamAlbumCard(
         )
     }
 }
+
+@Composable
+fun StreamRelatedArtistCard(
+    title: String,
+    imageUrl: String?,
+    onClick: () -> Unit
+) {
+    val appColors = LocalAppColors.current
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .width(110.dp)
+            .clickable { onClick() }
+    ) {
+        Box(
+            modifier = Modifier
+                .size(100.dp)
+                .clip(CircleShape)
+                .background(Color.DarkGray)
+        ) {
+            if (!imageUrl.isNullOrEmpty()) {
+                AsyncImage(
+                    model = imageUrl.resize(width = 240),
+                    contentDescription = title,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Icon(
+                    Icons.Default.Person,
+                    contentDescription = null,
+                    tint = appColors.textSecondary,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .align(Alignment.Center)
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = title,
+            color = appColors.textPrimary,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = "Artista",
+            color = appColors.textSecondary,
+            fontSize = 12.sp,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+fun ArtistBioCard(
+    artistName: String,
+    initialBio: String?,
+    subscriberCount: String?,
+    monthlyListeners: String?,
+    appColors: AppColors
+) {
+    var bioText by remember(initialBio, artistName) { mutableStateOf(initialBio) }
+    var isExpanded by remember { mutableStateOf(false) }
+    var isLoadingBio by remember { mutableStateOf(false) }
+
+    LaunchedEffect(artistName, initialBio) {
+        if (bioText.isNullOrBlank()) {
+            isLoadingBio = true
+            bioText = fetchWikipediaBio(artistName)
+            isLoadingBio = false
+        }
+    }
+
+    if (!bioText.isNullOrBlank() || !subscriberCount.isNullOrBlank() || !monthlyListeners.isNullOrBlank()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Text(
+                text = "Sobre $artistName",
+                color = appColors.textPrimary,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Color.White.copy(alpha = 0.05f),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp)
+                ) {
+                    // Estadísticas (Oyentes / Suscriptores) si existen
+                    if (!monthlyListeners.isNullOrBlank() || !subscriberCount.isNullOrBlank()) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        ) {
+                            if (!monthlyListeners.isNullOrBlank()) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.MusicNote,
+                                        contentDescription = null,
+                                        tint = Color(0xFF1DB954),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = monthlyListeners,
+                                        color = appColors.textPrimary,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
+                            if (!subscriberCount.isNullOrBlank()) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = null,
+                                        tint = appColors.textSecondary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = subscriberCount,
+                                        color = appColors.textSecondary,
+                                        fontSize = 13.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (!bioText.isNullOrBlank()) {
+                        Text(
+                            text = bioText!!,
+                            color = appColors.textSecondary,
+                            fontSize = 14.sp,
+                            lineHeight = 20.sp,
+                            maxLines = if (isExpanded) Int.MAX_VALUE else 4,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        if (bioText!!.length > 180) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = if (isExpanded) "Mostrar menos" else "Leer más",
+                                color = Color(0xFF1DB954),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier
+                                    .clickable { isExpanded = !isExpanded }
+                                    .padding(vertical = 4.dp)
+                            )
+                        }
+                    } else if (isLoadingBio) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                color = Color(0xFF1DB954),
+                                modifier = Modifier.size(22.dp),
+                                strokeWidth = 2.dp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+suspend fun fetchWikipediaBio(artistName: String): String? = withContext(Dispatchers.IO) {
+    val cleanName = artistName
+        .replace(Regex("(?i)\\s*-\\s*topic\\b"), "")
+        .replace(Regex("(?i)\\s*vevo\\b"), "")
+        .trim()
+    if (cleanName.isBlank()) return@withContext null
+
+    fun queryWiki(lang: String, queryTitle: String): String? {
+        return try {
+            val encoded = java.net.URLEncoder.encode(queryTitle.replace(" ", "_"), "UTF-8")
+            val url = java.net.URL("https://$lang.wikipedia.org/api/rest_v1/page/summary/$encoded")
+            val conn = url.openConnection() as java.net.HttpURLConnection
+            conn.setRequestProperty("User-Agent", "FritoMusic/1.0 (Android; contact@frito.music)")
+            conn.connectTimeout = 4000
+            conn.readTimeout = 4000
+            if (conn.responseCode == 200) {
+                val json = conn.inputStream.bufferedReader().use { it.readText() }
+                val obj = org.json.JSONObject(json)
+                obj.optString("extract").takeIf { it.isNotBlank() }
+            } else null
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    queryWiki("es", cleanName)
+        ?: queryWiki("es", "$cleanName (banda)")
+        ?: queryWiki("es", "$cleanName (músico)")
+        ?: queryWiki("en", cleanName)
+        ?: queryWiki("en", "$cleanName (band)")
+        ?: queryWiki("en", "$cleanName (musician)")
+}
+

@@ -419,6 +419,9 @@ class MainActivity : ComponentActivity() {
                                                     onNavigateToAlbum = { albumId ->
                                                         pushStreamScreen(StreamNavEntry(screen = "stream_album_detail", albumId = albumId))
                                                     },
+                                                    onNavigateToArtist = { relatedArtistId ->
+                                                        pushStreamScreen(StreamNavEntry(screen = "stream_artist_detail", artistId = relatedArtistId))
+                                                    },
                                                     onBack = {
                                                         popStreamScreen()
                                                     }
@@ -599,6 +602,10 @@ class MainActivity : ComponentActivity() {
                             viewModel = playerViewModel,
                             streamViewModel = streamViewModel,
                             onlineLibraryViewModel = onlineLibraryViewModel,
+                            onNavigateToArtist = { artistId ->
+                                showPlayerScreen = false
+                                pushStreamScreen(StreamNavEntry(screen = "stream_artist_detail", artistId = artistId))
+                            },
                             onClose = { showPlayerScreen = false }
                         )
                     }

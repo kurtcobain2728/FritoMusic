@@ -24,6 +24,7 @@ import com.frito.music.downloader.OnlineQuality
 import com.frito.music.downloader.OnlineQualityResolver
 import com.frito.music.service.MusicService
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -480,6 +481,77 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     /**
+     * Rescate en paralelo tras el primer fallo de playback. Lanza a la vez el
+     * reintento de YouTube (NewPipe primero, luego clientes) y las fuentes
+     * alternativas (JioSaavn/Qobuz), con espera acotada en cada uno.
+     *
+     * · preferAlternatives=true (403/416: bloqueo a nivel CDN) → gana Saavn
+     *   cuando llega (320 kbps, sin previews trampa); YouTube queda de respaldo.
+     * · preferAlternatives=false (fallo transitorio) → gana YouTube si responde
+     *   rápido; si no, las alternativas.
+     */
+    private suspend fun resolveStreamInParallel(
+        videoId: String,
+        title: String,
+        artist: String,
+        preferAlternatives: Boolean,
+    ): String? = kotlinx.coroutines.coroutineScope {
+        val ytJob = async(kotlinx.coroutines.Dispatchers.IO) {
+            kotlinx.coroutines.withTimeoutOrNull(8_000) {
+                runCatching {
+                    YouTubeRepository.getStreamUrlNewPipeFirst(videoId).getOrNull()
+                        ?: YouTubeRepository.getStreamUrl(videoId).getOrNull()
+                }.getOrNull()
+                    ?.takeIf { YouTubeRepository.isStreamUrlPlayable(it) }
+            }
+        }
+        val altJob = async(kotlinx.coroutines.Dispatchers.IO) {
+            kotlinx.coroutines.withTimeoutOrNull(4_000) {
+                runCatching {
+                    OnlineQualityResolver.resolve(
+                        getApplication<Application>(),
+                        videoId,
+                        title,
+                        artist,
+                        OnlineQuality.MEDIUM
+                    ).getOrNull()?.streamUrl
+                }.getOrNull()
+                    ?.takeIf { YouTubeRepository.isStreamUrlPlayable(it) }
+            }
+        }
+
+        if (preferAlternatives) {
+            val altUrl = altJob.await()
+            if (!altUrl.isNullOrEmpty()) {
+                alternativeOnlyVideoIds.add(videoId)
+                android.util.Log.i("FritoFallback", "  Paralelo -> ganó alternativa (Saavn/Qobuz) para $videoId")
+                return@coroutineScope altUrl
+            }
+            val ytUrl = ytJob.await()
+            if (!ytUrl.isNullOrEmpty()) {
+                android.util.Log.i("FritoFallback", "  Paralelo -> ganó YouTube (respaldo) para $videoId")
+                return@coroutineScope ytUrl
+            }
+            android.util.Log.w("FritoFallback", "  Paralelo -> sin URL para $videoId")
+            return@coroutineScope null
+        }
+
+        val ytUrl = ytJob.await()
+        if (!ytUrl.isNullOrEmpty()) {
+            altJob.cancel()
+            return@coroutineScope ytUrl
+        }
+        val altUrl = altJob.await()
+        if (!altUrl.isNullOrEmpty()) {
+            alternativeOnlyVideoIds.add(videoId)
+            android.util.Log.i("FritoFallback", "  Paralelo -> ganó alternativa para $videoId")
+            return@coroutineScope altUrl
+        }
+        android.util.Log.w("FritoFallback", "  Paralelo -> sin URL para $videoId")
+        null
+    }
+
+    /**
      * Ante un error de playback en un ítem de STREAMING (resuelto o pendiente):
      *
      * 1) Re-resuelve la URL UNA vez probando NewPipe primero (otra vía de
@@ -531,7 +603,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
 
         // Hasta dos reintentos por canción en esta cola:
-        //  · 1er fallo → reintento por YouTube (NewPipe primero, otro cliente)
+        //  · 1er fallo → rescate en paralelo (YouTube + alternativas a la vez)
         //  · 2º fallo  → fuentes alternativas (JioSaavn/Qobuz)
         //  · 3er fallo → saltar (protege contra bucles infinitos)
         val attempt = (streamRecoveryAttempts[videoId] ?: 0) + 1
@@ -546,13 +618,24 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         val generation = queueGeneration
         val audio = audioFilesMap[currentItem.mediaId]
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            val url = resolveStreamWithFallback(
-                videoId = videoId,
-                title = audio?.title ?: "",
-                artist = audio?.artist ?: "",
-                preferNewPipe = !useAlternatives,
-                skipYouTube = useAlternatives
-            )
+            val url = if (useAlternatives) {
+                // 2º fallo: alternativas primero, YouTube como último recurso
+                resolveStreamWithFallback(
+                    videoId = videoId,
+                    title = audio?.title ?: "",
+                    artist = audio?.artist ?: "",
+                    preferNewPipe = false,
+                    skipYouTube = true
+                )
+            } else {
+                // 1er fallo: rescate en paralelo (YouTube y Saavn a la vez)
+                resolveStreamInParallel(
+                    videoId = videoId,
+                    title = audio?.title ?: "",
+                    artist = audio?.artist ?: "",
+                    preferAlternatives = httpCode == 403 || httpCode == 416
+                )
+            }
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                 val c = mediaController ?: return@withContext
                 if (generation != queueGeneration) return@withContext

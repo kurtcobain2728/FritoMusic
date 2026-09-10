@@ -127,16 +127,21 @@ object YouTubeRepository {
     }
 
     // ─── Resolución de streams estilo FridaMusic ───
-    // Cliente preferido: Android VR sin auth (no requiere PoToken ni login).
-    private val PREFERRED_STREAM_CLIENT: YouTubeClient = ANDROID_VR_NO_AUTH
+    // Cliente preferido: IOS — en esta red responde casi siempre (los logs lo
+    // confirman), mientras que ANDROID_VR cae en bot-check (LOGIN_REQUIRED)
+    // y los ANDROID*/TVHTML5 no responden. El ganador además se recuerda
+    // entre sesiones (init/persistencia).
+    private val PREFERRED_STREAM_CLIENT: YouTubeClient = IOS
 
-    // Pool de fallback (mismo orden que FridaMusic, adaptado a los clientes
-    // disponibles en este innertube). Se itera SECUENCIALMENTE con validación
+    // Pool de fallback ordenado por efectividad observada en esta red:
+    // la familia iOS encabeza; los clientes que fallan crónico (sin respuesta
+    // o bot-check) quedan al final. Se itera SECUENCIALMENTE con validación
     // real de cada URL antes de entregarla al reproductor.
     private val STREAM_FALLBACK_CLIENTS: List<YouTubeClient> = listOf(
-        IOS, MOBILE, ANDROID_MUSIC, IOS_MUSIC, ANDROID_VR_NO_AUTH, ANDROID_VR_1_61_48,
+        IOS, IOS_MUSIC, IPADOS, VISIONOS,
+        MOBILE, ANDROID_MUSIC, ANDROID_VR_NO_AUTH, ANDROID_VR_1_61_48,
         ANDROID_VR_1_43_32, ANDROID_CREATOR, ANDROID_TESTSUITE, ANDROID_UNPLUGGED,
-        IPADOS, VISIONOS, TVHTML5, TVHTML5_SIMPLY_EMBEDDED_PLAYER, WEB, WEB_CREATOR, WEB_REMIX
+        TVHTML5, TVHTML5_SIMPLY_EMBEDDED_PLAYER, WEB, WEB_CREATOR, WEB_REMIX
     )
 
     /** Backoff por (videoId, cliente) tras un HTTP 403: 10 minutos. */
@@ -146,6 +151,22 @@ object YouTubeRepository {
     /** Último cliente que produjo un stream reproducible (se prueba primero). */
     @Volatile
     private var lastSuccessfulClientKey: String? = null
+
+    // Persistencia del último cliente exitoso entre sesiones: la primera
+    // canción de cada sesión ya no paga la cola de clientes que fallan.
+    private const val PREFS_NAME = "frito_stream_client"
+    private const val KEY_LAST_CLIENT = "last_successful_client"
+    private var streamPrefs: android.content.SharedPreferences? = null
+
+    /** Carga el último cliente exitoso guardado (llamar desde Application). */
+    fun init(context: android.content.Context) {
+        streamPrefs = context.getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
+        val saved = streamPrefs?.getString(KEY_LAST_CLIENT, null)
+        if (!saved.isNullOrBlank() && lastSuccessfulClientKey == null) {
+            lastSuccessfulClientKey =
+                StreamClientUtils.normalizeClientKey(saved).takeIf { it.isNotEmpty() }
+        }
+    }
 
     /**
      * Marca un cliente como fallido (403) para ese video durante 10 minutos.
@@ -384,12 +405,9 @@ object YouTubeRepository {
      */
     private suspend fun resolveRemote(videoId: String): String? {
         val isLoggedIn = !YouTube.cookie.isNullOrBlank()
-        val ordered = if (isLoggedIn) {
-            STREAM_FALLBACK_CLIENTS.filter { it.loginSupported } +
-                STREAM_FALLBACK_CLIENTS.filterNot { it.loginSupported }
-        } else {
-            STREAM_FALLBACK_CLIENTS
-        }
+        // Orden fijo del pool (efectividad observada): el split por
+        // loginSupported mandaba a IOS al final y costaba ~6s por resolución.
+        val ordered = STREAM_FALLBACK_CLIENTS
         val available = buildList {
             add(PREFERRED_STREAM_CLIENT)
             addAll(ordered)
@@ -468,6 +486,7 @@ object YouTubeRepository {
                 }
 
                 lastSuccessfulClientKey = StreamClientUtils.buildClientKey(client)
+                streamPrefs?.edit()?.putString(KEY_LAST_CLIENT, lastSuccessfulClientKey)?.apply()
                 android.util.Log.i(
                     "YouTubeRepository",
                     "resolved videoId=$videoId client=${client.clientName}@${client.clientVersion} itag=${format.itag} bitrate=${format.bitrate}"
