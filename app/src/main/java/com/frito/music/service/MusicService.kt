@@ -18,10 +18,110 @@ class MusicService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
     private var cache: SimpleCache? = null
 
-    private fun createDataSourceFactory(): androidx.media3.datasource.DataSource.Factory {
-        val defaultDataSource = DefaultDataSource.Factory(this)
+    /**
+     * Cliente OkHttp del reproductor. Un INTERCEPTOR aplica a cada petición de
+     * host YouTube (googlevideo, etc.) el User-Agent/Origin/Referer EXACTOS del
+     * cliente que emitió la URL (leídos de sus parámetros c=/cver=).
+     *
+     * IMPORTANTE: se usa OkHttpDataSource y NO DefaultHttpDataSource porque el
+     * de media3 1.2.1 IGNORA los headers del DataSpec — esa era la causa real
+     * del HTTP 403 al reproducir (la URL validaba 206 con headers, pero
+     * ExoPlayer la pedía sin ellos).
+     */
+    private val mediaOkHttpClient: okhttp3.OkHttpClient by lazy {
+        okhttp3.OkHttpClient.Builder()
+            .connectTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            .followRedirects(true)
+            .followSslRedirects(true)
+            .addInterceptor { chain ->
+                val request = chain.request()
+                val host = request.url.host
+                if (!com.frito.music.data.network.yt.StreamClientUtils.isYouTubeMediaHost(host)) {
+                    return@addInterceptor chain.proceed(request)
+                }
+                val profile = com.frito.music.data.network.yt.StreamClientUtils
+                    .resolveRequestProfile(request.url.toString())
+                android.util.Log.i(
+                    "RemotePlayback",
+                    "open host=$host client=${profile.requestedClientName}@${profile.requestedClientVersion} range=${request.header("Range") ?: "none"}"
+                )
+                val profiled = request.newBuilder().apply {
+                    header("User-Agent", profile.userAgent)
+                    profile.origin?.let { header("Origin", it) } ?: removeHeader("Origin")
+                    profile.referer?.let { header("Referer", it) } ?: removeHeader("Referer")
+                }.build()
+                val response = chain.proceed(profiled)
+                if (!response.isSuccessful) {
+                    // Diagnóstico: googlevideo explica el motivo en el body del error
+                    val snippet = runCatching { response.peekBody(1024).string() }.getOrNull()
+                    android.util.Log.w(
+                        "RemotePlayback",
+                        "HTTP ${response.code} host=$host clen=${profiled.url.queryParameter("clen")} dur=${profiled.url.queryParameter("dur")} urlRange=${profiled.url.queryParameter("range")} rn=${profiled.url.queryParameter("rn")} pot=${profiled.url.queryParameter("pot") != null} range=${profiled.header("Range") ?: "none"} body=${snippet?.replace('\n', ' ')?.take(300)}"
+                    )
+                }
+                response
+            }
+            .build()
+    }
 
-        return cache?.let { cacheInstance ->
+    /**
+     * Ajusta el DataSpec de los streams de YouTube ANTES de llegar a la red:
+     * si la petición no tiene longitud (apertura inicial o seek), la limita al
+     * tamaño real del recurso (clen de la URL). Sin esto OkHttpDataSource pide
+     * la URL SIN cabecera Range y googlevideo responde 403 (mientras las
+     * validaciones con Range: bytes=0-0 sí pasan — el misterio del 403).
+     * Con el límite, el request lleva Range: bytes=<pos>-<fin real>, que es lo
+     * que hace FridaMusic y lo que YouTube sirve por su camino rápido.
+     */
+    private fun boundRemoteStreamLength(
+        dataSpec: androidx.media3.datasource.DataSpec
+    ): androidx.media3.datasource.DataSpec {
+        if (dataSpec.length >= 0) return dataSpec
+        val host = dataSpec.uri.host ?: return dataSpec
+        if (!com.frito.music.data.network.yt.StreamClientUtils.isYouTubeMediaHost(host)) return dataSpec
+        val totalLength = dataSpec.uri.getQueryParameter("clen")?.toLongOrNull()?.takeIf { it > 0 }
+            ?: return dataSpec
+        val remaining = totalLength - dataSpec.position
+        if (remaining <= 0) return dataSpec
+        android.util.Log.d(
+            "RemotePlayback",
+            "bound length=$remaining pos=${dataSpec.position} host=$host"
+        )
+        return dataSpec.buildUpon().setLength(remaining).build()
+    }
+
+    private fun createUpstreamDataSourceFactory(): androidx.media3.datasource.DataSource.Factory {
+        val okHttpFactory = androidx.media3.datasource.okhttp.OkHttpDataSource.Factory(mediaOkHttpClient)
+        return DefaultDataSource.Factory(this, okHttpFactory)
+    }
+
+    /**
+     * Política de errores de carga: un HTTP 401/403/404 es definitivo (URL
+     * caducada o bloqueada por bot-detection). Reintentarlo en bucle causaba el
+     * parpadeo 0:00 ↔ duración y el buffering infinito. Devolver C.TIME_UNSET
+     * corta los reintentos; PlayerViewModel entonces invalida la URL cacheada y
+     * re-resuelve con otra estrategia (o salta de canción).
+     */
+    private fun createLoadErrorPolicy(): androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy =
+        object : androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy() {
+            override fun getRetryDelayMsFor(
+                loadErrorInfo: androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy.LoadErrorInfo
+            ): Long {
+                val e = loadErrorInfo.exception
+                if (e is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException &&
+                    (e.responseCode == 401 || e.responseCode == 403 || e.responseCode == 404)
+                ) {
+                    return C.TIME_UNSET
+                }
+                return super.getRetryDelayMsFor(loadErrorInfo)
+            }
+        }
+
+    private fun createDataSourceFactory(): androidx.media3.datasource.DataSource.Factory {
+        val defaultDataSource = createUpstreamDataSourceFactory()
+
+        val cachedDataSource: androidx.media3.datasource.DataSource.Factory = cache?.let { cacheInstance ->
             CacheDataSource.Factory()
                 .setCache(cacheInstance)
                 .setUpstreamDataSourceFactory(defaultDataSource)
@@ -42,6 +142,13 @@ class MusicService : MediaSessionService() {
                     }
                 }
         } ?: defaultDataSource
+
+        // El ajuste de longitud debe ocurrir ANTES de la caché y de la red:
+        // CacheDataSource/OkHttpDataSource calcularán el Range real a partir del
+        // DataSpec ya acotado (mismo patrón que FridaMusic).
+        return androidx.media3.datasource.ResolvingDataSource.Factory(cachedDataSource) { dataSpec ->
+            boundRemoteStreamLength(dataSpec)
+        }
     }
 
     override fun onCreate() {
@@ -58,6 +165,8 @@ class MusicService : MediaSessionService() {
             android.util.Log.w("MusicService", "No se pudo iniciar la caché de streams", e)
             null
         }
+        // Exponer la caché para que el manejo de errores pueda limpiar entradas corruptas
+        PlayerCacheHolder.cache = cache
         
         val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
             .setBufferDurationsMs(
@@ -69,11 +178,14 @@ class MusicService : MediaSessionService() {
             .setPrioritizeTimeOverSizeThresholds(true)
             .build()
 
+        // La política de errores vive en el MediaSourceFactory (no en ExoPlayer.Builder
+        // en media3 1.2.1)
+        val mediaSourceFactory = DefaultMediaSourceFactory(createDataSourceFactory())
+            .setLoadErrorHandlingPolicy(createLoadErrorPolicy())
+
         val player = ExoPlayer.Builder(this)
             .setLoadControl(loadControl)
-            .setMediaSourceFactory(
-                DefaultMediaSourceFactory(createDataSourceFactory())
-            )
+            .setMediaSourceFactory(mediaSourceFactory)
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setUsage(C.USAGE_MEDIA)
@@ -107,6 +219,7 @@ class MusicService : MediaSessionService() {
             release()
             mediaSession = null
         }
+        PlayerCacheHolder.cache = null
         cache?.release()
         cache = null
         super.onDestroy()

@@ -7,6 +7,7 @@ INJECTED from C:\Users\kurtc\Documents\FritoM\FritoMusic\app\src\main\AndroidMan
 MERGED from [:innertube] C:\Users\kurtc\Documents\FritoM\FritoMusic\innertube\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.media3:media3-session:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\3b107819a63998286f4894f9091ca55c\transformed\jetified-media3-session-1.2.1\AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.media3:media3-ui:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\173ea117a3dc94203a74ec2607ebccf2\transformed\jetified-media3-ui-1.2.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.media3:media3-datasource-okhttp:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\d2023deb8c27442204c4edc919750fe9\transformed\jetified-media3-datasource-okhttp-1.2.1\AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.media3:media3-extractor:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\697369c0728e9352e0e639822c858864\transformed\jetified-media3-extractor-1.2.1\AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.media3:media3-container:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\aabf39faaf85392fb9860e4adf57722b\transformed\jetified-media3-container-1.2.1\AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.media3:media3-datasource:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\1d60fc815748692407f3186a23c57694\transformed\jetified-media3-datasource-1.2.1\AndroidManifest.xml:17:1-22:12
@@ -259,6 +260,8 @@ MERGED from [androidx.media3:media3-session:1.2.1] C:\Users\kurtc\.gradle\caches
 MERGED from [androidx.media3:media3-session:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\3b107819a63998286f4894f9091ca55c\transformed\jetified-media3-session-1.2.1\AndroidManifest.xml:20:5-44
 MERGED from [androidx.media3:media3-ui:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\173ea117a3dc94203a74ec2607ebccf2\transformed\jetified-media3-ui-1.2.1\AndroidManifest.xml:20:5-44
 MERGED from [androidx.media3:media3-ui:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\173ea117a3dc94203a74ec2607ebccf2\transformed\jetified-media3-ui-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-datasource-okhttp:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\d2023deb8c27442204c4edc919750fe9\transformed\jetified-media3-datasource-okhttp-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-datasource-okhttp:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\d2023deb8c27442204c4edc919750fe9\transformed\jetified-media3-datasource-okhttp-1.2.1\AndroidManifest.xml:20:5-44
 MERGED from [androidx.media3:media3-extractor:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\697369c0728e9352e0e639822c858864\transformed\jetified-media3-extractor-1.2.1\AndroidManifest.xml:20:5-44
 MERGED from [androidx.media3:media3-extractor:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\697369c0728e9352e0e639822c858864\transformed\jetified-media3-extractor-1.2.1\AndroidManifest.xml:20:5-44
 MERGED from [androidx.media3:media3-container:1.2.1] C:\Users\kurtc\.gradle\caches\8.11.1\transforms\aabf39faaf85392fb9860e4adf57722b\transformed\jetified-media3-container-1.2.1\AndroidManifest.xml:20:5-44

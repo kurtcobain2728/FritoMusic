@@ -261,28 +261,37 @@ class StreamViewModel : ViewModel() {
         playerViewModel.setPreparingAudio(startTrack.toAudioFile(""), startTrack.videoId)
 
         viewModelScope.launch {
-            val result = withContext(Dispatchers.IO) {
-                YouTubeRepository.getStreamUrl(startTrack.videoId)
+            // Resolución con cadena completa: YouTube validado → alternativas
+            // (JioSaavn/Qobuz) para canciones bloqueadas por bot-detection
+            val streamUrl = withContext(Dispatchers.IO) {
+                playerViewModel.resolveStreamWithFallback(
+                    videoId = startTrack.videoId,
+                    title = startTrack.title,
+                    artist = startTrack.artist
+                )
             }
-            result
-                .onSuccess { streamUrl ->
-                    // Solo el track inicial trae URL; el resto queda pendiente ("")
-                    val audios = tracks.mapIndexed { i, t ->
-                        t.toAudioFile(if (i == safeStart) streamUrl else "")
-                    }
-                    playerViewModel.playStreamQueue(
-                        audios = audios,
-                        startIndex = safeStart,
-                        videoIds = tracks.map { it.videoId }
-                    ) { videoId ->
-                        YouTubeRepository.getStreamUrl(videoId).getOrNull()
-                    }
-                    loadLyrics(startTrack.videoId)
+            if (!streamUrl.isNullOrEmpty()) {
+                // Solo el track inicial trae URL; el resto queda pendiente ("")
+                val audios = tracks.mapIndexed { i, t ->
+                    t.toAudioFile(if (i == safeStart) streamUrl else "")
                 }
-                .onFailure { error ->
-                    _playbackError.value = error.message ?: "Error playing track"
-                    playerViewModel.clearPreparingAudio()
+                playerViewModel.playStreamQueue(
+                    audios = audios,
+                    startIndex = safeStart,
+                    videoIds = tracks.map { it.videoId }
+                ) { videoId ->
+                    val queueTrack = tracks.firstOrNull { it.videoId == videoId }
+                    playerViewModel.resolveStreamWithFallback(
+                        videoId = videoId,
+                        title = queueTrack?.title ?: "",
+                        artist = queueTrack?.artist ?: ""
+                    )
                 }
+                loadLyrics(startTrack.videoId)
+            } else {
+                _playbackError.value = "No se pudo reproducir desde ninguna fuente"
+                playerViewModel.clearPreparingAudio()
+            }
         }
     }
 

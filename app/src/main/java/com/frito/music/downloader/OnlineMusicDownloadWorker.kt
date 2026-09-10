@@ -14,10 +14,12 @@ import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.frito.music.MainActivity
+import com.frito.music.data.network.yt.StreamClientUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
@@ -212,10 +214,20 @@ class OnlineMusicDownloadWorker(
                 .readTimeout(30, TimeUnit.SECONDS)
                 .build()
 
-            val request = Request.Builder()
-                .url(resolved.streamUrl)
-                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
-                .build()
+            val requestBuilder = Request.Builder().url(resolved.streamUrl)
+            val streamHost = resolved.streamUrl.toHttpUrlOrNull()?.host
+            if (streamHost != null && StreamClientUtils.isYouTubeMediaHost(streamHost)) {
+                // Los hosts de YouTube exigen el perfil exacto del cliente que
+                // emitió la URL y una petición Range acotada (igual que el player)
+                StreamClientUtils.resolveRequestProfile(resolved.streamUrl).headers
+                    .forEach { (key, value) -> requestBuilder.header(key, value) }
+                resolved.streamUrl.toHttpUrlOrNull()
+                    ?.queryParameter("clen")?.toLongOrNull()?.takeIf { it > 0 }
+                    ?.let { length -> requestBuilder.header("Range", "bytes=0-${length - 1}") }
+            } else {
+                requestBuilder.header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+            }
+            val request = requestBuilder.build()
 
             val response = client.newCall(request).execute()
             if (!response.isSuccessful) {

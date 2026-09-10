@@ -15,9 +15,13 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.frito.music.data.models.AudioFile
 import com.frito.music.data.models.LyricsUiState
+import com.frito.music.data.network.yt.StreamClientUtils
+import com.frito.music.data.network.yt.YouTubeRepository
 import com.frito.music.data.repository.FavoritesRepository
 import com.frito.music.data.repository.LyricsRepository
 import com.frito.music.data.repository.PlaylistRepository
+import com.frito.music.downloader.OnlineQuality
+import com.frito.music.downloader.OnlineQualityResolver
 import com.frito.music.service.MusicService
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -102,6 +106,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private var resolvingIndex = -1
     // Generación de cola: invalida resoluciones en curso cuando se cambia de cola
     private var queueGeneration = 0L
+    // Intentos de recuperación por canción en esta cola: 1er fallo → reintento
+    // por YouTube (NewPipe primero), 2º fallo → fuentes alternativas
+    // (JioSaavn/Qobuz), 3er fallo → saltar. Evita bucles si las URLs nuevas
+    // vuelven a fallar; se limpia al construir una cola nueva.
+    private val streamRecoveryAttempts = mutableMapOf<String, Int>()
+    // Canciones que ya demostraron que YouTube no las sirve (p. ej. restricción
+    // de edad): en reproducciones posteriores van directo a las alternativas.
+    private val alternativeOnlyVideoIds = mutableSetOf<String>()
+    // Fallos consecutivos de stream sin ninguna reproducción exitosa: al
+    // superar el límite se detiene y se avisa (en vez de saltar toda la cola)
+    private var consecutiveStreamFailures = 0
+    private val maxConsecutiveStreamFailures = 2
 
     private val favoritesRepository = FavoritesRepository(application)
     val favorites = favoritesRepository.favorites
@@ -133,6 +149,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             mediaController?.addListener(object : Player.Listener {
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     _isPlaying.value = isPlaying
+                    // Si algo está sonando, la racha de fallos se rompe y la
+                    // canción actual recupera intentos para futuros fallos
+                    if (isPlaying) {
+                        consecutiveStreamFailures = 0
+                        mediaController?.currentMediaItem?.mediaId?.let { mediaId ->
+                            videoIdsByMediaId[mediaId]?.let { videoId ->
+                                streamRecoveryAttempts.remove(videoId)
+                            }
+                        }
+                    }
                 }
 
                 override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -150,7 +176,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 }
 
                 override fun onPlayerError(error: PlaybackException) {
-                    handlePendingPlaybackFailure()
+                    android.util.Log.e(
+                        "PlayerViewModel",
+                        "playerError code=${error.errorCode} name=${error.errorCodeName} http=${findHttpStatusCode(error)} msg=${error.message} causas=[${describeError(error)}]"
+                    )
+                    handleStreamPlaybackFailure(error)
                 }
 
                 override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
@@ -199,6 +229,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         audioFilesMap.clear()
         pendingStreamVideoIds.clear()
         videoIdsByMediaId.clear()
+        streamRecoveryAttempts.clear()
+        alternativeOnlyVideoIds.clear()
+        consecutiveStreamFailures = 0
         _currentVideoId.value = null
 
         val keys = mutableListOf<String>()
@@ -363,24 +396,170 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     /**
-     * Ante un error de playback: si el ítem actual es un stream pendiente,
-     * intenta resolver su URL una vez más; si falla, salta al siguiente.
-     * Ítems locales no se tocan (error real del archivo).
+     * Resolución de stream con cadena de fallback completa (para reproducir):
+     *
+     *  1. YouTube por la vía preferida (clientes o NewPipe) — URL VALIDADA con
+     *     una petición Range mínima antes de devolverla.
+     *  2. YouTube por la vía opuesta si la anterior falla o da URL muerta.
+     *  3. Proveedores alternativos (JioSaavn 320 kbps con match estricto /
+     *     Qobuz lossless) para canciones bloqueadas por bot-detection.
+     *
+     * Devuelve la primera URL reproducible, o null si ninguna fuente sirve.
      */
-    private fun handlePendingPlaybackFailure() {
+    suspend fun resolveStreamWithFallback(
+        videoId: String,
+        title: String,
+        artist: String,
+        preferNewPipe: Boolean = false,
+        skipYouTube: Boolean = false
+    ): String? {
+        val youtubeBlocked = skipYouTube || videoId in alternativeOnlyVideoIds
+        android.util.Log.i(
+            "FritoFallback",
+            "resolve videoId=$videoId preferNewPipe=$preferNewPipe skipYouTube=$youtubeBlocked titulo='$title' artista='$artist'"
+        )
+
+        suspend fun tryYouTube(viaNewPipe: Boolean): String? {
+            val url = runCatching {
+                if (viaNewPipe) YouTubeRepository.getStreamUrlNewPipeFirst(videoId).getOrNull()
+                else YouTubeRepository.getStreamUrl(videoId).getOrNull()
+            }.getOrNull()
+            if (url == null) {
+                android.util.Log.d("FritoFallback", "  YouTube(${if (viaNewPipe) "NewPipe" else "clientes"}) -> sin URL")
+                return null
+            }
+            if (YouTubeRepository.isStreamUrlPlayable(url)) {
+                android.util.Log.i("FritoFallback", "  YouTube(${if (viaNewPipe) "NewPipe" else "clientes"}) -> OK")
+                return url
+            }
+            android.util.Log.d("FritoFallback", "  YouTube(${if (viaNewPipe) "NewPipe" else "clientes"}) -> URL no reproducible")
+            // URL muerta (403 típico de bot-detection): no reutilizarla nunca
+            YouTubeRepository.invalidateStreamUrl(videoId)
+            return null
+        }
+
+        suspend fun tryAlternatives(): String? {
+            android.util.Log.i("FritoFallback", "  probando fuentes alternativas (JioSaavn/Qobuz)")
+            val altUrl = runCatching {
+                OnlineQualityResolver.resolve(
+                    getApplication<Application>(),
+                    videoId,
+                    title,
+                    artist,
+                    OnlineQuality.MEDIUM
+                ).getOrNull()?.streamUrl
+            }.getOrNull()
+            if (!altUrl.isNullOrEmpty()) {
+                val playable = YouTubeRepository.isStreamUrlPlayable(altUrl)
+                android.util.Log.i("FritoFallback", "  Alternativa -> url=${altUrl.take(80)}… playable=$playable")
+                if (playable) {
+                    // Recordar que esta canción se sirve por alternativas: las
+                    // próximas reproducciones van directo (sin reintentar YouTube)
+                    alternativeOnlyVideoIds.add(videoId)
+                    return altUrl
+                }
+                return null
+            }
+            android.util.Log.w("FritoFallback", "  Alternativa -> ninguna fuente encontró la canción")
+            return null
+        }
+
+        if (!youtubeBlocked) {
+            tryYouTube(preferNewPipe)?.let { return it }
+            tryYouTube(!preferNewPipe)?.let { return it }
+            tryAlternatives()?.let { return it }
+            return null
+        }
+
+        // YouTube ya falló dos veces para esta canción (p. ej. restricción de
+        // edad en el CDN): alternativas primero y YouTube como último recurso.
+        tryAlternatives()?.let { return it }
+        tryYouTube(true)?.let { return it }
+        tryYouTube(false)?.let { return it }
+        return null
+    }
+
+    /**
+     * Ante un error de playback en un ítem de STREAMING (resuelto o pendiente):
+     *
+     * 1) Re-resuelve la URL UNA vez probando NewPipe primero (otra vía de
+     *    extracción) y luego los clientes de Innertube, sin caché previa.
+     * 2) Si llega una URL nueva, reemplaza el ítem y reintenta la reproducción.
+     * 3) Si falla de nuevo, salta al siguiente ítem — pero si ya van 2 canciones
+     *    falladas seguidas sin reproducir ninguna, DETIENE y avisa al usuario
+     *    (antes saltaba toda la cola sin control).
+     *
+     * Ítems locales no se tocan (su error es real del archivo).
+     */
+    private fun handleStreamPlaybackFailure(error: PlaybackException) {
         val controller = mediaController ?: return
         val index = controller.currentMediaItemIndex
         val currentItem = controller.currentMediaItem ?: return
-        val videoId = pendingStreamVideoIds[currentItem.mediaId]
+        val videoId = videoIdsByMediaId[currentItem.mediaId]
             ?: return // ítem local u otro problema: no intervenir
-        val resolver = streamResolver ?: return skipPending(controller, index)
-        val generation = queueGeneration
 
+        // Diagnóstico estilo FridaMusic: código HTTP y cliente que emitió la
+        // URL que falló. Un 403 marca ese cliente en backoff (10 min) para no
+        // volver a intentarlo en esta canción.
+        val httpCode = findHttpStatusCode(error)
+        val failingUrl = currentItem.localConfiguration?.uri?.toString()
+        val failingClient = failingUrl
+            ?.takeIf { it.startsWith("http") }
+            ?.let { StreamClientUtils.resolveRequestProfile(it).requestedClientName }
+        if (httpCode == 403) {
+            android.util.Log.w(
+                "PlayerViewModel",
+                "403 del cliente=$failingClient para $videoId; backoff + re-resolución"
+            )
+        }
+        YouTubeRepository.markStreamClientFailed(videoId, failingClient, httpCode)
+        YouTubeRepository.invalidateStreamUrl(videoId)
+        // Limpiar entradas corruptas/parciales de la caché de Media3 para esta
+        // canción: una entrada dañada hacía fallar el playback una y otra vez
+        // (ERROR_CODE_IO_UNSPECIFIED con http=null, sin pedir red).
+        com.frito.music.service.PlayerCacheHolder.removeForVideo(videoId)
+
+        // Demasiados fallos seguidos: parar y avisar en vez de saltar sin fin
+        if (consecutiveStreamFailures >= maxConsecutiveStreamFailures) {
+            runCatching { controller.stop() }
+            android.widget.Toast.makeText(
+                getApplication(),
+                "Varias canciones no se pudieron reproducir. Prueba de nuevo o inicia sesión.",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+
+        // Hasta dos reintentos por canción en esta cola:
+        //  · 1er fallo → reintento por YouTube (NewPipe primero, otro cliente)
+        //  · 2º fallo  → fuentes alternativas (JioSaavn/Qobuz)
+        //  · 3er fallo → saltar (protege contra bucles infinitos)
+        val attempt = (streamRecoveryAttempts[videoId] ?: 0) + 1
+        streamRecoveryAttempts[videoId] = attempt
+        if (attempt > 2) {
+            consecutiveStreamFailures++
+            skipPending(controller, index)
+            return
+        }
+        val useAlternatives = attempt >= 2
+
+        val generation = queueGeneration
+        val audio = audioFilesMap[currentItem.mediaId]
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            val url = runCatching { resolver(videoId) }.getOrNull()
+            val url = resolveStreamWithFallback(
+                videoId = videoId,
+                title = audio?.title ?: "",
+                artist = audio?.artist ?: "",
+                preferNewPipe = !useAlternatives,
+                skipYouTube = useAlternatives
+            )
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                 val c = mediaController ?: return@withContext
                 if (generation != queueGeneration) return@withContext
+                val idx = c.currentMediaItemIndex
+                val stillCurrent = idx == index && c.currentMediaItem?.mediaId == currentItem.mediaId
+                // Si el usuario ya cambió de canción manualmente, no tocar nada
+                if (!stillCurrent) return@withContext
                 if (!url.isNullOrEmpty()) {
                     pendingStreamVideoIds.remove(currentItem.mediaId)
                     c.replaceMediaItem(
@@ -393,10 +572,39 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     c.prepare()
                     c.play()
                 } else {
+                    consecutiveStreamFailures++
                     skipPending(c, index)
                 }
             }
         }
+    }
+
+    /** Busca el código HTTP dentro de la cadena de causas del error de Media3. */
+    private fun findHttpStatusCode(error: PlaybackException): Int? {
+        var cause: Throwable? = error
+        var depth = 0
+        while (cause != null && depth < 6) {
+            if (cause is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException) {
+                return cause.responseCode
+            }
+            cause = cause.cause
+            depth++
+        }
+        return null
+    }
+
+    /** Describe la cadena completa de causas de un error (para diagnóstico). */
+    private fun describeError(error: Throwable): String {
+        val sb = StringBuilder()
+        var cause: Throwable? = error
+        var depth = 0
+        while (cause != null && depth < 8) {
+            if (depth > 0) sb.append(" <- ")
+            sb.append("${cause.javaClass.simpleName}: ${cause.message}")
+            cause = cause.cause
+            depth++
+        }
+        return sb.toString()
     }
 
     private fun skipPending(controller: Player, index: Int) {
@@ -406,6 +614,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             controller.seekToDefaultPosition(index + 1)
             controller.prepare()
             controller.play()
+        } else {
+            // No hay siguiente: detener en lugar de dejar el reproductor
+            // atrapado en buffering/reintentos
+            runCatching { controller.stop() }
         }
     }
 

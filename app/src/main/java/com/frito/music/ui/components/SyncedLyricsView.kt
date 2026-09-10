@@ -333,7 +333,7 @@ private fun SyncedLyricsContent(
         ) {
             itemsIndexed(
                 items = lines,
-                key = { _, line -> line.timestampMs }
+                key = { index, line -> "$index-${line.timestampMs}" }
             ) { index, line ->
                 val isActive = index == activeIndex
                 val isPast = index < activeIndex

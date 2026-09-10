@@ -800,7 +800,7 @@ object YouTube {
                 }
             }
 
-            val contents = if (tabs != null && tabs.size >= tabIndex) {
+            val contents = if (tabs != null && tabs.size > tabIndex) {
                 tabs[tabIndex].tabRenderer.content?.sectionListRenderer?.contents?.firstOrNull()
             }
             else {

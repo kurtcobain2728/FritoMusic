@@ -74,6 +74,10 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:1.2.1")
     implementation("androidx.media3:media3-session:1.2.1")
     implementation("androidx.media3:media3-ui:1.2.1")
+    // OkHttp para el reproductor: aplica el perfil de cliente (UA/Origin/Referer)
+    // a cada petición de stream vía interceptor (DefaultHttpDataSource de
+    // media3 1.2.1 ignora los headers del DataSpec)
+    implementation("androidx.media3:media3-datasource-okhttp:1.2.1")
 
     // Coil para imágenes
     implementation("io.coil-kt:coil-compose:2.5.0")
