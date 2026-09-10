@@ -14,7 +14,9 @@ import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.frito.music.MainActivity
+import com.frito.music.data.network.yt.PlaybackHttpClient
 import com.frito.music.data.network.yt.StreamClientUtils
+import com.frito.music.data.network.yt.YouTubeRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -24,6 +26,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
 import java.io.FileOutputStream
+import java.io.InputStream
 import java.util.concurrent.TimeUnit
 
 class OnlineMusicDownloadWorker(
@@ -208,102 +211,196 @@ class OnlineMusicDownloadWorker(
             val resolved = resolvedResult.getOrThrow()
             val finalExtension = resolved.extension
 
-            // Descarga HTTP directa de la URL resuelta (FLAC, Saavn 320k o YouTube 160k)
+            // Cliente OkHttp para carátulas y fuentes no-YouTube
             val client = OkHttpClient.Builder()
                 .connectTimeout(15, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
                 .build()
 
-            val requestBuilder = Request.Builder().url(resolved.streamUrl)
-            val streamHost = resolved.streamUrl.toHttpUrlOrNull()?.host
-            if (streamHost != null && StreamClientUtils.isYouTubeMediaHost(streamHost)) {
-                // Los hosts de YouTube exigen el perfil exacto del cliente que
-                // emitió la URL y una petición Range acotada (igual que el player)
-                StreamClientUtils.resolveRequestProfile(resolved.streamUrl).headers
-                    .forEach { (key, value) -> requestBuilder.header(key, value) }
-                resolved.streamUrl.toHttpUrlOrNull()
-                    ?.queryParameter("clen")?.toLongOrNull()?.takeIf { it > 0 }
-                    ?.let { length -> requestBuilder.header("Range", "bytes=0-${length - 1}") }
-            } else {
-                requestBuilder.header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
-            }
-            val request = requestBuilder.build()
+            var downloadUrl = resolved.streamUrl
+            val streamHost = downloadUrl.toHttpUrlOrNull()?.host
+            var isYouTubeHost = streamHost != null && StreamClientUtils.isYouTubeMediaHost(streamHost)
 
-            val response = client.newCall(request).execute()
-            if (!response.isSuccessful) {
-                val msg = "Error HTTP ${response.code}"
-                showErrorNotification(completionNotificationId, trackName, artistName, msg)
-                return@withContext Result.failure(
-                    workDataOf(
-                        "error" to msg,
-                        "trackName" to trackName,
-                        "artistName" to artistName
-                    )
-                )
+            // Si es un host de YouTube, limpiar cualquier parámetro 'range' preexistente en la URL para evitar conflicto con la cabecera Range
+            if (isYouTubeHost) {
+                downloadUrl = downloadUrl.toHttpUrlOrNull()?.newBuilder()?.removeAllQueryParameters("range")?.build()?.toString() ?: downloadUrl
             }
 
-            val body = response.body ?: run {
-                val msg = "Cuerpo de respuesta vacío"
-                showErrorNotification(completionNotificationId, trackName, artistName, msg)
-                return@withContext Result.failure(
-                    workDataOf(
-                        "error" to msg,
-                        "trackName" to trackName,
-                        "artistName" to artistName
-                    )
-                )
-            }
-            val totalBytes = body.contentLength()
-            val totalMb = if (totalBytes > 0) totalBytes / (1024f * 1024f) else 0f
+            suspend fun downloadToFile(url: String, isYt: Boolean, file: File): Long {
+                val httpUrl = url.toHttpUrlOrNull() ?: throw Exception("URL inválida")
+                val clen = httpUrl.queryParameter("clen")?.toLongOrNull()?.takeIf { it > 0 } ?: -1L
 
-            body.byteStream().use { input ->
-                FileOutputStream(tempFile).use { output ->
-                    val buffer = ByteArray(8192)
-                    var bytesRead: Int
-                    var downloadedBytes = 0L
+                if (isYt && clen > 0) {
+                    // Descarga por fragmentos (chunks) de 1 MB para YouTube:
+                    // Simula el buffer de un reproductor legítimo y evita que el CDN bloquee con HTTP 403
+                    val chunkSize = 1024 * 1024L
+                    var start = 0L
+                    var totalDownloaded = 0L
+                    var lastUpdate = 0L
+                    var lastBytes = 0L
+                    val totalMb = clen / (1024f * 1024f)
+
+                    FileOutputStream(file).use { output ->
+                        while (start < clen) {
+                            if (!isActive || isStopped) throw Exception("Descarga cancelada")
+                            val end = minOf(start + chunkSize - 1, clen - 1)
+                            val request = Request.Builder()
+                                .url(url)
+                                .header("Range", "bytes=$start-$end")
+                                .build()
+
+                            val response = PlaybackHttpClient.client.newCall(request).execute()
+                            if (!response.isSuccessful) {
+                                throw Exception("HTTP ${response.code}")
+                            }
+
+                            val body = response.body ?: throw Exception("Cuerpo de respuesta vacío")
+                            body.byteStream().use { stream ->
+                                val buffer = ByteArray(8192)
+                                var read: Int
+                                while (stream.read(buffer).also { read = it } != -1) {
+                                    if (!isActive || isStopped) throw Exception("Descarga cancelada")
+                                    output.write(buffer, 0, read)
+                                    totalDownloaded += read
+
+                                    val now = System.currentTimeMillis()
+                                    if (now - lastUpdate > 700) {
+                                        val elapsedSec = (now - lastUpdate) / 1000f
+                                        val speedKbps = if (elapsedSec > 0) ((totalDownloaded - lastBytes) / 1024f) / elapsedSec else 0f
+                                        val speedText = if (speedKbps > 1024) String.format("%.1f MB/s", speedKbps / 1024f) else String.format("%.0f KB/s", speedKbps)
+                                        val downloadedMb = totalDownloaded / (1024f * 1024f)
+                                        val percent = ((totalDownloaded * 100) / clen).toInt().coerceIn(0, 99)
+
+                                        lastUpdate = now
+                                        lastBytes = totalDownloaded
+
+                                        setProgressAsync(
+                                            workDataOf(
+                                                PROGRESS to percent,
+                                                DOWNLOADED_MB to downloadedMb,
+                                                TOTAL_MB to totalMb,
+                                                SPEED to speedText,
+                                                "trackName" to trackName,
+                                                TRACK_NAME to trackName,
+                                                ARTIST_NAME to artistName
+                                            )
+                                        )
+                                        val progressText = String.format("%.1f / %.1f MB", downloadedMb, totalMb)
+                                        updateNotification(notificationId, trackName, percent, 100, progressText, speedText, artistName, trackNumber, totalTracks)
+                                    }
+                                }
+                            }
+                            start = end + 1
+                        }
+                    }
+                    return totalDownloaded
+                } else {
+                    // Descarga directa continua para Saavn, Qobuz o streams sin clen
+                    val httpClient = if (isYt) PlaybackHttpClient.client else client
+                    val requestBuilder = Request.Builder().url(url)
+                    if (!isYt) {
+                        requestBuilder.header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+                    }
+                    val response = httpClient.newCall(requestBuilder.build()).execute()
+                    if (!response.isSuccessful) {
+                        throw Exception("HTTP ${response.code}")
+                    }
+                    val body = response.body ?: throw Exception("Cuerpo de respuesta vacío")
+                    val totalBytes = body.contentLength()
+                    val totalMb = if (totalBytes > 0) totalBytes / (1024f * 1024f) else 0f
+                    var totalDownloaded = 0L
                     var lastUpdate = 0L
                     var lastBytes = 0L
 
-                    while (input.read(buffer).also { bytesRead = it } != -1) {
-                        if (!isActive || isStopped) {
-                            tempFile.delete()
-                            return@withContext Result.failure(
-                                workDataOf(
-                                    "error" to "Descarga cancelada",
-                                    "trackName" to trackName,
-                                    "artistName" to artistName
-                                )
-                            )
-                        }
-                        output.write(buffer, 0, bytesRead)
-                        downloadedBytes += bytesRead
+                    FileOutputStream(file).use { output ->
+                        body.byteStream().use { stream ->
+                            val buffer = ByteArray(8192)
+                            var read: Int
+                            while (stream.read(buffer).also { read = it } != -1) {
+                                if (!isActive || isStopped) throw Exception("Descarga cancelada")
+                                output.write(buffer, 0, read)
+                                totalDownloaded += read
 
-                        val now = System.currentTimeMillis()
-                        if (now - lastUpdate > 700) {
-                            val elapsedSec = (now - lastUpdate) / 1000f
-                            val speedKbps = if (elapsedSec > 0) ((downloadedBytes - lastBytes) / 1024f) / elapsedSec else 0f
-                            val speedText = if (speedKbps > 1024) String.format("%.1f MB/s", speedKbps / 1024f) else String.format("%.0f KB/s", speedKbps)
-                            val downloadedMb = downloadedBytes / (1024f * 1024f)
-                            val percent = if (totalBytes > 0) ((downloadedBytes * 100) / totalBytes).toInt().coerceIn(0, 99) else 0
+                                val now = System.currentTimeMillis()
+                                if (now - lastUpdate > 700) {
+                                    val elapsedSec = (now - lastUpdate) / 1000f
+                                    val speedKbps = if (elapsedSec > 0) ((totalDownloaded - lastBytes) / 1024f) / elapsedSec else 0f
+                                    val speedText = if (speedKbps > 1024) String.format("%.1f MB/s", speedKbps / 1024f) else String.format("%.0f KB/s", speedKbps)
+                                    val downloadedMb = totalDownloaded / (1024f * 1024f)
+                                    val percent = if (totalBytes > 0) ((totalDownloaded * 100) / totalBytes).toInt().coerceIn(0, 99) else 0
 
-                            lastUpdate = now
-                            lastBytes = downloadedBytes
+                                    lastUpdate = now
+                                    lastBytes = totalDownloaded
 
-                            setProgressAsync(
-                                workDataOf(
-                                    PROGRESS to percent,
-                                    DOWNLOADED_MB to downloadedMb,
-                                    TOTAL_MB to totalMb,
-                                    SPEED to speedText,
-                                    "trackName" to trackName,
-                                    TRACK_NAME to trackName,
-                                    ARTIST_NAME to artistName
-                                )
-                            )
-                            val progressText = if (totalMb > 0) String.format("%.1f / %.1f MB", downloadedMb, totalMb) else String.format("%.1f MB", downloadedMb)
-                            updateNotification(notificationId, trackName, percent, 100, progressText, speedText, artistName, trackNumber, totalTracks)
+                                    setProgressAsync(
+                                        workDataOf(
+                                            PROGRESS to percent,
+                                            DOWNLOADED_MB to downloadedMb,
+                                            TOTAL_MB to totalMb,
+                                            SPEED to speedText,
+                                            "trackName" to trackName,
+                                            TRACK_NAME to trackName,
+                                            ARTIST_NAME to artistName
+                                        )
+                                    )
+                                    val progressText = if (totalMb > 0) String.format("%.1f / %.1f MB", downloadedMb, totalMb) else String.format("%.1f MB", downloadedMb)
+                                    updateNotification(notificationId, trackName, percent, 100, progressText, speedText, artistName, trackNumber, totalTracks)
+                                }
+                            }
                         }
                     }
+                    return totalDownloaded
+                }
+            }
+
+            var downloadSuccess = false
+            try {
+                downloadToFile(downloadUrl, isYouTubeHost, tempFile)
+                downloadSuccess = true
+            } catch (e: Exception) {
+                Log.w(TAG, "Descarga inicial falló: ${e.message}. Probando fallback...")
+                tempFile.delete()
+
+                // Fallback 1: Si es YouTube o falló la URL inicial, probar con NewPipe directo (URL limpia)
+                if (videoId.isNotBlank()) {
+                    val newPipeUrl = YouTubeRepository.getStreamUrlNewPipeFirst(videoId).getOrNull()
+                    if (!newPipeUrl.isNullOrEmpty()) {
+                        try {
+                            val isYtFallback = StreamClientUtils.isYouTubeMediaHost(newPipeUrl.toHttpUrlOrNull()?.host.orEmpty())
+                            val cleanFallback = newPipeUrl.toHttpUrlOrNull()?.newBuilder()?.removeAllQueryParameters("range")?.build()?.toString() ?: newPipeUrl
+                            downloadToFile(cleanFallback, isYtFallback, tempFile)
+                            downloadSuccess = true
+                        } catch (e2: Exception) {
+                            Log.w(TAG, "Fallback NewPipe falló: ${e2.message}")
+                            tempFile.delete()
+                        }
+                    }
+                }
+
+                // Fallback 2: Saavn 320 kbps oficial si todavía no se pudo descargar
+                if (!downloadSuccess && trackName.isNotBlank() && artistName.isNotBlank()) {
+                    val saavn = OnlineQualityResolver.tryResolveSaavn(trackName, artistName)
+                    if (saavn != null && saavn.streamUrl.isNotBlank()) {
+                        try {
+                            downloadToFile(saavn.streamUrl, false, tempFile)
+                            downloadSuccess = true
+                        } catch (e3: Exception) {
+                            Log.w(TAG, "Fallback Saavn falló: ${e3.message}")
+                            tempFile.delete()
+                        }
+                    }
+                }
+
+                if (!downloadSuccess) {
+                    val msg = "Error en la descarga: ${e.message ?: "403"}"
+                    showErrorNotification(completionNotificationId, trackName, artistName, msg)
+                    return@withContext Result.failure(
+                        workDataOf(
+                            "error" to msg,
+                            "trackName" to trackName,
+                            "artistName" to artistName
+                        )
+                    )
                 }
             }
 

@@ -19,51 +19,19 @@ class MusicService : MediaSessionService() {
     private var cache: SimpleCache? = null
 
     /**
-     * Cliente OkHttp del reproductor. Un INTERCEPTOR aplica a cada petición de
-     * host YouTube (googlevideo, etc.) el User-Agent/Origin/Referer EXACTOS del
-     * cliente que emitió la URL (leídos de sus parámetros c=/cver=).
+     * Cliente OkHttp del reproductor y de las descargas: vive en
+     * PlaybackHttpClient (cliente ÚNICO compartido). Su INTERCEPTOR aplica a
+     * cada petición de host YouTube (googlevideo, etc.) el User-Agent/Origin/
+     * Referer EXACTOS del cliente que emitió la URL (leídos de sus parámetros
+     * c=/cver=).
      *
      * IMPORTANTE: se usa OkHttpDataSource y NO DefaultHttpDataSource porque el
      * de media3 1.2.1 IGNORA los headers del DataSpec — esa era la causa real
      * del HTTP 403 al reproducir (la URL validaba 206 con headers, pero
      * ExoPlayer la pedía sin ellos).
      */
-    private val mediaOkHttpClient: okhttp3.OkHttpClient by lazy {
-        okhttp3.OkHttpClient.Builder()
-            .connectTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
-            .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
-            .followRedirects(true)
-            .followSslRedirects(true)
-            .addInterceptor { chain ->
-                val request = chain.request()
-                val host = request.url.host
-                if (!com.frito.music.data.network.yt.StreamClientUtils.isYouTubeMediaHost(host)) {
-                    return@addInterceptor chain.proceed(request)
-                }
-                val profile = com.frito.music.data.network.yt.StreamClientUtils
-                    .resolveRequestProfile(request.url.toString())
-                android.util.Log.i(
-                    "RemotePlayback",
-                    "open host=$host client=${profile.requestedClientName}@${profile.requestedClientVersion} range=${request.header("Range") ?: "none"}"
-                )
-                val profiled = request.newBuilder().apply {
-                    header("User-Agent", profile.userAgent)
-                    profile.origin?.let { header("Origin", it) } ?: removeHeader("Origin")
-                    profile.referer?.let { header("Referer", it) } ?: removeHeader("Referer")
-                }.build()
-                val response = chain.proceed(profiled)
-                if (!response.isSuccessful) {
-                    // Diagnóstico: googlevideo explica el motivo en el body del error
-                    val snippet = runCatching { response.peekBody(1024).string() }.getOrNull()
-                    android.util.Log.w(
-                        "RemotePlayback",
-                        "HTTP ${response.code} host=$host clen=${profiled.url.queryParameter("clen")} dur=${profiled.url.queryParameter("dur")} urlRange=${profiled.url.queryParameter("range")} rn=${profiled.url.queryParameter("rn")} pot=${profiled.url.queryParameter("pot") != null} range=${profiled.header("Range") ?: "none"} body=${snippet?.replace('\n', ' ')?.take(300)}"
-                    )
-                }
-                response
-            }
-            .build()
-    }
+    private val mediaOkHttpClient: okhttp3.OkHttpClient
+        get() = com.frito.music.data.network.yt.PlaybackHttpClient.client
 
     /**
      * Ajusta el DataSpec de los streams de YouTube ANTES de llegar a la red:

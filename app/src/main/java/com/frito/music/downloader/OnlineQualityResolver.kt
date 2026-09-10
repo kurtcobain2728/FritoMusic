@@ -167,7 +167,7 @@ object OnlineQualityResolver {
      * Si no se comprueba que el candidato es idéntico al tema y artista solicitado, se descarta
      * inmediatamente para evitar descargar una pista ajena o aleatoria.
      */
-    private fun tryResolveSaavn(title: String, artist: String): ResolvedTrack? {
+    fun tryResolveSaavn(title: String, artist: String): ResolvedTrack? {
         return try {
             val query = "$title $artist".trim()
             val encoded = URLEncoder.encode(query, "UTF-8")
