@@ -307,6 +307,16 @@ object YouTubeRepository {
         result.getOrThrow().items.filterIsInstance<ArtistItem>()
     }
 
+    suspend fun searchPlaylists(query: String): Result<List<PlaylistItem>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val featured = YouTube.search(query, YouTube.SearchFilter.FILTER_FEATURED_PLAYLIST)
+                .getOrNull()?.items?.filterIsInstance<PlaylistItem>().orEmpty()
+            val community = YouTube.search(query, YouTube.SearchFilter.FILTER_COMMUNITY_PLAYLIST)
+                .getOrNull()?.items?.filterIsInstance<PlaylistItem>().orEmpty()
+            (featured + community).distinctBy { it.id }
+        }
+    }
+
     suspend fun getArtistDetails(browseId: String): Result<ArtistPage> = runCatching {
         YouTube.artist(browseId).getOrThrow()
     }

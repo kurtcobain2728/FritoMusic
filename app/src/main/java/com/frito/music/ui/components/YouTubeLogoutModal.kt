@@ -13,10 +13,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.frito.music.ui.theme.LocalAppColors
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -24,6 +26,7 @@ import com.frito.music.ui.theme.LocalAppColors
 fun YouTubeLogoutModal(
     accountName: String,
     accountEmail: String,
+    accountAvatar: String = "",
     onDismiss: () -> Unit,
     onLogout: () -> Unit
 ) {
@@ -50,20 +53,31 @@ fun YouTubeLogoutModal(
                 .padding(bottom = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Account Icon
+            // Account Avatar / Icon
             Box(
                 modifier = Modifier
-                    .size(72.dp)
+                    .size(80.dp)
                     .clip(CircleShape)
                     .background(Color(0xFF1DB954)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.AccountCircle,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(48.dp)
-                )
+                if (accountAvatar.isNotEmpty()) {
+                    AsyncImage(
+                        model = accountAvatar,
+                        contentDescription = accountName,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.AccountCircle,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(54.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))

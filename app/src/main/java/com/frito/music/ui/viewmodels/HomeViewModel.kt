@@ -30,6 +30,79 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _allAudios = MutableStateFlow<List<AudioFile>>(emptyList())
     val allAudios: StateFlow<List<AudioFile>> = _allAudios.asStateFlow()
 
+    // ── Estado reactivo de selección múltiple (para sincronizar HomeScreen y MainActivity) ──
+    private val _isSelectionMode = MutableStateFlow(false)
+    val isSelectionMode: StateFlow<Boolean> = _isSelectionMode.asStateFlow()
+
+    private val _selectedFolderPaths = MutableStateFlow<Set<String>>(emptySet())
+    val selectedFolderPaths: StateFlow<Set<String>> = _selectedFolderPaths.asStateFlow()
+
+    private val _selectedAudioPaths = MutableStateFlow<Set<String>>(emptySet())
+    val selectedAudioPaths: StateFlow<Set<String>> = _selectedAudioPaths.asStateFlow()
+
+    private val _requestDeleteMultipleEvent = MutableStateFlow(false)
+    val requestDeleteMultipleEvent: StateFlow<Boolean> = _requestDeleteMultipleEvent.asStateFlow()
+
+    fun enterSelectionMode(folderPath: String? = null, audioPath: String? = null) {
+        _selectedFolderPaths.value = if (folderPath != null) setOf(folderPath) else emptySet()
+        _selectedAudioPaths.value = if (audioPath != null) setOf(audioPath) else emptySet()
+        _isSelectionMode.value = true
+    }
+
+    fun exitSelectionMode() {
+        _isSelectionMode.value = false
+        _selectedFolderPaths.value = emptySet()
+        _selectedAudioPaths.value = emptySet()
+        _requestDeleteMultipleEvent.value = false
+    }
+
+    fun toggleFolder(path: String) {
+        val current = _selectedFolderPaths.value.toMutableSet()
+        if (current.contains(path)) current.remove(path) else current.add(path)
+        _selectedFolderPaths.value = current
+    }
+
+    fun toggleAudio(path: String) {
+        val current = _selectedAudioPaths.value.toMutableSet()
+        if (current.contains(path)) current.remove(path) else current.add(path)
+        _selectedAudioPaths.value = current
+    }
+
+    fun selectAll(folderPaths: List<String>, audioPaths: List<String>) {
+        _selectedFolderPaths.value = folderPaths.toSet()
+        _selectedAudioPaths.value = audioPaths.toSet()
+    }
+
+    fun deselectAll() {
+        _selectedFolderPaths.value = emptySet()
+        _selectedAudioPaths.value = emptySet()
+    }
+
+    fun requestDeleteMultiple() {
+        _requestDeleteMultipleEvent.value = true
+    }
+
+    fun resetDeleteMultipleEvent() {
+        _requestDeleteMultipleEvent.value = false
+    }
+
+    fun hideSelected() {
+        val folders = _selectedFolderPaths.value
+        val audios = _selectedAudioPaths.value
+        val node = _currentNode.value
+
+        val foldersToHide = node?.subfolders?.values
+            ?.filter { folders.contains(it.path) }
+            ?.map { Triple(it.path, it.name, it.realPath) } ?: emptyList()
+
+        val audiosToHide = node?.audios
+            ?.filter { audios.contains(it.path) }
+            ?.map { Pair(it.path, it.title) } ?: emptyList()
+
+        com.frito.music.data.repository.HiddenItemsManager.hideMultiple(foldersToHide, audiosToHide)
+        exitSelectionMode()
+    }
+
     private var scanJob: kotlinx.coroutines.Job? = null
 
     init {
@@ -50,7 +123,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
      * Se llama cuando una descarga termina para que la nueva canción aparezca sin parpadear la pantalla.
      */
     fun rescan() {
-        if (scanJob?.isActive == true) return
+        scanJob?.cancel()
         scanJob = viewModelScope.launch {
             scanInternal()
         }

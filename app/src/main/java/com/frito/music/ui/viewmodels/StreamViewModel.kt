@@ -95,6 +95,9 @@ class StreamViewModel : ViewModel() {
     private val _artistResults = MutableStateFlow<List<ArtistItem>?>(null)
     val artistResults: StateFlow<List<ArtistItem>?> = _artistResults.asStateFlow()
 
+    private val _playlistResults = MutableStateFlow<List<PlaylistItem>?>(null)
+    val playlistResults: StateFlow<List<PlaylistItem>?> = _playlistResults.asStateFlow()
+
     private val artistPagesCache = mutableMapOf<String, ArtistPage>()
     private val albumPagesCache = mutableMapOf<String, AlbumPage>()
     private val playlistPagesCache = mutableMapOf<String, PlaylistPage>()
@@ -199,6 +202,7 @@ class StreamViewModel : ViewModel() {
         if (query.length < 2) {
             _searchResults.value = null
             _artistResults.value = null
+            _playlistResults.value = null
             return
         }
 
@@ -207,13 +211,16 @@ class StreamViewModel : ViewModel() {
             _isSearching.value = true
             _errorMessage.value = null
 
-            // Canciones y artistas EN PARALELO (antes iban en serie: doble espera)
+            // Canciones, artistas y playlists EN PARALELO
             coroutineScope {
                 val songsDeferred = async(Dispatchers.IO) {
                     YouTubeRepository.search(query)
                 }
                 val artistsDeferred = async(Dispatchers.IO) {
                     YouTubeRepository.searchArtists(query)
+                }
+                val playlistsDeferred = async(Dispatchers.IO) {
+                    YouTubeRepository.searchPlaylists(query)
                 }
 
                 val searchResult = songsDeferred.await()
@@ -235,6 +242,13 @@ class StreamViewModel : ViewModel() {
                         _artistResults.value = artists
                     }
                     .onFailure { _artistResults.value = null }
+
+                val playlistResult = playlistsDeferred.await()
+                playlistResult
+                    .onSuccess { playlists ->
+                        _playlistResults.value = playlists
+                    }
+                    .onFailure { _playlistResults.value = null }
             }
 
             _isSearching.value = false

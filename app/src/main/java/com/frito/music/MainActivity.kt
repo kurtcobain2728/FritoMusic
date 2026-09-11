@@ -1,9 +1,13 @@
 package com.frito.music
 
+import android.accounts.AccountManager
+import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -42,6 +46,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.frito.music.data.models.Playlist
 import com.frito.music.ui.components.BottomNavBar
+import com.frito.music.ui.components.HomeSelectionBottomBar
 import com.frito.music.ui.screens.*
 import com.frito.music.ui.theme.FritoMusicTheme
 import com.frito.music.ui.viewmodels.HomeViewModel
@@ -74,6 +79,8 @@ class MainActivity : ComponentActivity() {
         com.frito.music.data.repository.YouTubeLoginManager.loadLoginToYouTube()
         com.frito.music.data.repository.FavoriteArtistsManager.init(this)
         com.frito.music.data.repository.StreamHistoryManager.init(this)
+        com.frito.music.data.repository.HiddenItemsManager.init(this)
+        com.frito.music.data.repository.CustomNamesManager.init(this)
 
         setContent {
             var showOnboarding by remember { mutableStateOf(!hasCompletedOnboardingInitial) }
@@ -100,6 +107,7 @@ class MainActivity : ComponentActivity() {
                         onFinish = {
                             prefs.edit().putBoolean("has_completed_onboarding", true).apply()
                             showOnboarding = false
+                            homeViewModel.rescan()
                         }
                     )
                 } else {
@@ -182,6 +190,9 @@ class MainActivity : ComponentActivity() {
                     val favorites by playerViewModel.favorites.collectAsState(initial = emptySet())
                     val playlists by playerViewModel.playlists.collectAsState(initial = emptyList())
                     val currentAudio by playerViewModel.currentAudio.collectAsState()
+                    val isHomeSelectionMode by homeViewModel.isSelectionMode.collectAsState()
+                    val selectedFolders by homeViewModel.selectedFolderPaths.collectAsState()
+                    val selectedAudios by homeViewModel.selectedAudioPaths.collectAsState()
 
                     val context = androidx.compose.ui.platform.LocalContext.current
                     var backPressedTime by remember { mutableStateOf(0L) }
@@ -302,9 +313,9 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                                 // La barra inferior se oculta/muestra con animación
-                                // real según haya subpantalla abierta
+                                // real según haya subpantalla abierta o estemos en modo selección múltiple
                                 AnimatedVisibility(
-                                    visible = currentSubScreen == null,
+                                    visible = currentSubScreen == null && !isHomeSelectionMode,
                                     enter = fadeIn(tween(AppAnimations.DURATION_FAST)) +
                                             expandVertically(tween(AppAnimations.DURATION_MEDIUM, easing = FastOutSlowInEasing)),
                                     exit = fadeOut(tween(150)) +
@@ -312,7 +323,33 @@ class MainActivity : ComponentActivity() {
                                 ) {
                                     BottomNavBar(
                                         currentTab = currentTab,
-                                        onTabSelected = { currentTab = it }
+                                        onTabSelected = {
+                                            homeViewModel.exitSelectionMode()
+                                            currentTab = it
+                                        }
+                                    )
+                                }
+
+                                // En modo selección múltiple, esta barra toma el lugar exacto de la barra de navegación
+                                AnimatedVisibility(
+                                    visible = currentSubScreen == null && isHomeSelectionMode,
+                                    enter = fadeIn(tween(AppAnimations.DURATION_FAST)) +
+                                            expandVertically(tween(AppAnimations.DURATION_MEDIUM, easing = FastOutSlowInEasing)),
+                                    exit = fadeOut(tween(150)) +
+                                            shrinkVertically(tween(AppAnimations.DURATION_FAST, easing = FastOutSlowInEasing))
+                                ) {
+                                    val count = selectedFolders.size + selectedAudios.size
+                                    HomeSelectionBottomBar(
+                                        selectedCount = count,
+                                        onCancel = {
+                                            homeViewModel.exitSelectionMode()
+                                        },
+                                        onHideSelected = {
+                                            homeViewModel.hideSelected()
+                                        },
+                                        onDeleteSelected = {
+                                            homeViewModel.requestDeleteMultiple()
+                                        }
                                     )
                                 }
                             }
@@ -410,6 +447,7 @@ class MainActivity : ComponentActivity() {
                                         "apariencia" -> AppearanceScreen(themeViewModel = themeViewModel, onBack = { currentSubScreen = null })
                                         "donaciones" -> DonationsScreen(onBack = { currentSubScreen = null })
                                         "gestor_descargas" -> DownloadsManagerScreen(onBack = { currentSubScreen = null })
+                                        "ocultos" -> HiddenItemsScreen(homeViewModel = homeViewModel, onBack = { currentSubScreen = null })
                                         "stream_artist_detail" -> {
                                             selectedStreamArtistId?.let { id ->
                                                 StreamArtistDetailScreen(
@@ -557,6 +595,9 @@ class MainActivity : ComponentActivity() {
                                                 onNavigateToPlaylists = {
                                                     pushStreamScreen(StreamNavEntry(screen = "stream_playlists"))
                                                 },
+                                                onNavigateToPlaylistDetail = { playlistId ->
+                                                    pushStreamScreen(StreamNavEntry(screen = "stream_playlist_detail", playlistId = playlistId))
+                                                },
                                                 onNavigateToFavoriteArtists = {
                                                     pushStreamScreen(StreamNavEntry(screen = "stream_favorite_artists"))
                                                 },
@@ -572,7 +613,8 @@ class MainActivity : ComponentActivity() {
                                                 onNavigateToEqualizer = { isNavigatingBack = false; currentSubScreen = "ecualizador" },
                                                 onNavigateToAppearance = { isNavigatingBack = false; currentSubScreen = "apariencia" },
                                                 onNavigateToDonations = { isNavigatingBack = false; currentSubScreen = "donaciones" },
-                                                onNavigateToDownloadsManager = { isNavigatingBack = false; currentSubScreen = "gestor_descargas" }
+                                                onNavigateToDownloadsManager = { isNavigatingBack = false; currentSubScreen = "gestor_descargas" },
+                                                onNavigateToHidden = { isNavigatingBack = false; currentSubScreen = "ocultos" }
                                             )
                                             else -> HomeScreen(homeViewModel = homeViewModel, playerViewModel = playerViewModel, isPlayerOpen = showPlayerScreen || currentAudio != null)
                                         }

@@ -14,6 +14,21 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
+
+    <!-- Visibilidad para el selector nativo de cuentas de Google en Android 11+ (API 30+) -->
+    <queries>
+        <package android:name="com.google.android.gms" />
+        <intent>
+            <action android:name="android.accounts.AccountAuthenticator" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.PICK_ACCOUNT" />
+        </intent>
+        <intent>
+            <action android:name="android.accounts.choose_account" />
+        </intent>
+    </queries>
 
     <application
         android:name=".FritoMusicApplication"

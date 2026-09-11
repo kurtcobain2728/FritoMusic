@@ -3,6 +3,7 @@ package com.frito.music.data.models
 data class FolderNode(
     val name: String,
     val path: String,
+    var realPath: String = "",
     val subfolders: MutableMap<String, FolderNode> = mutableMapOf(),
     val audios: MutableList<AudioFile> = mutableListOf()
 ) {
