@@ -577,6 +577,47 @@ object YouTubeRepository {
             .filterNot { isLikedSongsEntry(it) }
     }
 
+    suspend fun getFeaturedPlaylists(): Result<List<PlaylistItem>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val results = mutableListOf<PlaylistItem>()
+            val seenIds = mutableSetOf<String>()
+
+            val queries = listOf("Top 50 Éxitos", "Tendencias Música", "Pop Latino Hits", "Rock Clásico")
+            for (query in queries) {
+                try {
+                    val searchResult = YouTube.search(query, YouTube.SearchFilter.FILTER_FEATURED_PLAYLIST).getOrNull()
+                    searchResult?.items?.filterIsInstance<PlaylistItem>()?.forEach { p ->
+                        if (p.id.isNotBlank() && seenIds.add(p.id)) {
+                            results.add(p)
+                        }
+                    }
+                } catch (_: Exception) {}
+            }
+            results
+        }
+    }
+
+    suspend fun deletePlaylist(playlistId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        YouTube.deletePlaylist(playlistId).map { }
+    }
+
+    suspend fun subscribeChannel(channelId: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        val res = YouTube.subscribeChannel(channelId)
+        if (res.isSuccess) Result.success(true) else Result.failure(res.exceptionOrNull() ?: Exception("Subscription failed"))
+    }
+
+    suspend fun unsubscribeChannel(channelId: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        val res = YouTube.unsubscribeChannel(channelId)
+        if (res.isSuccess) Result.success(true) else Result.failure(res.exceptionOrNull() ?: Exception("Unsubscription failed"))
+    }
+
+    suspend fun getSubscribedArtists(): Result<List<ArtistItem>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val result = YouTube.library("FEmusic_library_corpus_artists").getOrThrow()
+            result.items.filterIsInstance<ArtistItem>()
+        }
+    }
+
     suspend fun getPlaylistSongs(playlistId: String): Result<PlaylistPage> = runCatching {
         YouTube.playlist(playlistId).getOrThrow()
     }

@@ -3,6 +3,7 @@ package com.frito.music.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.frito.music.data.network.yt.YouTubeRepository
+import com.music.innertube.models.ArtistItem
 import com.music.innertube.models.SongItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -136,6 +137,66 @@ class OnlineLibraryViewModel : ViewModel() {
             }
             result.onSuccess { loadPlaylistSongs(playlistId) }
                 .onFailure { _onlineError.value = it.message ?: "No se pudo quitar la canción" }
+        }
+    }
+
+    private val _subscribedChannelIds = MutableStateFlow<Set<String>>(emptySet())
+    val subscribedChannelIds: StateFlow<Set<String>> = _subscribedChannelIds.asStateFlow()
+
+    private val _subscribedArtists = MutableStateFlow<List<ArtistItem>>(emptyList())
+    val subscribedArtists: StateFlow<List<ArtistItem>> = _subscribedArtists.asStateFlow()
+
+    private val _isLoadingSubscribed = MutableStateFlow(false)
+    val isLoadingSubscribed: StateFlow<Boolean> = _isLoadingSubscribed.asStateFlow()
+
+    fun loadSubscribedArtists(forceRefresh: Boolean = false) {
+        if (!forceRefresh && _subscribedArtists.value.isNotEmpty()) return
+        viewModelScope.launch {
+            _isLoadingSubscribed.value = true
+            val result = withContext(Dispatchers.IO) {
+                YouTubeRepository.getSubscribedArtists()
+            }
+            result.onSuccess { artists ->
+                _subscribedArtists.value = artists
+                val ids = artists.map { it.channelId ?: it.id }.toSet()
+                _subscribedChannelIds.value = _subscribedChannelIds.value + ids
+            }
+            _isLoadingSubscribed.value = false
+        }
+    }
+
+    fun isSubscribed(channelId: String): Boolean = _subscribedChannelIds.value.contains(channelId)
+
+    fun toggleSubscribeArtist(channelId: String, artistName: String, onComplete: ((Boolean) -> Unit)? = null) {
+        val currentlySubscribed = _subscribedChannelIds.value.contains(channelId)
+        val newSubscribed = !currentlySubscribed
+
+        val updatedSet = _subscribedChannelIds.value.toMutableSet()
+        if (newSubscribed) updatedSet.add(channelId) else updatedSet.remove(channelId)
+        _subscribedChannelIds.value = updatedSet
+
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                if (newSubscribed) {
+                    YouTubeRepository.subscribeChannel(channelId)
+                } else {
+                    YouTubeRepository.unsubscribeChannel(channelId)
+                }
+            }
+            if (result.isFailure) {
+                val revertedSet = _subscribedChannelIds.value.toMutableSet()
+                if (currentlySubscribed) revertedSet.add(channelId) else revertedSet.remove(channelId)
+                _subscribedChannelIds.value = revertedSet
+                _onlineError.value = "Error al actualizar suscripción"
+                onComplete?.invoke(currentlySubscribed)
+            } else {
+                if (!newSubscribed) {
+                    _subscribedArtists.value = _subscribedArtists.value.filterNot { (it.channelId ?: it.id) == channelId }
+                } else {
+                    loadSubscribedArtists(forceRefresh = true)
+                }
+                onComplete?.invoke(newSubscribed)
+            }
         }
     }
 }

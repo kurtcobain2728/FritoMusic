@@ -33,6 +33,7 @@ data class MenuItem(
 fun MoreScreen(
     onNavigateToFavorites: () -> Unit = {},
     onNavigateToPlaylists: () -> Unit = {},
+    onNavigateToMigrate: () -> Unit = {},
     onNavigateToEqualizer: () -> Unit = {},
     onNavigateToAppearance: () -> Unit = {},
     onNavigateToDonations: () -> Unit = {},
@@ -45,6 +46,7 @@ fun MoreScreen(
     val menuItems = listOf(
         MenuItem("Favoritos", "$favoritesCount canciones", Icons.Default.Favorite, Color(0xFFFF6B6B)) { onNavigateToFavorites() },
         MenuItem("Listas de Reproducción", "$playlistsCount listas", Icons.AutoMirrored.Filled.FormatListBulleted, appColors.accent) { onNavigateToPlaylists() },
+        MenuItem("Migrar Playlist", "Importa de Spotify, Apple, Deezer, YT y más", Icons.Default.SwapHoriz, Color(0xFF1DB954)) { onNavigateToMigrate() },
         MenuItem("Ocultos", "Ver y restaurar archivos y carpetas ocultos", Icons.Default.VisibilityOff, Color(0xFF7E57C2)) { onNavigateToHidden() },
         MenuItem("Ecualizador", "Ajusta el sonido", Icons.Default.Tune, Color(0xFF00BCD4)) { onNavigateToEqualizer() },
         MenuItem("Apariencia", "Temas, colores y estilo", Icons.Default.Palette, Color(0xFF9C27B0)) { onNavigateToAppearance() },

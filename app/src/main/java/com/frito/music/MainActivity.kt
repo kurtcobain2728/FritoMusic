@@ -449,6 +449,15 @@ class MainActivity : ComponentActivity() {
                                         "donaciones" -> DonationsScreen(onBack = { currentSubScreen = null })
                                         "gestor_descargas" -> DownloadsManagerScreen(onBack = { currentSubScreen = null })
                                         "ocultos" -> HiddenItemsScreen(homeViewModel = homeViewModel, onBack = { currentSubScreen = null })
+                                        "playlist_migrate" -> PlaylistMigrateScreen(
+                                            onlineLibraryViewModel = onlineLibraryViewModel,
+                                            onNavigateToLogin = { showYouTubeLogin = true },
+                                            onNavigateToPlaylists = {
+                                                isNavigatingBack = true
+                                                currentSubScreen = "listas"
+                                            },
+                                            onBack = { currentSubScreen = null }
+                                        )
                                         "stream_artist_detail" -> {
                                             selectedStreamArtistId?.let { id ->
                                                 StreamArtistDetailScreen(
@@ -531,6 +540,15 @@ class MainActivity : ComponentActivity() {
                                                 onBack = { popStreamScreen() }
                                             )
                                         }
+                                        "stream_followed_artists" -> {
+                                            StreamFollowedArtistsScreen(
+                                                streamViewModel = streamViewModel,
+                                                onArtistClick = { id ->
+                                                    pushStreamScreen(StreamNavEntry(screen = "stream_artist_detail", artistId = id))
+                                                },
+                                                onBack = { popStreamScreen() }
+                                            )
+                                        }
                                         else -> {
                                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                                 Text("Pantalla en construcción", color = appColors.textPrimary)
@@ -602,6 +620,9 @@ class MainActivity : ComponentActivity() {
                                                 onNavigateToFavoriteArtists = {
                                                     pushStreamScreen(StreamNavEntry(screen = "stream_favorite_artists"))
                                                 },
+                                                onNavigateToFollowedArtists = {
+                                                    pushStreamScreen(StreamNavEntry(screen = "stream_followed_artists"))
+                                                },
                                                 onNavigateToAllArtists = {
                                                     pushStreamScreen(StreamNavEntry(screen = "stream_all_artists"))
                                                 }
@@ -611,6 +632,7 @@ class MainActivity : ComponentActivity() {
                                                 playlistsCount = playlists.size,
                                                 onNavigateToFavorites = { isNavigatingBack = false; currentSubScreen = "favoritos" },
                                                 onNavigateToPlaylists = { isNavigatingBack = false; currentSubScreen = "listas" },
+                                                onNavigateToMigrate = { isNavigatingBack = false; currentSubScreen = "playlist_migrate" },
                                                 onNavigateToEqualizer = { isNavigatingBack = false; currentSubScreen = "ecualizador" },
                                                 onNavigateToAppearance = { isNavigatingBack = false; currentSubScreen = "apariencia" },
                                                 onNavigateToDonations = { isNavigatingBack = false; currentSubScreen = "donaciones" },
@@ -626,20 +648,17 @@ class MainActivity : ComponentActivity() {
                     }
                 } // End if(showOnboarding) else
 
-                    // Player Overlay — sube con spring físico y se va con easing suave
+                    // Player Overlay — sube con animación fluida estilo Flutter y se oculta suavemente
                     AnimatedVisibility(
                         visible = showPlayerScreen,
                         enter = slideInVertically(
                             initialOffsetY = { fullHeight -> fullHeight },
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessMediumLow
-                            )
+                            animationSpec = AppAnimations.playerSlideTween()
                         ) + fadeIn(AppAnimations.fadeTween()),
                         exit = slideOutVertically(
                             targetOffsetY = { fullHeight -> fullHeight },
                             animationSpec = AppAnimations.playerSlideTween()
-                        ) + fadeOut(tween(250, easing = FastOutSlowInEasing))
+                        ) + fadeOut(tween(250, easing = AppAnimations.fluidCubicEasing))
                     ) {
                         PlayerScreen(
                             viewModel = playerViewModel,

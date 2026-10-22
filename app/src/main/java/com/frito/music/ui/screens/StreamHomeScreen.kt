@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.frito.music.utils.resize
 import com.frito.music.data.repository.FavoriteArtistsManager
+import com.frito.music.ui.components.BenchoCarousel
+import com.frito.music.ui.components.BenchoArtistCarousel
 import com.frito.music.ui.components.FritoPullRefresh
 import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.data.models.HomeShelf
@@ -97,7 +99,8 @@ fun StreamHomeScreen(
                 // ─── Renderizado dinámico de carruseles curados por el algoritmo ───
                 homeShelves.forEach { shelf ->
                     // EXCLUSIÓN INTELIGENTE: Filtrar artistas favoritos de las recomendaciones si hay alternativas
-                    val displayItems = if (shelf.id == "popular_artists" || shelf.title.contains("Artistas para ti", ignoreCase = true)) {
+                    val isArtistShelf = shelf.id == "popular_artists" || shelf.title.contains("Artistas para ti", ignoreCase = true)
+                    val displayItems = if (isArtistShelf) {
                         val filtered = shelf.items.filterNot { it is ArtistItem && favoriteArtistIds.contains(it.id) }
                         if (filtered.isNotEmpty()) filtered else shelf.items
                     } else {
@@ -105,64 +108,87 @@ fun StreamHomeScreen(
                     }
 
                     if (displayItems.isNotEmpty()) {
-                        item(key = shelf.id) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                            ) {
-                                Text(
-                                    text = shelf.title,
-                                    color = appColors.textPrimary,
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.weight(1f)
+                        val shelfArtists = displayItems.filterIsInstance<ArtistItem>()
+                        val shelfSongs = displayItems.filterIsInstance<SongItem>()
+
+                        // "Artistas para ti" con el carrusel 3D orbital tipo tornamesa
+                        if (isArtistShelf && shelfArtists.isNotEmpty()) {
+                            item(key = "carousel_artists_${shelf.id}") {
+                                BenchoArtistCarousel(
+                                    artists = shelfArtists,
+                                    onArtistClick = onArtistClick,
+                                    onSeeAllArtists = onSeeAllArtists,
+                                    title = shelf.title
                                 )
-                                if (shelf.id == "popular_artists" || shelf.title.contains("Artistas para ti", ignoreCase = true)) {
-                                    Text(
-                                        text = "Ver todo",
-                                        color = Color(0xFF1DB954),
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        modifier = Modifier
-                                            .clickable { onSeeAllArtists() }
-                                            .padding(start = 8.dp, top = 4.dp, bottom = 4.dp)
-                                    )
-                                }
                             }
-                            LazyRow(
-                                contentPadding = PaddingValues(horizontal = 16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                val shelfSongs = displayItems.filterIsInstance<SongItem>()
-                                items(
-                                    displayItems,
-                                    key = { item ->
-                                        when (item) {
-                                            is SongItem -> "${shelf.id}_song_${item.id}"
-                                            is AlbumItem -> "${shelf.id}_album_${item.browseId}"
-                                            is ArtistItem -> "${shelf.id}_artist_${item.id}"
-                                            else -> "${shelf.id}_${item.hashCode()}"
-                                        }
+                        } else if (!isArtistShelf && shelfSongs.isNotEmpty() && (shelf.title.contains("vuelve", ignoreCase = true) || shelf.title.contains("recomendad", ignoreCase = true) || displayItems.all { it is SongItem })) {
+                            // "Vuelve a escuchar" y secciones de canciones con el carrusel 3D orbital
+                            item(key = "carousel_songs_${shelf.id}") {
+                                BenchoCarousel(
+                                    songs = shelfSongs,
+                                    onPlaySong = onPlaySong,
+                                    title = shelf.title
+                                )
+                            }
+                        } else {
+                            item(key = shelf.id) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                                ) {
+                                    Text(
+                                        text = shelf.title,
+                                        color = appColors.textPrimary,
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    if (isArtistShelf) {
+                                        Text(
+                                            text = "Ver todo",
+                                            color = Color(0xFF1DB954),
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            modifier = Modifier
+                                                .clickable { onSeeAllArtists() }
+                                                .padding(start = 8.dp, top = 4.dp, bottom = 4.dp)
+                                        )
                                     }
-                                ) { item ->
-                                    when (item) {
-                                        is SongItem -> SongCard(
-                                            song = item,
-                                            onClick = { onPlaySong(item, shelfSongs) }
-                                        )
-                                        is AlbumItem -> AlbumCard(
-                                            album = item,
-                                            onClick = { onAlbumClick(item.browseId) }
-                                        )
-                                        is ArtistItem -> ArtistCard(
-                                            artist = item,
-                                            onClick = {
-                                                if (item.id.isNotBlank()) onArtistClick(item.id)
+                                }
+                                LazyRow(
+                                    contentPadding = PaddingValues(horizontal = 16.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    items(
+                                        displayItems,
+                                        key = { item ->
+                                            when (item) {
+                                                is SongItem -> "${shelf.id}_song_${item.id}"
+                                                is AlbumItem -> "${shelf.id}_album_${item.browseId}"
+                                                is ArtistItem -> "${shelf.id}_artist_${item.id}"
+                                                else -> "${shelf.id}_${item.hashCode()}"
                                             }
-                                        )
-                                        else -> {}
+                                        }
+                                    ) { item ->
+                                        when (item) {
+                                            is SongItem -> SongCard(
+                                                song = item,
+                                                onClick = { onPlaySong(item, shelfSongs) }
+                                            )
+                                            is AlbumItem -> AlbumCard(
+                                                album = item,
+                                                onClick = { onAlbumClick(item.browseId) }
+                                            )
+                                            is ArtistItem -> ArtistCard(
+                                                artist = item,
+                                                onClick = {
+                                                    if (item.id.isNotBlank()) onArtistClick(item.id)
+                                                }
+                                            )
+                                            else -> {}
+                                        }
                                     }
                                 }
                             }
@@ -198,69 +224,25 @@ fun StreamHomeScreen(
                 // ─── Escuchado recientemente (historial personal, requiere sesión) ───
                 if (recentlyPlayed.isNotEmpty()) {
                     item {
-                        Text(
-                            text = "Escuchado recientemente",
-                            color = appColors.textPrimary,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        BenchoCarousel(
+                            songs = recentlyPlayed.take(20),
+                            onPlaySong = onPlaySong,
+                            title = "Vuelve a escuchar"
                         )
-                        LazyRow(
-                            contentPadding = PaddingValues(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            val recentQueue = recentlyPlayed.take(10)
-                            items(recentQueue, key = { it.id }) { song ->
-                                SongCard(
-                                    song = song,
-                                    onClick = { onPlaySong(song, recentQueue) }
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                     }
                 }
 
                 // ─── Artistas para ti (recomendados por YT Music según tu cuenta, excluyendo favoritos) ───
                 if (recommendedArtists.isNotEmpty()) {
                     item {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                        ) {
-                            Text(
-                                text = "Artistas para ti",
-                                color = appColors.textPrimary,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Text(
-                                text = "Ver todo",
-                                color = Color(0xFF1DB954),
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier
-                                    .clickable { onSeeAllArtists() }
-                                    .padding(start = 8.dp, top = 4.dp, bottom = 4.dp)
-                            )
-                        }
-                        LazyRow(
-                            contentPadding = PaddingValues(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(recommendedArtists.take(15), key = { it.id }) { artist ->
-                                ArtistCard(
-                                    artist = artist,
-                                    onClick = {
-                                        if (artist.id.isNotBlank()) onArtistClick(artist.id)
-                                    }
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
+                        BenchoArtistCarousel(
+                            artists = recommendedArtists.take(15),
+                            onArtistClick = onArtistClick,
+                            onSeeAllArtists = onSeeAllArtists,
+                            title = "Artistas para ti"
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
                     }
                 }
 

@@ -17,6 +17,8 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarOutline
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Subscriptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -43,7 +45,9 @@ import com.music.innertube.models.SongItem
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.ui.text.style.TextAlign
 import com.frito.music.ui.theme.AppColors
+import com.frito.music.ui.theme.rememberAppHaptics
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
@@ -56,10 +60,14 @@ fun StreamArtistDetailScreen(
     onBack: () -> Unit
 ) {
     val appColors = LocalAppColors.current
+    val haptics = rememberAppHaptics()
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val favoriteArtists by FavoriteArtistsManager.favoriteArtists.collectAsState()
     val isFavorite = favoriteArtists.any { it.id == artistId }
 
+    val subscribedChannelIds by streamViewModel.subscribedChannelIds.collectAsState()
     val artistPage by streamViewModel.selectedArtist.collectAsState()
     val isLoading by streamViewModel.isLoadingArtist.collectAsState()
     val errorMessage by streamViewModel.errorMessage.collectAsState()
@@ -70,14 +78,29 @@ fun StreamArtistDetailScreen(
 
     LaunchedEffect(artistId) {
         streamViewModel.loadArtistDetails(artistId)
+        streamViewModel.loadSubscribedArtists()
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(appColors.background)
-    ) {
-        if (isLoading) {
+    Scaffold(
+        snackbarHost = {
+            SnackbarHost(snackbarHostState) { data ->
+                Snackbar(
+                    snackbarData = data,
+                    containerColor = if (appColors.isDark) Color(0xFF22222E) else Color(0xFF33333E),
+                    contentColor = Color.White,
+                    shape = RoundedCornerShape(12.dp)
+                )
+            }
+        },
+        containerColor = appColors.background
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(appColors.background)
+        ) {
+            if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = Color(0xFF1DB954))
             }
@@ -173,15 +196,125 @@ fun StreamArtistDetailScreen(
                                     )
                                 )
                         )
-                        Text(
-                            text = artist.title,
-                            color = Color.White,
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.ExtraBold,
+                        Column(
                             modifier = Modifier
                                 .align(Alignment.BottomStart)
-                                .padding(start = 24.dp, end = 24.dp, bottom = 24.dp)
-                        )
+                                .padding(start = 24.dp, end = 24.dp, bottom = 20.dp)
+                        ) {
+                            Text(
+                                text = artist.title,
+                                color = Color.White,
+                                fontSize = 32.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                            val statsText = listOfNotNull(
+                                page.subscriberCountText?.takeIf { it.isNotBlank() },
+                                page.monthlyListenerCount?.takeIf { it.isNotBlank() }
+                            ).joinToString(" • ")
+                            if (statsText.isNotBlank()) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = statsText,
+                                    color = Color.White.copy(alpha = 0.82f),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Actions Bar: Suscribirse + Favorito
+                item {
+                    val channelId = artist.channelId?.takeIf { it.isNotBlank() } ?: artist.id
+                    val isSubscribed = subscribedChannelIds.contains(channelId)
+                    var isSubscribing by remember { mutableStateOf(false) }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        // Subscribe / Unsubscribe Button
+                        Surface(
+                            shape = RoundedCornerShape(24.dp),
+                            color = if (isSubscribed) Color.White.copy(alpha = 0.12f) else Color(0xFFFF0000),
+                            border = if (isSubscribed) BorderStroke(1.dp, Color.White.copy(alpha = 0.25f)) else null,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(24.dp))
+                                .clickable(enabled = !isSubscribing) {
+                                    haptics.medium()
+                                    isSubscribing = true
+                                    scope.launch {
+                                        val newState = streamViewModel.toggleSubscribeArtist(channelId, artist.title)
+                                        isSubscribing = false
+                                        snackbarHostState.showSnackbar(
+                                            if (newState) "Te has suscrito a ${artist.title}" else "Suscripción cancelada"
+                                        )
+                                    }
+                                }
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp)
+                            ) {
+                                if (isSubscribing) {
+                                    CircularProgressIndicator(
+                                        color = Color.White,
+                                        strokeWidth = 2.dp,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = if (isSubscribed) Icons.Rounded.Check else Icons.Rounded.Subscriptions,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(17.dp)
+                                    )
+                                }
+                                Text(
+                                    text = if (isSubscribed) "Suscrito" else "Suscribirse",
+                                    color = Color.White,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        // Favorite Star Button
+                        Surface(
+                            shape = RoundedCornerShape(24.dp),
+                            color = if (isFavorite) Color(0xFFFFD700).copy(alpha = 0.15f) else Color.White.copy(alpha = 0.08f),
+                            border = BorderStroke(1.dp, if (isFavorite) Color(0xFFFFD700) else Color.White.copy(alpha = 0.2f)),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(24.dp))
+                                .clickable {
+                                    haptics.light()
+                                    FavoriteArtistsManager.toggleFavorite(artist)
+                                }
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarOutline,
+                                    contentDescription = if (isFavorite) "Quitar de favoritos" else "Guardar en favoritos",
+                                    tint = if (isFavorite) Color(0xFFFFD700) else appColors.textPrimary,
+                                    modifier = Modifier.size(17.dp)
+                                )
+                                Text(
+                                    text = if (isFavorite) "Favorito" else "Añadir",
+                                    color = if (isFavorite) Color(0xFFFFD700) else appColors.textPrimary,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -192,7 +325,7 @@ fun StreamArtistDetailScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .padding(horizontal = 20.dp, vertical = 8.dp)
                         ) {
                             Text(
                                 text = "Populares",
@@ -201,33 +334,6 @@ fun StreamArtistDetailScreen(
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.weight(1f)
                             )
-                            Surface(
-                                shape = RoundedCornerShape(20.dp),
-                                color = if (isFavorite) Color(0xFFFFD700).copy(alpha = 0.15f) else Color.White.copy(alpha = 0.08f),
-                                border = BorderStroke(1.dp, if (isFavorite) Color(0xFFFFD700) else Color.White.copy(alpha = 0.2f)),
-                                modifier = Modifier.clickable {
-                                    FavoriteArtistsManager.toggleFavorite(artist)
-                                }
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarOutline,
-                                        contentDescription = if (isFavorite) "Quitar de favoritos" else "Guardar en favoritos",
-                                        tint = if (isFavorite) Color(0xFFFFD700) else appColors.textPrimary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = if (isFavorite) "Siguiendo" else "Favorito",
-                                        color = if (isFavorite) Color(0xFFFFD700) else appColors.textPrimary,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
-                            }
                         }
                     }
 
@@ -354,6 +460,7 @@ fun StreamArtistDetailScreen(
             }
         }
     }
+}
 }
 
 @Composable

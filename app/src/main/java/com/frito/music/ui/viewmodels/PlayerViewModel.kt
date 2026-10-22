@@ -792,6 +792,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun seekTo(positionMs: Long) = seekToMs(positionMs)
+
+    fun refreshLyrics() = loadLyricsForCurrentAudio(forceRefresh = true)
+
     fun toggleShuffle() {
         mediaController?.let {
             it.shuffleModeEnabled = !it.shuffleModeEnabled

@@ -49,6 +49,7 @@ import coil.request.ImageRequest
 import com.frito.music.data.models.LyricLine
 import com.frito.music.data.models.LyricsUiState
 import com.frito.music.utils.LyricsTranslator
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -305,6 +306,14 @@ private fun SyncedLyricsContent(
         }
     }
 
+    // Auto-resincronización tras 4 segundos de inactividad de scroll manual
+    LaunchedEffect(userHasScrolledManually, isDragged) {
+        if (userHasScrolledManually && !isDragged) {
+            delay(4000L)
+            userHasScrolledManually = false
+        }
+    }
+
     LaunchedEffect(lines) {
         userHasScrolledManually = false
         listState.scrollToItem(0)
@@ -473,7 +482,12 @@ private fun ActiveLyricLineItem(
             withStyle(
                 SpanStyle(
                     color = Color.White,
-                    fontWeight = FontWeight.ExtraBold
+                    fontWeight = FontWeight.ExtraBold,
+                    shadow = Shadow(
+                        color = Color(0xFF1DB954).copy(alpha = 0.60f),
+                        offset = Offset(0f, 1f),
+                        blurRadius = 16f
+                    )
                 )
             ) {
                 append(sungPart)
@@ -481,7 +495,7 @@ private fun ActiveLyricLineItem(
             if (unsungPart.isNotEmpty()) {
                 withStyle(
                     SpanStyle(
-                        color = Color(0xFF6E6E78),
+                        color = Color.White.copy(alpha = 0.38f),
                         fontWeight = FontWeight.ExtraBold
                     )
                 ) {
@@ -494,7 +508,10 @@ private fun ActiveLyricLineItem(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp)
+            .padding(vertical = 4.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.White.copy(alpha = 0.06f))
+            .padding(horizontal = 16.dp, vertical = 12.dp)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -504,21 +521,21 @@ private fun ActiveLyricLineItem(
         Column {
             Text(
                 text = annotatedText,
-                fontSize = 32.sp,
+                fontSize = 28.sp,
                 fontWeight = FontWeight.ExtraBold,
-                lineHeight = 44.sp,
+                lineHeight = 38.sp,
                 letterSpacing = (-0.5).sp,
                 textAlign = TextAlign.Start
             )
 
             if (showTranslation && !translatedText.isNullOrBlank() && translatedText != line.text) {
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = translatedText,
-                    color = Color(0xFF90CAF9),
-                    fontSize = 21.sp,
-                    fontWeight = FontWeight.Medium,
-                    lineHeight = 28.sp,
+                    color = Color(0xFF6EE7B7), // Mint green
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    lineHeight = 24.sp,
                     letterSpacing = (-0.3).sp,
                     textAlign = TextAlign.Start
                 )
@@ -542,7 +559,7 @@ private fun InactiveLyricLineItem(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -552,11 +569,11 @@ private fun InactiveLyricLineItem(
         Column {
             Text(
                 text = line.text.ifBlank { "♪" },
-                color = if (isPast) Color.White.copy(alpha = 0.88f) else Color(0xFF55555D),
-                fontSize = 30.sp,
-                fontWeight = if (isPast) FontWeight.ExtraBold else FontWeight.Bold,
-                lineHeight = 42.sp,
-                letterSpacing = (-0.5).sp,
+                color = if (isPast) Color.White.copy(alpha = 0.68f) else Color.White.copy(alpha = 0.32f),
+                fontSize = 22.sp,
+                fontWeight = if (isPast) FontWeight.Bold else FontWeight.SemiBold,
+                lineHeight = 32.sp,
+                letterSpacing = (-0.4).sp,
                 textAlign = TextAlign.Start
             )
 
@@ -564,11 +581,11 @@ private fun InactiveLyricLineItem(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = translatedText,
-                    color = if (isPast) Color(0xFF90CAF9).copy(alpha = 0.70f) else Color(0xFF90CAF9).copy(alpha = 0.35f),
-                    fontSize = 19.sp,
-                    fontWeight = FontWeight.Medium,
-                    lineHeight = 26.sp,
-                    letterSpacing = (-0.3).sp,
+                    color = if (isPast) Color(0xFF6EE7B7).copy(alpha = 0.55f) else Color(0xFF6EE7B7).copy(alpha = 0.25f),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Normal,
+                    lineHeight = 20.sp,
+                    letterSpacing = (-0.2).sp,
                     textAlign = TextAlign.Start
                 )
             }
@@ -592,9 +609,9 @@ private fun BottomFloatingControlBar(
 ) {
     Surface(
         shape = RoundedCornerShape(26.dp),
-        color = Color(0xFF1E1E24).copy(alpha = 0.95f),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
-        shadowElevation = 10.dp,
+        color = Color(0xFF141419).copy(alpha = 0.88f),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.14f)),
+        shadowElevation = 12.dp,
         modifier = modifier
     ) {
         Row(
@@ -635,10 +652,20 @@ private fun BottomFloatingControlBar(
             // Botón de Traducción "文A"
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(if (showTranslation) Color(0xFF2E5A88) else Color(0xFF2C323B))
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(
+                        if (showTranslation) {
+                            Brush.horizontalGradient(
+                                listOf(Color(0xFF22C55E), Color(0xFF16A34A))
+                            )
+                        } else {
+                            Brush.linearGradient(
+                                listOf(Color.White.copy(alpha = 0.10f), Color.White.copy(alpha = 0.05f))
+                            )
+                        }
+                    )
                     .clickable(enabled = !isTranslating) { onToggleTranslation() }
-                    .padding(horizontal = 8.dp, vertical = 5.dp),
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
                 if (isTranslating) {
@@ -650,7 +677,7 @@ private fun BottomFloatingControlBar(
                 } else {
                     Text(
                         text = "文A",
-                        color = if (showTranslation) Color.White else Color(0xFF8AA8CE),
+                        color = if (showTranslation) Color.White else Color.White.copy(alpha = 0.75f),
                         fontSize = 12.5.sp,
                         fontWeight = FontWeight.Bold
                     )

@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material.icons.rounded.Subscriptions
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
@@ -60,6 +61,7 @@ fun StreamScreen(
     onNavigateToPlaylists: () -> Unit = {},
     onNavigateToPlaylistDetail: (String) -> Unit = {},
     onNavigateToFavoriteArtists: () -> Unit = {},
+    onNavigateToFollowedArtists: () -> Unit = {},
     onNavigateToAllArtists: () -> Unit = {}
 ) {
     val appColors = LocalAppColors.current
@@ -125,7 +127,7 @@ fun StreamScreen(
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
                         .clickable { onNavigateToFavoriteArtists() }
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -133,6 +135,23 @@ fun StreamScreen(
                         contentDescription = "Artistas favoritos",
                         tint = Color(0xFFFFD700),
                         modifier = Modifier.size(24.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+
+                // Botón Artistas que Sigues (YouTube Music Subscriptions)
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .clickable { onNavigateToFollowedArtists() }
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Subscriptions,
+                        contentDescription = "Artistas que sigues",
+                        tint = Color(0xFFFF4B4B),
+                        modifier = Modifier.size(22.dp)
                     )
                 }
                 Spacer(modifier = Modifier.width(4.dp))

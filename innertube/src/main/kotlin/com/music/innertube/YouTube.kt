@@ -1205,6 +1205,14 @@ object YouTube {
         innerTube.deletePlaylist(WEB_REMIX, playlistId)
     }
 
+    suspend fun subscribeChannel(channelId: String) = runCatching {
+        innerTube.subscribeChannel(WEB_REMIX, channelId)
+    }
+
+    suspend fun unsubscribeChannel(channelId: String) = runCatching {
+        innerTube.unsubscribeChannel(WEB_REMIX, channelId)
+    }
+
     suspend fun player(videoId: String, playlistId: String? = null, client: YouTubeClient, signatureTimestamp: Int? = null, poToken: String? = null): Result<PlayerResponse> = runCatching {
         innerTube.player(client, videoId, playlistId, signatureTimestamp, poToken).body<PlayerResponse>()
     }
