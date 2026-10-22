@@ -451,14 +451,11 @@ class OnlineMusicDownloadWorker(
                     if (artResponse.isSuccessful) {
                         val artBytes = artResponse.body?.bytes()
                         if (artBytes != null && artBytes.isNotEmpty()) {
-                            val songCoverFile = File(destinationFile.parentFile, "${destinationFile.nameWithoutExtension}.jpg")
                             val folderCoverFile = File(destinationFile.parentFile, "cover.jpg")
-                            songCoverFile.writeBytes(artBytes)
                             if (!folderCoverFile.exists()) {
                                 folderCoverFile.writeBytes(artBytes)
+                                Log.d(TAG, "Carátula HD guardada para el álbum: ${folderCoverFile.absolutePath} (${artBytes.size / 1024} KB)")
                             }
-                            StorageUtils.scanAudioFile(applicationContext, songCoverFile)
-                            Log.d(TAG, "Carátula HD descargada y guardada en: ${songCoverFile.absolutePath} (${artBytes.size / 1024} KB)")
                         }
                     }
                 }.onFailure {

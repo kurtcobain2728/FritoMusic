@@ -248,7 +248,7 @@ fun StreamAlbumDetailScreen(
                 }
 
                 // Bottom spacing
-                item { Spacer(modifier = Modifier.height(40.dp)) }
+                item { Spacer(modifier = Modifier.height(80.dp)) }
             }
 
             if (showAlbumDownloadSheet) {

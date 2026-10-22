@@ -147,14 +147,53 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         
         controllerFuture.addListener({
             mediaController = controllerFuture.get()
-            mediaController?.addListener(object : Player.Listener {
+            val controller = mediaController ?: return@addListener
+
+            // 1. Sincronizar estado base si MusicService ya está activo en segundo plano
+            _isPlaying.value = controller.isPlaying
+            _shuffleModeEnabled.value = controller.shuffleModeEnabled
+            _repeatMode.value = controller.repeatMode
+            _durationMs.value = controller.duration.coerceAtLeast(0L)
+            _positionMs.value = controller.currentPosition.coerceAtLeast(0L)
+
+            // 2. Recuperar la pista en reproducción actual
+            val initialItem = controller.currentMediaItem
+            if (initialItem != null) {
+                val id = initialItem.mediaId
+                val meta = initialItem.mediaMetadata
+                val metaExtras = meta.extras
+                val videoId = metaExtras?.getString("videoId")
+                    ?: initialItem.localConfiguration?.customCacheKey
+                    ?: videoIdsByMediaId[id]
+
+                val recoveredAudio = audioFilesMap[id] ?: AudioFile(
+                    id = id.hashCode().toLong(),
+                    title = meta.title?.toString() ?: "Desconocido",
+                    artist = meta.artist?.toString() ?: "Artista Desconocido",
+                    path = metaExtras?.getString("path") ?: initialItem.localConfiguration?.uri?.toString() ?: "",
+                    durationMs = metaExtras?.getLong("durationMs", 0L)?.takeIf { it > 0 } ?: controller.duration.coerceAtLeast(0L),
+                    sizeBytes = 0L,
+                    albumUri = meta.artworkUri?.toString(),
+                    album = meta.albumTitle?.toString() ?: metaExtras?.getString("album") ?: "Álbum Desconocido",
+                    dateAdded = 0L
+                )
+                audioFilesMap[id] = recoveredAudio
+                _currentAudio.value = recoveredAudio
+                if (!videoId.isNullOrBlank()) {
+                    videoIdsByMediaId[id] = videoId
+                    _currentVideoId.value = videoId
+                }
+                loadLyricsForCurrentAudio()
+            }
+
+            controller.addListener(object : Player.Listener {
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     _isPlaying.value = isPlaying
                     // Si algo está sonando, la racha de fallos se rompe y la
                     // canción actual recupera intentos para futuros fallos
                     if (isPlaying) {
                         consecutiveStreamFailures = 0
-                        mediaController?.currentMediaItem?.mediaId?.let { mediaId ->
+                        controller.currentMediaItem?.mediaId?.let { mediaId ->
                             videoIdsByMediaId[mediaId]?.let { videoId ->
                                 streamRecoveryAttempts.remove(videoId)
                             }
@@ -163,17 +202,42 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 }
 
                 override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                    mediaItem?.mediaId?.let { id ->
-                        _currentAudio.value = audioFilesMap[id]
-                        _currentVideoId.value = videoIdsByMediaId[id]
+                    if (mediaItem == null) {
+                        _currentAudio.value = null
+                        _currentVideoId.value = null
+                        return
                     }
-                    _durationMs.value = mediaController?.duration?.coerceAtLeast(0L) ?: 0L
+                    val id = mediaItem.mediaId
+                    val meta = mediaItem.mediaMetadata
+                    val metaExtras = meta.extras
+                    val videoId = metaExtras?.getString("videoId")
+                        ?: mediaItem.localConfiguration?.customCacheKey
+                        ?: videoIdsByMediaId[id]
+
+                    val audio = audioFilesMap[id] ?: AudioFile(
+                        id = id.hashCode().toLong(),
+                        title = meta.title?.toString() ?: "Desconocido",
+                        artist = meta.artist?.toString() ?: "Artista Desconocido",
+                        path = metaExtras?.getString("path") ?: mediaItem.localConfiguration?.uri?.toString() ?: "",
+                        durationMs = metaExtras?.getLong("durationMs", 0L)?.takeIf { it > 0 } ?: controller.duration.coerceAtLeast(0L),
+                        sizeBytes = 0L,
+                        albumUri = meta.artworkUri?.toString(),
+                        album = meta.albumTitle?.toString() ?: metaExtras?.getString("album") ?: "Álbum Desconocido",
+                        dateAdded = 0L
+                    )
+                    audioFilesMap[id] = audio
+                    _currentAudio.value = audio
+                    if (!videoId.isNullOrBlank()) {
+                        videoIdsByMediaId[id] = videoId
+                        _currentVideoId.value = videoId
+                    }
+                    _durationMs.value = controller.duration.coerceAtLeast(0L)
                     resolveCurrentIfPending()
                     loadLyricsForCurrentAudio()
                 }
 
                 override fun onPlaybackStateChanged(playbackState: Int) {
-                    _durationMs.value = mediaController?.duration?.coerceAtLeast(0L) ?: 0L
+                    _durationMs.value = controller.duration.coerceAtLeast(0L)
                 }
 
                 override fun onPlayerError(error: PlaybackException) {
@@ -241,9 +305,21 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             keys.add(key)
             audioFilesMap[key] = audio
 
+            val vid = videoIds?.getOrNull(index)
+            val extras = android.os.Bundle().apply {
+                putString("path", audio.path)
+                putString("album", audio.album)
+                if (!vid.isNullOrEmpty()) {
+                    putString("videoId", vid)
+                }
+                putLong("durationMs", audio.durationMs)
+            }
+
             val metadataBuilder = MediaMetadata.Builder()
                 .setTitle(audio.title)
                 .setArtist(audio.artist)
+                .setAlbumTitle(audio.album)
+                .setExtras(extras)
 
             if (audio.albumUri != null && audio.albumUri.isNotEmpty()) {
                 metadataBuilder.setArtworkUri(Uri.parse(audio.albumUri))
@@ -257,7 +333,6 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 else -> Uri.fromFile(File(audio.path))
             }
 
-            val vid = videoIds?.getOrNull(index)
             val builder = MediaItem.Builder()
                 .setMediaId(key)
                 .setUri(uri)

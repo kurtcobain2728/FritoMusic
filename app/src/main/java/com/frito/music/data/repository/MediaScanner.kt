@@ -120,8 +120,9 @@ class MediaScanner(private val context: Context) {
                         val parentPath = parentDir?.absolutePath
                         val folderCoverUri = if (parentPath != null) {
                             folderCoversCache.getOrPut(parentPath) {
-                                val fc = File(parentDir, "cover.jpg")
-                                if (fc.exists()) Uri.fromFile(fc).toString() else null
+                                val fc = File(parentDir, "cover.jpg").takeIf { it.exists() }
+                                    ?: File(parentDir, ".cover.jpg").takeIf { it.exists() }
+                                if (fc != null) Uri.fromFile(fc).toString() else null
                             }
                         } else null
 

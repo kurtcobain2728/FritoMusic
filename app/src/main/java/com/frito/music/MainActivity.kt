@@ -26,11 +26,20 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import android.os.Build
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.platform.LocalLayoutDirection
+import com.frito.music.utils.FastBlurTransformation
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -268,19 +277,39 @@ class MainActivity : ComponentActivity() {
                 val appColors = LocalAppColors.current
 
                 Box(modifier = Modifier.fillMaxSize()) {
-                    // Pintar fondo global si existe
+                    // Pintar fondo global si existe con soporte de blur en todos los Android (API 26+)
                     if (backgroundImageUri != null) {
+                        val currentContext = androidx.compose.ui.platform.LocalContext.current
+                        val imageRequest = remember(backgroundImageUri, backgroundBlur) {
+                            coil.request.ImageRequest.Builder(currentContext)
+                                .data(backgroundImageUri)
+                                .crossfade(true)
+                                .apply {
+                                    if (backgroundBlur > 0f && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+                                        transformations(FastBlurTransformation(radius = backgroundBlur.toInt()))
+                                    }
+                                }
+                                .build()
+                        }
+
                         AsyncImage(
-                            model = backgroundImageUri,
+                            model = imageRequest,
                             contentDescription = "Background",
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .fillMaxSize()
                                 .then(
-                                    if (backgroundBlur > 0f)
+                                    if (backgroundBlur > 0f && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
                                         Modifier.blur(radius = backgroundBlur.dp)
                                     else Modifier
                                 )
+                        )
+
+                        // Capa oscura sutil (Scrim) para máxima legibilidad de textos y controles sobre cualquier wallpaper
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.35f))
                         )
                     }
 
@@ -298,7 +327,7 @@ class MainActivity : ComponentActivity() {
                         // desactivamos el inset por defecto del Scaffold para no duplicar.
                         contentWindowInsets = WindowInsets(0, 0, 0, 0),
                         bottomBar = {
-                            Column {
+                            Column(modifier = Modifier.navigationBarsPadding()) {
                                 // MiniPlayer con animación suave de aparición/desaparición
                                 AnimatedVisibility(
                                     visible = currentAudio != null,
@@ -338,7 +367,7 @@ class MainActivity : ComponentActivity() {
                                             expandVertically(tween(AppAnimations.DURATION_MEDIUM, easing = FastOutSlowInEasing)),
                                     exit = fadeOut(tween(150)) +
                                             shrinkVertically(tween(AppAnimations.DURATION_FAST, easing = FastOutSlowInEasing))
-                                ) {
+                                 ) {
                                     val count = selectedFolders.size + selectedAudios.size
                                     HomeSelectionBottomBar(
                                         selectedCount = count,
@@ -358,8 +387,21 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.fillMaxSize(),
                         containerColor = appColors.background
                     ) { innerPadding ->
+                        val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                        val layoutDir = LocalLayoutDirection.current
                         Surface(
-                            modifier = Modifier.padding(innerPadding).fillMaxSize(),
+                            modifier = Modifier
+                                .padding(
+                                    start = innerPadding.calculateStartPadding(layoutDir),
+                                    top = innerPadding.calculateTopPadding(),
+                                    end = innerPadding.calculateEndPadding(layoutDir),
+                                    bottom = if (innerPadding.calculateBottomPadding() > 0.dp) {
+                                        innerPadding.calculateBottomPadding()
+                                    } else {
+                                        navBarBottom
+                                    }
+                                )
+                                .fillMaxSize(),
                             color = Color.Transparent
                         ) {
                             // ── Animación de subpantallas (Más → Favoritos, Ecualizador…) ──

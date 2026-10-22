@@ -418,7 +418,7 @@ fun StreamScreen(
                     if (results != null && selectedTab == StreamTab.CANCIONES) {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = 24.dp, top = 8.dp)
+                            contentPadding = PaddingValues(bottom = 80.dp, top = 8.dp)
                         ) {
                             items(results, key = { it.videoId }) { track ->
                                 StreamTrackItem(
@@ -430,7 +430,7 @@ fun StreamScreen(
                     } else if (artists != null && selectedTab == StreamTab.ARTISTAS) {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = 24.dp, top = 8.dp)
+                            contentPadding = PaddingValues(bottom = 80.dp, top = 8.dp)
                         ) {
                             items(artists, key = { it.id }) { artist ->
                                 StreamArtistItem(
@@ -444,7 +444,7 @@ fun StreamScreen(
                         if (playlists != null && playlists.isNotEmpty()) {
                             LazyColumn(
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(bottom = 24.dp, top = 8.dp)
+                                contentPadding = PaddingValues(bottom = 80.dp, top = 8.dp)
                             ) {
                                 items(playlists, key = { it.id }) { playlist ->
                                     StreamPlaylistItem(

@@ -456,7 +456,7 @@ fun StreamArtistDetailScreen(
                 }
 
                 // Bottom spacing
-                item { Spacer(modifier = Modifier.height(60.dp)) }
+                item { Spacer(modifier = Modifier.height(90.dp)) }
             }
         }
     }
