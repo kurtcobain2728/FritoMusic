@@ -47,6 +47,7 @@ import coil.compose.AsyncImage
 import com.frito.music.data.models.Playlist
 import com.frito.music.ui.components.BottomNavBar
 import com.frito.music.ui.components.HomeSelectionBottomBar
+import com.frito.music.ui.components.MiniPlayer
 import com.frito.music.ui.screens.*
 import com.frito.music.ui.theme.FritoMusicTheme
 import com.frito.music.ui.viewmodels.HomeViewModel
