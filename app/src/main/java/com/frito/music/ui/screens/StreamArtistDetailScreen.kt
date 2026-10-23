@@ -227,7 +227,7 @@ fun StreamArtistDetailScreen(
                 // Actions Bar: Suscribirse + Favorito
                 item {
                     val channelId = artist.channelId?.takeIf { it.isNotBlank() } ?: artist.id
-                    val isSubscribed = subscribedChannelIds.contains(channelId)
+                    val isSubscribed = streamViewModel.isSubscribed(artist.id, channelId)
                     var isSubscribing by remember { mutableStateOf(false) }
 
                     Row(
@@ -248,7 +248,7 @@ fun StreamArtistDetailScreen(
                                     haptics.medium()
                                     isSubscribing = true
                                     scope.launch {
-                                        val newState = streamViewModel.toggleSubscribeArtist(channelId, artist.title)
+                                        val newState = streamViewModel.toggleSubscribeArtist(artist)
                                         isSubscribing = false
                                         snackbarHostState.showSnackbar(
                                             if (newState) "Te has suscrito a ${artist.title}" else "Suscripción cancelada"

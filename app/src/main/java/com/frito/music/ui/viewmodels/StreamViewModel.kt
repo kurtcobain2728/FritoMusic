@@ -8,6 +8,7 @@ import com.frito.music.data.models.TasteProfile
 import com.frito.music.data.network.yt.YouTubeRepository
 import com.frito.music.data.repository.FavoriteArtistsManager
 import com.frito.music.data.repository.StreamHistoryManager
+import com.frito.music.data.repository.SubscriptionsManager
 import com.music.innertube.models.Album
 import com.music.innertube.models.AlbumItem
 import com.music.innertube.models.Artist
@@ -150,12 +151,9 @@ class StreamViewModel : ViewModel() {
     private val _isLoadingFeatured = MutableStateFlow(false)
     val isLoadingFeatured: StateFlow<Boolean> = _isLoadingFeatured.asStateFlow()
 
-    // Canales suscritos de Artistas
-    private val _subscribedChannelIds = MutableStateFlow<Set<String>>(emptySet())
-    val subscribedChannelIds: StateFlow<Set<String>> = _subscribedChannelIds.asStateFlow()
-
-    private val _subscribedArtists = MutableStateFlow<List<ArtistItem>>(emptyList())
-    val subscribedArtists: StateFlow<List<ArtistItem>> = _subscribedArtists.asStateFlow()
+    // Canales suscritos de Artistas (respaldados localmente en SubscriptionsManager y sincronizados con YouTube)
+    val subscribedChannelIds: StateFlow<Set<String>> = SubscriptionsManager.subscribedChannelIds
+    val subscribedArtists: StateFlow<List<ArtistItem>> = SubscriptionsManager.subscribedArtists
 
     private val _isLoadingSubscribed = MutableStateFlow(false)
     val isLoadingSubscribed: StateFlow<Boolean> = _isLoadingSubscribed.asStateFlow()
@@ -925,64 +923,31 @@ class StreamViewModel : ViewModel() {
     }
 
     fun loadSubscribedArtists(forceRefresh: Boolean = false) {
-        if (!forceRefresh && _subscribedArtists.value.isNotEmpty()) return
         viewModelScope.launch {
             _isLoadingSubscribed.value = true
-            val result = withContext(Dispatchers.IO) {
-                YouTubeRepository.getSubscribedArtists()
-            }
-            result.onSuccess { artists ->
-                _subscribedArtists.value = artists
-                val ids = artists.map { it.channelId ?: it.id }.toSet()
-                _subscribedChannelIds.value = _subscribedChannelIds.value + ids
-            }
+            SubscriptionsManager.syncWithYouTube()
             _isLoadingSubscribed.value = false
         }
     }
 
-    fun isSubscribed(channelId: String): Boolean {
-        return _subscribedChannelIds.value.contains(channelId)
+    fun isSubscribed(artistId: String, channelId: String? = null): Boolean {
+        return SubscriptionsManager.isSubscribed(artistId, channelId)
     }
 
-    suspend fun toggleSubscribeArtist(channelId: String, artistName: String): Boolean {
-        val currentlySubscribed = _subscribedChannelIds.value.contains(channelId)
-        val newSubscribed = !currentlySubscribed
+    fun toggleSubscribeArtist(artist: ArtistItem): Boolean {
+        return SubscriptionsManager.toggleSubscription(artist)
+    }
 
-        // Actualización optimista
-        val updatedSet = _subscribedChannelIds.value.toMutableSet()
-        if (newSubscribed) {
-            updatedSet.add(channelId)
-        } else {
-            updatedSet.remove(channelId)
-        }
-        _subscribedChannelIds.value = updatedSet
-
-        val result = withContext(Dispatchers.IO) {
-            if (newSubscribed) {
-                YouTubeRepository.subscribeChannel(channelId)
-            } else {
-                YouTubeRepository.unsubscribeChannel(channelId)
-            }
-        }
-
-        if (result.isFailure) {
-            // Revertir optimista si falló
-            val revertedSet = _subscribedChannelIds.value.toMutableSet()
-            if (currentlySubscribed) {
-                revertedSet.add(channelId)
-            } else {
-                revertedSet.remove(channelId)
-            }
-            _subscribedChannelIds.value = revertedSet
-            return currentlySubscribed
-        } else {
-            if (!newSubscribed) {
-                _subscribedArtists.value = _subscribedArtists.value.filterNot { (it.channelId ?: it.id) == channelId }
-            } else {
-                loadSubscribedArtists(forceRefresh = true)
-            }
-            return newSubscribed
-        }
+    fun toggleSubscribeArtist(channelId: String, artistName: String): Boolean {
+        val dummy = ArtistItem(
+            id = channelId,
+            title = artistName,
+            thumbnail = null,
+            channelId = channelId,
+            shuffleEndpoint = null,
+            radioEndpoint = null
+        )
+        return SubscriptionsManager.toggleSubscription(dummy)
     }
 
     fun loadPlaylistSongs(playlistId: String, forceRefresh: Boolean = false) {

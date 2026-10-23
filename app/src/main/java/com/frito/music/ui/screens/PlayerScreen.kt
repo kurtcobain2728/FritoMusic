@@ -16,8 +16,14 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import android.view.ViewGroup
+import android.webkit.PermissionRequest
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.rememberScrollState
@@ -124,6 +130,8 @@ fun PlayerScreen(
     val lyricsState by viewModel.lyricsState.collectAsState()
     val playbackSpeed by viewModel.playbackSpeed.collectAsState()
     val playbackPitch by viewModel.playbackPitch.collectAsState()
+    val currentQueue by viewModel.currentQueue.collectAsState()
+    val currentQueueIndex by viewModel.currentQueueIndex.collectAsState()
 
     var showLyrics by remember { mutableStateOf(false) }
     var showPlaylistSheet by remember { mutableStateOf(false) }
@@ -133,7 +141,8 @@ fun PlayerScreen(
     var showDownloadQualitySheet by remember { mutableStateOf(false) }
     var showNerdStatsSheet by remember { mutableStateOf(false) }
     var showSpeedPitchSheet by remember { mutableStateOf(false) }
-    var isVideoMode by remember(currentVideoId) { mutableStateOf(currentVideoId != null) }
+    var showQueueSheet by remember { mutableStateOf(false) }
+    var isVideoMode by remember(currentVideoId) { mutableStateOf(false) }
 
     val appColors = LocalAppColors.current
     val haptics = rememberAppHaptics()
@@ -431,84 +440,196 @@ fun PlayerScreen(
                 }
             }
 
-            // Carátula 3D con Scale Punch y Aura Esmeralda Dinámica
-            val albumArtScale by animateFloatAsState(
-                targetValue = if (isPlaying) 1.0f else 0.92f,
-                animationSpec = AppAnimations.fluidPlayerTween,
-                label = "albumArtScale"
-            )
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp)
-                    .aspectRatio(1f)
-                    .scale(albumArtScale)
-                    .glowShadow(
-                        color = Color.Black,
-                        alpha = if (isDark) 0.55f else 0.18f,
-                        blurRadius = 36.dp,
-                        offsetY = 16.dp,
-                        shape = RoundedCornerShape(28.dp)
-                    )
-                    .then(
-                        if (isPlaying) {
-                            Modifier.glowShadow(
-                                color = Glassmorphism.emeraldAccent,
-                                alpha = 0.28f,
-                                blurRadius = 36.dp,
-                                spreadRadius = 2.dp,
-                                offsetY = 10.dp,
-                                shape = RoundedCornerShape(28.dp)
-                            )
-                        } else Modifier
-                    )
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(appColors.surface)
-                    .border(
-                        width = 1.2.dp,
-                        color = Color.White.copy(alpha = if (isDark) 0.14f else 0.25f),
-                        shape = RoundedCornerShape(28.dp)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                if (isVideoMode && currentVideoId != null) {
-                    AndroidView(
-                        factory = { ctx ->
-                            WebView(ctx).apply {
-                                layoutParams = ViewGroup.LayoutParams(
-                                    ViewGroup.LayoutParams.MATCH_PARENT,
-                                    ViewGroup.LayoutParams.MATCH_PARENT
+            if (isVideoMode && currentVideoId != null) {
+                // Reproductor de video oficial que reemplaza a la carátula en el centro
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp)
+                        .aspectRatio(16f / 9f)
+                        .glowShadow(
+                            color = Color.Black,
+                            alpha = if (isDark) 0.55f else 0.20f,
+                            blurRadius = 36.dp,
+                            offsetY = 16.dp,
+                            shape = RoundedCornerShape(24.dp)
+                        )
+                        .then(
+                            if (isPlaying) {
+                                Modifier.glowShadow(
+                                    color = Glassmorphism.emeraldAccent,
+                                    alpha = 0.25f,
+                                    blurRadius = 36.dp,
+                                    spreadRadius = 1.dp,
+                                    offsetY = 8.dp,
+                                    shape = RoundedCornerShape(24.dp)
                                 )
-                                settings.javaScriptEnabled = true
-                                settings.domStorageEnabled = true
-                                settings.mediaPlaybackRequiresUserGesture = false
-                                webViewClient = WebViewClient()
-                                val html = """
-                                    <!DOCTYPE html>
-                                    <html>
-                                    <head>
-                                        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-                                        <style>
-                                            body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-                                            iframe { width: 100%; height: 100%; border: none; }
-                                        </style>
-                                    </head>
-                                    <body>
-                                        <iframe 
-                                            src="https://www.youtube.com/embed/$currentVideoId?autoplay=1&mute=1&playsinline=1&controls=1&fs=0&rel=0" 
-                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                            allowfullscreen>
-                                        </iframe>
-                                    </body>
-                                    </html>
-                                """.trimIndent()
-                                loadDataWithBaseURL("https://www.youtube.com", html, "text/html", "UTF-8", null)
-                            }
-                        },
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
+                            } else Modifier
+                        )
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(Color.Black)
+                        .border(
+                            width = 1.dp,
+                            color = if (isDark) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.10f),
+                            shape = RoundedCornerShape(24.dp)
+                        )
+                ) {
+                    key(currentVideoId) {
+                        AndroidView(
+                            factory = { ctx ->
+                                WebView(ctx).apply {
+                                    layoutParams = ViewGroup.LayoutParams(
+                                        ViewGroup.LayoutParams.MATCH_PARENT,
+                                        ViewGroup.LayoutParams.MATCH_PARENT
+                                    )
+                                    setBackgroundColor(android.graphics.Color.BLACK)
+                                    settings.apply {
+                                        javaScriptEnabled = true
+                                        domStorageEnabled = true
+                                        databaseEnabled = true
+                                        mediaPlaybackRequiresUserGesture = false
+                                        allowContentAccess = true
+                                        allowFileAccess = true
+                                        loadWithOverviewMode = true
+                                        useWideViewPort = true
+                                        mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                                        cacheMode = WebSettings.LOAD_DEFAULT
+                                        val defaultUa = userAgentString
+                                        userAgentString = defaultUa.replace("; wv", "").replace("Version/4.0 ", "")
+                                    }
+                                    addJavascriptInterface(
+                                        object {
+                                            @android.webkit.JavascriptInterface
+                                            fun onVideoError(code: Int) {
+                                                coroutineScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                                                    isVideoMode = false
+                                                    android.widget.Toast.makeText(
+                                                        context,
+                                                        "El video no permite reproducción externa, mostrando carátula",
+                                                        android.widget.Toast.LENGTH_SHORT
+                                                    ).show()
+                                                }
+                                            }
+                                        },
+                                        "CanvasBridge"
+                                    )
+                                    webChromeClient = object : WebChromeClient() {
+                                        override fun onPermissionRequest(request: PermissionRequest?) {
+                                            request?.grant(request.resources)
+                                        }
+                                    }
+                                    webViewClient = object : WebViewClient() {
+                                        override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                                            val url = request?.url?.toString().orEmpty()
+                                            if (url.contains("youtube.com") ||
+                                                url.contains("googlevideo.com") ||
+                                                url.contains("ytimg.com") ||
+                                                url.contains("google.com") ||
+                                                url.contains("youtube-nocookie.com") ||
+                                                url.startsWith("data:") ||
+                                                url.startsWith("blob:")) {
+                                                return false
+                                            }
+                                            return true
+                                        }
+                                    }
+                                    val html = """
+                                        <!DOCTYPE html>
+                                        <html>
+                                        <head>
+                                            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+                                            <style>
+                                                * { margin: 0; padding: 0; box-sizing: border-box; }
+                                                html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
+                                                iframe { width: 100%; height: 100%; border: none; }
+                                            </style>
+                                        </head>
+                                        <body>
+                                            <iframe
+                                                id="player"
+                                                src="https://www.youtube.com/embed/$currentVideoId?autoplay=1&mute=1&controls=1&playsinline=1&rel=0&modestbranding=1&enablejsapi=1&origin=https://www.youtube.com"
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                allowfullscreen>
+                                            </iframe>
+                                            <script>
+                                                var iframe = document.getElementById('player');
+                                                function sendCmd(func) {
+                                                    if (iframe && iframe.contentWindow) {
+                                                        iframe.contentWindow.postMessage(JSON.stringify({
+                                                            'event': 'command',
+                                                            'func': func,
+                                                            'args': []
+                                                        }), '*');
+                                                    }
+                                                }
+                                                window.addEventListener('message', function(e) {
+                                                    try {
+                                                        var d = JSON.parse(e.data);
+                                                        if (d.event === 'onError' && window.CanvasBridge) {
+                                                            window.CanvasBridge.onVideoError(d.info || 150);
+                                                        }
+                                                    } catch(err) {}
+                                                });
+                                            </script>
+                                        </body>
+                                        </html>
+                                    """.trimIndent()
+                                    loadDataWithBaseURL("https://www.youtube.com", html, "text/html", "UTF-8", null)
+                                }
+                            },
+                            update = { webView ->
+                                if (isPlaying) {
+                                    webView.evaluateJavascript("sendCmd('playVideo')", null)
+                                } else {
+                                    webView.evaluateJavascript("sendCmd('pauseVideo')", null)
+                                }
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
+            } else {
+                // Carátula 3D con Scale Punch y Aura Esmeralda Dinámica
+                val albumArtScale by animateFloatAsState(
+                    targetValue = if (isPlaying) 1.0f else 0.92f,
+                    animationSpec = AppAnimations.fluidPlayerTween,
+                    label = "albumArtScale"
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp)
+                        .aspectRatio(1f)
+                        .scale(albumArtScale)
+                        .glowShadow(
+                            color = Color.Black,
+                            alpha = if (isDark) 0.55f else 0.18f,
+                            blurRadius = 36.dp,
+                            offsetY = 16.dp,
+                            shape = RoundedCornerShape(28.dp)
+                        )
+                        .then(
+                            if (isPlaying) {
+                                Modifier.glowShadow(
+                                    color = Glassmorphism.emeraldAccent,
+                                    alpha = 0.28f,
+                                    blurRadius = 36.dp,
+                                    spreadRadius = 2.dp,
+                                    offsetY = 10.dp,
+                                    shape = RoundedCornerShape(28.dp)
+                                )
+                            } else Modifier
+                        )
+                        .clip(RoundedCornerShape(28.dp))
+                        .background(appColors.surface)
+                        .border(
+                            width = 1.2.dp,
+                            color = Color.White.copy(alpha = if (isDark) 0.14f else 0.25f),
+                            shape = RoundedCornerShape(28.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
                     Icon(
                         imageVector = Icons.Default.MusicNote,
                         contentDescription = null,
@@ -866,15 +987,15 @@ fun PlayerScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Botones Cápsula de Cristal: Velocidad & Tono + Letra en tiempo real
+            // Botones Cápsula de Cristal: Velocidad & Tono + Letra + Lista
             Row(
                 modifier = Modifier
                     .padding(bottom = 12.dp)
                     .fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Botón Velocidad y Tono (Estilo Musicolet)
+                // 1. Botón Velocidad y Tono (Estilo Musicolet)
                 Box(
                     modifier = Modifier
                         .glowShadow(
@@ -901,16 +1022,16 @@ fun PlayerScreen(
                             haptics.light()
                             showSpeedPitchSheet = true
                         }
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                        .padding(horizontal = 12.dp, vertical = 9.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(22.dp)
+                                .size(20.dp)
                                 .clip(CircleShape)
                                 .background(
                                     if (playbackSpeed != 1.0f || playbackPitch != 1.0f)
@@ -925,20 +1046,20 @@ fun PlayerScreen(
                                 tint = if (playbackSpeed != 1.0f || playbackPitch != 1.0f)
                                     Glassmorphism.emeraldAccent
                                 else Color(0xFF60A5FA),
-                                modifier = Modifier.size(14.dp)
+                                modifier = Modifier.size(13.dp)
                             )
                         }
                         Text(
                             text = String.format(java.util.Locale.US, "%.2fx", playbackSpeed),
                             color = appColors.textPrimary,
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = (-0.2).sp
                         )
                     }
                 }
 
-                // Botón Letra en tiempo real
+                // 2. Botón Letra en tiempo real
                 Box(
                     modifier = Modifier
                         .glowShadow(
@@ -959,16 +1080,16 @@ fun PlayerScreen(
                             haptics.light()
                             showLyrics = true
                         }
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                        .padding(horizontal = 12.dp, vertical = 9.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(22.dp)
+                                .size(20.dp)
                                 .clip(CircleShape)
                                 .background(Color(0xFF10B981).copy(alpha = 0.20f)),
                             contentAlignment = Alignment.Center
@@ -977,13 +1098,13 @@ fun PlayerScreen(
                                 imageVector = Icons.Rounded.Lyrics,
                                 contentDescription = null,
                                 tint = Color(0xFF10B981),
-                                modifier = Modifier.size(14.dp)
+                                modifier = Modifier.size(13.dp)
                             )
                         }
                         Text(
                             text = "Letra",
                             color = appColors.textPrimary,
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = (-0.2).sp
                         )
@@ -991,8 +1112,79 @@ fun PlayerScreen(
                             imageVector = Icons.Rounded.KeyboardArrowUp,
                             contentDescription = null,
                             tint = appColors.textSecondary.copy(alpha = 0.8f),
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(16.dp)
                         )
+                    }
+                }
+
+                // 3. Botón Lista (Cola de Reproducción)
+                Box(
+                    modifier = Modifier
+                        .glowShadow(
+                            color = Color.Black,
+                            alpha = if (isDark) 0.30f else 0.12f,
+                            blurRadius = 16.dp,
+                            offsetY = 4.dp,
+                            shape = RoundedCornerShape(24.dp)
+                        )
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(
+                            if (showQueueSheet) Glassmorphism.emeraldAccent.copy(alpha = 0.18f)
+                            else Color.White.copy(alpha = 0.08f)
+                        )
+                        .border(
+                            width = 1.dp,
+                            color = if (showQueueSheet) Glassmorphism.emeraldAccent.copy(alpha = 0.40f)
+                            else Color.White.copy(alpha = 0.14f),
+                            shape = RoundedCornerShape(24.dp)
+                        )
+                        .clickable {
+                            haptics.light()
+                            showQueueSheet = true
+                        }
+                        .padding(horizontal = 12.dp, vertical = 9.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF8B5CF6).copy(alpha = 0.20f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.QueueMusic,
+                                contentDescription = null,
+                                tint = Color(0xFFA78BFA),
+                                modifier = Modifier.size(13.dp)
+                            )
+                        }
+                        Text(
+                            text = "Lista",
+                            color = appColors.textPrimary,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = (-0.2).sp
+                        )
+                        if (currentQueue.isNotEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(appColors.accent.copy(alpha = 0.25f))
+                                    .padding(horizontal = 5.dp, vertical = 1.dp)
+                            ) {
+                                Text(
+                                    text = "${currentQueue.size}",
+                                    color = appColors.accent,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -1450,6 +1642,185 @@ fun PlayerScreen(
                             inactiveTrackColor = if (isDark) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.10f)
                         )
                     )
+                }
+            }
+        }
+
+        // Bottom Sheet: Cola de Reproducción ("Lista")
+        if (showQueueSheet) {
+            @OptIn(ExperimentalMaterial3Api::class)
+            ModalBottomSheet(
+                onDismissRequest = { showQueueSheet = false },
+                containerColor = appColors.surface,
+                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                        .padding(bottom = 32.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "Cola de reproducción",
+                                color = appColors.textPrimary,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "${currentQueue.size} pista${if (currentQueue.size != 1) "s" else ""}",
+                                color = appColors.textSecondary,
+                                fontSize = 13.sp
+                            )
+                        }
+                        IconButton(onClick = { showQueueSheet = false }) {
+                            Icon(
+                                imageVector = Icons.Rounded.Close,
+                                contentDescription = "Cerrar",
+                                tint = appColors.textSecondary
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    if (currentQueue.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(160.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No hay canciones en la cola",
+                                color = appColors.textSecondary,
+                                fontSize = 15.sp
+                            )
+                        }
+                    } else {
+                        val listState = rememberLazyListState()
+                        LaunchedEffect(Unit) {
+                            if (currentQueueIndex in currentQueue.indices) {
+                                listState.animateScrollToItem(currentQueueIndex)
+                            }
+                        }
+
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 420.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            itemsIndexed(
+                                currentQueue,
+                                key = { index, item -> "${item.path}_$index" }
+                            ) { index, item ->
+                                val isCurrent = (index == currentQueueIndex) || (item.path == currentAudio?.path)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(
+                                            if (isCurrent) appColors.accent.copy(alpha = 0.15f)
+                                            else Color.White.copy(alpha = if (isDark) 0.04f else 0.02f)
+                                        )
+                                        .border(
+                                            width = if (isCurrent) 1.2.dp else 0.dp,
+                                            color = if (isCurrent) appColors.accent.copy(alpha = 0.55f) else Color.Transparent,
+                                            shape = RoundedCornerShape(14.dp)
+                                        )
+                                        .clickable {
+                                            haptics.light()
+                                            viewModel.playQueueIndex(index)
+                                        }
+                                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier.width(28.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (isCurrent && isPlaying) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.PlayArrow,
+                                                contentDescription = "Sonando",
+                                                tint = appColors.accent,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        } else {
+                                            Text(
+                                                text = "${index + 1}",
+                                                color = if (isCurrent) appColors.accent else appColors.textSecondary,
+                                                fontSize = 12.sp,
+                                                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    Box(
+                                        modifier = Modifier
+                                            .size(42.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(appColors.surface),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (item.albumUri != null) {
+                                            AsyncImage(
+                                                model = item.albumUri,
+                                                contentDescription = null,
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        } else {
+                                            Icon(
+                                                imageVector = Icons.Default.MusicNote,
+                                                contentDescription = null,
+                                                tint = appColors.textSecondary.copy(alpha = 0.4f),
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(12.dp))
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = item.title,
+                                            color = if (isCurrent) appColors.accent else appColors.textPrimary,
+                                            fontSize = 14.sp,
+                                            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = item.artist,
+                                            color = appColors.textSecondary,
+                                            fontSize = 12.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+
+                                    if (item.durationMs > 0) {
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = formatDuration(item.durationMs),
+                                            color = appColors.textSecondary,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

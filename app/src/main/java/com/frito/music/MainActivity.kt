@@ -99,6 +99,7 @@ class MainActivity : ComponentActivity() {
         com.frito.music.data.repository.YouTubeLoginManager.init(this)
         com.frito.music.data.repository.YouTubeLoginManager.loadLoginToYouTube()
         com.frito.music.data.repository.FavoriteArtistsManager.init(this)
+        com.frito.music.data.repository.SubscriptionsManager.init(this)
         com.frito.music.data.repository.StreamHistoryManager.init(this)
         com.frito.music.data.repository.HiddenItemsManager.init(this)
         com.frito.music.data.repository.CustomNamesManager.init(this)

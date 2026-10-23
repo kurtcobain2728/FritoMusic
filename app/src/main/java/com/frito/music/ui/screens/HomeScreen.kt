@@ -81,9 +81,14 @@ fun HomeScreen(
         }
     }
 
-    // Interceptar el botón Atrás del sistema si el modo selección está activo
+    // Interceptar el botón Atrás del sistema si el modo selección está activo:
+    // Si estamos dentro de una carpeta, subir de carpeta; solo salir de selección si ya estamos en raíz
     BackHandler(enabled = isSelectionMode) {
-        homeViewModel.exitSelectionMode()
+        if (currentNode?.path != "/" && currentNode != null) {
+            homeViewModel.navigateUp()
+        } else {
+            homeViewModel.exitSelectionMode()
+        }
     }
 
     val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -144,8 +149,7 @@ fun HomeScreen(
             // ── Cabecera según el modo (Normal vs Selección Múltiple) ──
             if (isSelectionMode) {
                 val totalSelected = selectedFolderPaths.size + selectedAudioPaths.size
-                val totalVisible = subfolders.size + audios.size
-                val isAllSelected = totalSelected > 0 && totalSelected == totalVisible
+                val isAllSelected = audios.isNotEmpty() && audios.all { selectedAudioPaths.contains(it.path) }
 
                 Row(
                     modifier = Modifier
@@ -153,6 +157,20 @@ fun HomeScreen(
                         .padding(bottom = 20.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    if (currentNode?.path != "/" && currentNode != null) {
+                        IconButton(
+                            onClick = {
+                                homeViewModel.navigateUp()
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Subir de carpeta",
+                                tint = appColors.textPrimary
+                            )
+                        }
+                    }
+
                     IconButton(
                         onClick = {
                             homeViewModel.exitSelectionMode()
@@ -180,7 +198,7 @@ fun HomeScreen(
                             if (isAllSelected) {
                                 homeViewModel.deselectAll()
                             } else {
-                                homeViewModel.selectAll(subfolders.map { it.path }, audios.map { it.path })
+                                homeViewModel.selectAll(emptyList(), audios.map { it.path })
                             }
                         }
                     ) {
@@ -258,11 +276,7 @@ fun HomeScreen(
                             isSelectionMode = isSelectionMode,
                             isSelected = isSelected,
                             onClick = {
-                                if (isSelectionMode) {
-                                    homeViewModel.toggleFolder(folder.path)
-                                } else {
-                                    homeViewModel.navigateToFolder(folder.name)
-                                }
+                                homeViewModel.navigateToFolder(folder.name)
                             },
                             onLongClick = {
                                 if (isSelectionMode) {
@@ -797,10 +811,10 @@ fun FolderCard(
                 )
             }
 
-            if (isSelectionMode) {
+            if (isSelectionMode && isSelected) {
                 Checkbox(
-                    checked = isSelected,
-                    onCheckedChange = { onClick() },
+                    checked = true,
+                    onCheckedChange = { onLongClick() },
                     colors = CheckboxDefaults.colors(
                         checkedColor = appColors.accent,
                         uncheckedColor = appColors.textSecondary
@@ -809,7 +823,7 @@ fun FolderCard(
             } else {
                 Icon(
                     imageVector = Icons.Default.ChevronRight,
-                    contentDescription = "Go",
+                    contentDescription = "Abrir carpeta",
                     tint = appColors.textSecondary
                 )
             }

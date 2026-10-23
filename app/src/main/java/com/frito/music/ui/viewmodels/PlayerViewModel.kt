@@ -44,6 +44,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val _currentAudio = MutableStateFlow<AudioFile?>(null)
     val currentAudio = _currentAudio.asStateFlow()
 
+    private val _currentQueue = MutableStateFlow<List<AudioFile>>(emptyList())
+    val currentQueue: StateFlow<List<AudioFile>> = _currentQueue.asStateFlow()
+
+    private val _currentQueueIndex = MutableStateFlow(0)
+    val currentQueueIndex: StateFlow<Int> = _currentQueueIndex.asStateFlow()
+
     private val lyricsRepository = LyricsRepository(application)
     private val _lyricsState = MutableStateFlow<LyricsUiState>(LyricsUiState.Idle)
     val lyricsState: StateFlow<LyricsUiState> = _lyricsState.asStateFlow()
@@ -194,6 +200,30 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 loadLyricsForCurrentAudio()
             }
 
+            _currentQueueIndex.value = controller.currentMediaItemIndex
+            if (_currentQueue.value.isEmpty() && controller.mediaItemCount > 0) {
+                val list = mutableListOf<AudioFile>()
+                for (i in 0 until controller.mediaItemCount) {
+                    val item = controller.getMediaItemAt(i)
+                    val id = item.mediaId
+                    val meta = item.mediaMetadata
+                    val metaExtras = meta.extras
+                    val recovered = audioFilesMap[id] ?: AudioFile(
+                        id = id.hashCode().toLong(),
+                        title = meta.title?.toString() ?: "Desconocido",
+                        artist = meta.artist?.toString() ?: "Artista Desconocido",
+                        path = metaExtras?.getString("path") ?: item.localConfiguration?.uri?.toString() ?: "",
+                        durationMs = metaExtras?.getLong("durationMs", 0L)?.takeIf { it > 0 } ?: 0L,
+                        sizeBytes = 0L,
+                        albumUri = meta.artworkUri?.toString(),
+                        album = meta.albumTitle?.toString() ?: metaExtras?.getString("album") ?: "Álbum Desconocido",
+                        dateAdded = 0L
+                    )
+                    list.add(recovered)
+                }
+                _currentQueue.value = list
+            }
+
             controller.addListener(object : Player.Listener {
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     _isPlaying.value = isPlaying
@@ -246,6 +276,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                         videoIdsByMediaId[id] = videoId
                         _currentVideoId.value = videoId
                     }
+                    _currentQueueIndex.value = controller.currentMediaItemIndex
                     _durationMs.value = controller.duration.coerceAtLeast(0L)
                     resolveCurrentIfPending()
                     loadLyricsForCurrentAudio()
@@ -359,6 +390,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         alternativeOnlyVideoIds.clear()
         consecutiveStreamFailures = 0
         _currentVideoId.value = null
+        _currentQueue.value = audios
+        _currentQueueIndex.value = startIndex
 
         val keys = mutableListOf<String>()
         val mediaItems = audios.mapIndexed { index, audio ->
@@ -866,6 +899,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         audioFilesMap.clear()
         _currentAudio.value = null
         _currentVideoId.value = null
+        _currentQueue.value = emptyList()
+        _currentQueueIndex.value = 0
         _isPlaying.value = false
         _progress.value = 0f
         _positionMs.value = 0L
@@ -906,6 +941,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun skipPrevious() {
         mediaController?.seekToPreviousMediaItem()
+    }
+
+    fun playQueueIndex(index: Int) {
+        val controller = mediaController ?: return
+        if (index in 0 until controller.mediaItemCount) {
+            controller.seekToDefaultPosition(index)
+            controller.prepare()
+            controller.play()
+        }
     }
 
     fun seekTo(progress: Float) {

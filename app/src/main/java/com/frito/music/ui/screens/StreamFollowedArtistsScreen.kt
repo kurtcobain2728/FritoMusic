@@ -1,8 +1,10 @@
 package com.frito.music.ui.screens
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -21,6 +23,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import kotlinx.coroutines.launch
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -46,6 +49,7 @@ fun StreamFollowedArtistsScreen(
 ) {
     val appColors = LocalAppColors.current
     val haptics = rememberAppHaptics()
+    val scope = rememberCoroutineScope()
 
     val subscribedArtists by streamViewModel.subscribedArtists.collectAsState()
     val isLoading by streamViewModel.isLoadingSubscribed.collectAsState()
@@ -100,7 +104,7 @@ fun StreamFollowedArtistsScreen(
                 )
                 if (subscribedArtists.isNotEmpty()) {
                     Text(
-                        text = "${subscribedArtists.size} ${if (subscribedArtists.size == 1) "canal suscrito" else "canales suscritos"} en YouTube",
+                        text = "${subscribedArtists.size} ${if (subscribedArtists.size == 1) "canal suscrito" else "canales suscritos"}",
                         color = appColors.textSecondary,
                         fontSize = 12.sp
                     )
@@ -289,6 +293,10 @@ fun StreamFollowedArtistsScreen(
                             onClick = {
                                 haptics.light()
                                 onArtistClick(artist.id)
+                            },
+                            onUnsubscribe = {
+                                haptics.medium()
+                                streamViewModel.toggleSubscribeArtist(artist)
                             }
                         )
                     }
@@ -298,18 +306,64 @@ fun StreamFollowedArtistsScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FollowedArtistItemCard(
     artist: ArtistItem,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onUnsubscribe: () -> Unit = {}
 ) {
     val appColors = LocalAppColors.current
+    val haptics = rememberAppHaptics()
+    var showConfirmDialog by remember { mutableStateOf(false) }
+
+    if (showConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDialog = false },
+            title = {
+                Text(
+                    text = "¿Dejar de seguir?",
+                    color = appColors.textPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "¿Quieres cancelar tu suscripción a \"${artist.title}\"?",
+                    color = appColors.textSecondary
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showConfirmDialog = false
+                        onUnsubscribe()
+                    }
+                ) {
+                    Text("Dejar de seguir", color = Color(0xFFFF4B4B), fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDialog = false }) {
+                    Text("Cancelar", color = appColors.textSecondary)
+                }
+            },
+            containerColor = if (appColors.isDark) Color(0xFF22222E) else Color(0xFFF2F2F7),
+            shape = RoundedCornerShape(20.dp)
+        )
+    }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = {
+                    haptics.medium()
+                    showConfirmDialog = true
+                }
+            )
     ) {
         // Circular Avatar
         Box(
@@ -345,9 +399,9 @@ private fun FollowedArtistItemCard(
                 modifier = Modifier
                     .size(22.dp)
                     .align(Alignment.BottomEnd)
-                    .clip(CircleShape)
-                    .background(Color(0xFFFF0000))
-                    .border(1.5.dp, appColors.background, CircleShape),
+                .clip(CircleShape)
+                .background(Color(0xFFFF0000))
+                .border(1.5.dp, appColors.background, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
