@@ -151,6 +151,13 @@ fun YouTubeLoginScreen(
                                         YouTube.dataSyncId = dSyncId.ifBlank { null }
                                         YouTube.visitorData = vData.ifBlank { null }
 
+                                        // Sincronizar suscripciones en segundo plano
+                                        coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                            runCatching {
+                                                com.frito.music.data.repository.SubscriptionsManager.syncWithYouTube()
+                                            }
+                                        }
+
                                         // Validar llamada real a InnerTube y obtener foto de perfil y nombre
                                         var accountResult = YouTube.accountInfo()
                                         if (accountResult.isFailure) {

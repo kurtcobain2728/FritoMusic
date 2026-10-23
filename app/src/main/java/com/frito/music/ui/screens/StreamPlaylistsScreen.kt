@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.QueueMusic
 import androidx.compose.material3.*
@@ -70,7 +71,9 @@ fun StreamPlaylistsScreen(
     }
 
     LaunchedEffect(selectedTab) {
-        if (selectedTab == 1 && featuredPlaylists.isEmpty()) {
+        if (selectedTab == 0) {
+            streamViewModel.loadUserPlaylists()
+        } else if (selectedTab == 1 && featuredPlaylists.isEmpty()) {
             streamViewModel.loadFeaturedPlaylists()
         }
     }
@@ -98,6 +101,21 @@ fun StreamPlaylistsScreen(
                     text = if (selectedTab == 0) "Tus colecciones de YouTube Music" else "Las mejores listas seleccionadas",
                     color = appColors.textSecondary,
                     fontSize = 13.sp
+                )
+            }
+
+            IconButton(onClick = {
+                haptics.medium()
+                if (selectedTab == 0) {
+                    streamViewModel.loadUserPlaylists()
+                } else {
+                    streamViewModel.loadFeaturedPlaylists(forceRefresh = true)
+                }
+            }) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Actualizar",
+                    tint = appColors.textPrimary
                 )
             }
         }

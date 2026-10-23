@@ -142,17 +142,30 @@ object SubscriptionsManager {
         saveSubscriptions()
 
         // Sincronización remota en segundo plano si está logueado a YouTube (no bloquea ni revierte lo local)
-        val channelIdToSync = artist.channelId?.takeIf { it.isNotBlank() } ?: artist.id
-        if (YouTubeLoginManager.isLoggedIn.value && channelIdToSync.isNotBlank()) {
+        if (YouTubeLoginManager.isLoggedIn.value) {
             scope.launch {
                 try {
-                    if (isNowSubscribed) {
-                        YouTubeRepository.subscribeChannel(channelIdToSync)
+                    val rawTarget = artist.channelId?.takeIf { it.isNotBlank() } ?: artist.id
+                    val validChannelId = if (rawTarget.startsWith("UC")) {
+                        rawTarget
                     } else {
-                        YouTubeRepository.unsubscribeChannel(channelIdToSync)
+                        val resolved = runCatching {
+                            com.music.innertube.YouTube.artist(artist.id).getOrNull()?.artist?.channelId
+                        }.getOrNull()?.takeIf { it.startsWith("UC") }
+                        resolved ?: rawTarget
+                    }
+
+                    if (validChannelId.isNotBlank()) {
+                        if (isNowSubscribed) {
+                            YouTubeRepository.subscribeChannel(validChannelId)
+                            android.util.Log.d("SubscriptionsManager", "Suscrito exitosamente a canal $validChannelId")
+                        } else {
+                            YouTubeRepository.unsubscribeChannel(validChannelId)
+                            android.util.Log.d("SubscriptionsManager", "Desuscrito exitosamente de canal $validChannelId")
+                        }
                     }
                 } catch (e: Exception) {
-                    e.printStackTrace()
+                    android.util.Log.w("SubscriptionsManager", "Aviso en sync de suscripción: ${e.message}")
                 }
             }
         }
@@ -174,9 +187,16 @@ object SubscriptionsManager {
             if (YouTubeLoginManager.isLoggedIn.value) {
                 scope.launch {
                     try {
-                        YouTubeRepository.unsubscribeChannel(artistId)
+                        val validChannelId = if (artistId.startsWith("UC")) {
+                            artistId
+                        } else {
+                            runCatching {
+                                com.music.innertube.YouTube.artist(artistId).getOrNull()?.artist?.channelId
+                            }.getOrNull()?.takeIf { it.startsWith("UC") } ?: artistId
+                        }
+                        YouTubeRepository.unsubscribeChannel(validChannelId)
                     } catch (e: Exception) {
-                        e.printStackTrace()
+                        android.util.Log.w("SubscriptionsManager", "Error desuscribiendo artista $artistId: ${e.message}")
                     }
                 }
             }
@@ -188,6 +208,7 @@ object SubscriptionsManager {
         try {
             val result = YouTubeRepository.getSubscribedArtists()
             result.onSuccess { remoteArtists ->
+                android.util.Log.d("SubscriptionsManager", "Sincronizados ${remoteArtists.size} artistas remotos desde YouTube")
                 if (remoteArtists.isNotEmpty()) {
                     val current = _subscribedArtists.value.toMutableList()
                     var changed = false
@@ -203,15 +224,17 @@ object SubscriptionsManager {
                             changed = true
                         }
                     }
-                    if (changed) {
+                    if (changed || current.size != _subscribedArtists.value.size) {
                         _subscribedArtists.value = current
                         updateIdsSet(current)
                         saveSubscriptions()
                     }
                 }
+            }.onFailure {
+                android.util.Log.w("SubscriptionsManager", "Error al sincronizar artistas remotos: ${it.message}")
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            android.util.Log.w("SubscriptionsManager", "Excepción al sincronizar artistas: ${e.message}")
         }
     }
 }

@@ -430,22 +430,55 @@ object PlaylistMigratorService {
             throw Exception("No hay canciones resueltas en YouTube para crear la lista.")
         }
 
+        var batchSucceeded = true
         val playlistId = try {
             YouTube.createPlaylist(playlist.title, videoIds)
         } catch (e: Exception) {
+            batchSucceeded = false
             android.util.Log.w("PlaylistMigrator", "Fallo al crear playlist con canciones en lote, reintentando...", e)
             null
         } ?: YouTube.createPlaylist(playlist.title)
           ?: throw Exception("No se pudo crear la lista en tu cuenta de YouTube Music.")
 
-        for (id in videoIds) {
-            try {
-                YouTube.addToPlaylist(playlistId, id)
-                delay(80L)
-            } catch (e: Exception) {
-                android.util.Log.w("PlaylistMigrator", "Error agregando video $id a $playlistId", e)
+        val cleanId = playlistId.removePrefix("VL")
+
+        // Si la creación en lote falló y se creó vacía, agregamos los videos uno a uno
+        if (!batchSucceeded) {
+            for (id in videoIds) {
+                try {
+                    YouTube.addToPlaylist(cleanId, id)
+                    delay(80L)
+                } catch (e: Exception) {
+                    android.util.Log.w("PlaylistMigrator", "Error agregando video $id a $cleanId", e)
+                }
             }
         }
-        playlistId
+
+        // Vincular a la biblioteca de YouTube Music con Like/Save para que aparezca en FEmusic_liked_playlists
+        try {
+            YouTube.likePlaylist(cleanId, true)
+            android.util.Log.i("PlaylistMigrator", "Playlist $cleanId vinculada a la biblioteca de YouTube")
+        } catch (e: Exception) {
+            android.util.Log.w("PlaylistMigrator", "Aviso al dar like a la playlist $cleanId", e)
+        }
+
+        // Guardar copia persistente inmediata en MigratedPlaylistsManager
+        val cover = playlist.coverUrl ?: playlist.tracks.firstOrNull { !it.coverUrl.isNullOrBlank() }?.coverUrl
+            ?: "https://i.ytimg.com/vi/${videoIds.firstOrNull()}/hqdefault.jpg"
+
+        val item = com.music.innertube.models.PlaylistItem(
+            id = cleanId,
+            title = playlist.title,
+            author = com.music.innertube.models.Artist(name = "Tú", id = null),
+            songCountText = "${videoIds.size} canciones",
+            thumbnail = cover,
+            playEndpoint = com.music.innertube.models.WatchEndpoint(playlistId = cleanId),
+            shuffleEndpoint = com.music.innertube.models.WatchEndpoint(playlistId = cleanId),
+            radioEndpoint = null,
+            isEditable = true
+        )
+        com.frito.music.data.repository.MigratedPlaylistsManager.save(item)
+
+        cleanId
     }
 }

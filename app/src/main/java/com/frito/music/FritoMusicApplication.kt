@@ -14,6 +14,7 @@ class FritoMusicApplication : Application(), ImageLoaderFactory {
     override fun onCreate() {
         super.onCreate()
         PoTokenGenerator.init(this)
+        com.frito.music.data.repository.MigratedPlaylistsManager.init(this)
         // Carga el último cliente de stream exitoso (arranque rápido de la 1ª canción)
         YouTubeRepository.init(this)
         OnlineMusicDownloadWorker.createNotificationChannels(this)

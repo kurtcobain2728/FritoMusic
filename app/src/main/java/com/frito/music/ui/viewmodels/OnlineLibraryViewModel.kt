@@ -88,6 +88,10 @@ class OnlineLibraryViewModel : ViewModel() {
         }
     }
 
+    fun injectCreatedPlaylist(item: com.music.innertube.models.PlaylistItem) {
+        _onlinePlaylists.value = (listOf(item) + _onlinePlaylists.value).distinctBy { it.id }
+    }
+
     fun loadPlaylistSongs(playlistId: String) {
         viewModelScope.launch {
             _playlistSongs.value = null
@@ -115,7 +119,9 @@ class OnlineLibraryViewModel : ViewModel() {
     fun deleteOnlinePlaylist(playlistId: String) {
         viewModelScope.launch {
             val result = withContext(Dispatchers.IO) {
-                com.music.innertube.YouTube.deletePlaylist(playlistId)
+                val cleanId = playlistId.removePrefix("VL")
+                com.frito.music.data.repository.MigratedPlaylistsManager.delete(cleanId)
+                com.music.innertube.YouTube.deletePlaylist(cleanId)
             }
             result.onSuccess { loadOnlinePlaylists() }
                 .onFailure { _onlineError.value = it.message ?: "No se pudo borrar la lista" }

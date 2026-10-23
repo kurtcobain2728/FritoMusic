@@ -375,6 +375,17 @@ class StreamViewModel : ViewModel() {
             currentShelves.add(0, newShelf)
         }
         _homeShelves.value = currentShelves
+
+        if (com.frito.music.data.repository.YouTubeLoginManager.isLoggedIn.value && song.id.isNotBlank()) {
+            viewModelScope.launch(Dispatchers.IO) {
+                try {
+                    YouTubeRepository.registerPlayback(song.id)
+                    android.util.Log.d("StreamViewModel", "Reproducción registrada en historial remoto de YouTube para ${song.id}")
+                } catch (e: Exception) {
+                    android.util.Log.w("StreamViewModel", "Aviso al registrar playback en YouTube: ${e.message}")
+                }
+            }
+        }
     }
 
     fun playTrack(
@@ -910,11 +921,17 @@ class StreamViewModel : ViewModel() {
         }
     }
 
+    fun injectCreatedPlaylist(item: PlaylistItem) {
+        _userPlaylists.value = (listOf(item) + _userPlaylists.value).distinctBy { it.id }
+    }
+
     suspend fun deleteUserPlaylist(playlistId: String): Boolean {
         return withContext(Dispatchers.IO) {
-            val result = YouTubeRepository.deletePlaylist(playlistId)
+            val cleanId = playlistId.removePrefix("VL")
+            com.frito.music.data.repository.MigratedPlaylistsManager.delete(cleanId)
+            val result = YouTubeRepository.deletePlaylist(cleanId)
             if (result.isSuccess) {
-                _userPlaylists.value = _userPlaylists.value.filterNot { it.id == playlistId }
+                _userPlaylists.value = _userPlaylists.value.filterNot { it.id == cleanId || it.id == playlistId }
                 true
             } else {
                 false

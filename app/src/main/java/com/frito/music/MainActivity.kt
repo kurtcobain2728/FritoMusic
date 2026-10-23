@@ -554,6 +554,7 @@ class MainActivity : ComponentActivity() {
                                         "almacenamiento" -> StorageCacheScreen(onBack = { currentSubScreen = null })
                                         "playlist_migrate" -> PlaylistMigrateScreen(
                                             onlineLibraryViewModel = onlineLibraryViewModel,
+                                            streamViewModel = streamViewModel,
                                             onNavigateToLogin = { showYouTubeLogin = true },
                                             onNavigateToPlaylists = {
                                                 isNavigatingBack = true

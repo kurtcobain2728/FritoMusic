@@ -800,13 +800,15 @@ object YouTube {
                 }
             }
 
-            val contents = if (tabs != null && tabs.size > tabIndex) {
-                tabs[tabIndex].tabRenderer.content?.sectionListRenderer?.contents?.firstOrNull()
+            val allContents = if (tabs != null && tabs.size > tabIndex) {
+                tabs[tabIndex].tabRenderer.content?.sectionListRenderer?.contents
+            } else {
+                response.contents?.sectionListRenderer?.contents
+                    ?: response.contents?.twoColumnBrowseResultsRenderer?.secondaryContents?.sectionListRenderer?.contents
             }
-            else {
-                println("[UPLOAD_DEBUG] No tabs or tabIndex out of range")
-                null
-            }
+
+            val contents = allContents?.find { it.gridRenderer != null || it.musicShelfRenderer != null }
+                ?: allContents?.firstOrNull()
 
             println("[UPLOAD_DEBUG] contents null? ${contents == null}")
             println("[UPLOAD_DEBUG] gridRenderer null? ${contents?.gridRenderer == null}")
@@ -1235,6 +1237,15 @@ object YouTube {
             playlistId = playlistId,
             cpn = cpn
         )
+    }
+
+    suspend fun registerPlaybackForVideo(videoId: String, playlistId: String? = null): Result<Unit> = runCatching {
+        if (cookie.isNullOrBlank()) return@runCatching
+        val playerResp = player(videoId = videoId, playlistId = playlistId, client = WEB_REMIX).getOrNull()
+        val trackingUrl = playerResp?.playbackTracking?.videostatsPlaybackUrl?.baseUrl
+        if (!trackingUrl.isNullOrBlank()) {
+            registerPlayback(playlistId = playlistId, playbackTracking = trackingUrl).getOrThrow()
+        }
     }
 
     suspend fun next(endpoint: WatchEndpoint, continuation: String? = null): Result<NextResult> = runCatching {

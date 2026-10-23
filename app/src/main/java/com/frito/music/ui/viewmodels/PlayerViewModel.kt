@@ -20,6 +20,7 @@ import com.frito.music.data.network.yt.YouTubeRepository
 import com.frito.music.data.repository.FavoritesRepository
 import com.frito.music.data.repository.LyricsRepository
 import com.frito.music.data.repository.PlaylistRepository
+import com.frito.music.data.repository.YouTubeLoginManager
 import com.frito.music.downloader.OnlineQuality
 import com.frito.music.downloader.OnlineQualityResolver
 import com.frito.music.service.MusicService
@@ -275,6 +276,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     if (!videoId.isNullOrBlank()) {
                         videoIdsByMediaId[id] = videoId
                         _currentVideoId.value = videoId
+                        notifyPlaybackRegistered(videoId)
                     }
                     _currentQueueIndex.value = controller.currentMediaItemIndex
                     _durationMs.value = controller.duration.coerceAtLeast(0L)
@@ -561,6 +563,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                         }
                     }
                 }
+            }
+        }
+    }
+
+    private fun notifyPlaybackRegistered(videoId: String) {
+        if (!YouTubeLoginManager.isLoggedIn.value || videoId.isBlank()) return
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                YouTubeRepository.registerPlayback(videoId)
+                android.util.Log.d("PlayerViewModel", "Playback registrado en YouTube: $videoId")
+            } catch (e: Exception) {
+                android.util.Log.w("PlayerViewModel", "Aviso registrando playback en YouTube: ${e.message}")
             }
         }
     }

@@ -47,6 +47,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun PlaylistMigrateScreen(
     onlineLibraryViewModel: OnlineLibraryViewModel?,
+    streamViewModel: com.frito.music.ui.viewmodels.StreamViewModel? = null,
     onNavigateToLogin: () -> Unit = {},
     onNavigateToPlaylists: () -> Unit = {},
     onBack: () -> Unit
@@ -126,9 +127,28 @@ fun PlaylistMigrateScreen(
                         }
 
                         currentSongProgress = "Creando lista en tu cuenta de YouTube Music..."
-                        PlaylistMigratorService.syncToYouTubeAccount(playlist)
+                        val createdId = PlaylistMigratorService.syncToYouTubeAccount(playlist)
+
+                        val cover = playlist.coverUrl ?: playlist.tracks.firstOrNull { !it.coverUrl.isNullOrBlank() }?.coverUrl
+                            ?: "https://i.ytimg.com/vi/${playlist.tracks.firstOrNull { it.resolvedVideoId != null }?.resolvedVideoId}/hqdefault.jpg"
+
+                        val newPlaylistItem = com.music.innertube.models.PlaylistItem(
+                            id = createdId,
+                            title = playlist.title,
+                            author = com.music.innertube.models.Artist(name = "Tú", id = null),
+                            songCountText = "${playlist.tracks.count { it.resolvedVideoId != null }} canciones",
+                            thumbnail = cover,
+                            playEndpoint = com.music.innertube.models.WatchEndpoint(playlistId = createdId),
+                            shuffleEndpoint = com.music.innertube.models.WatchEndpoint(playlistId = createdId),
+                            radioEndpoint = null,
+                            isEditable = true
+                        )
+                        onlineLibraryViewModel?.injectCreatedPlaylist(newPlaylistItem)
+                        streamViewModel?.injectCreatedPlaylist(newPlaylistItem)
+
                         onlineLibraryViewModel?.loadOnlinePlaylists()
                         onlineLibraryViewModel?.loadLikedSongs()
+                        streamViewModel?.loadUserPlaylists()
                         showSuccessDialog = true
                     } catch (e: Exception) {
                         errorMessage = e.message ?: "Error al migrar la lista de reproducción."

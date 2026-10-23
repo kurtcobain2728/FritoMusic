@@ -16,6 +16,7 @@ import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
@@ -92,6 +93,11 @@ fun PlaylistsScreen(
 
         // Pestañas Offline | Online
         val pagerState = rememberPagerState(initialPage = initialTab, pageCount = { 2 })
+        LaunchedEffect(initialTab) {
+            if (pagerState.currentPage != initialTab) {
+                pagerState.scrollToPage(initialTab)
+            }
+        }
         TabRow(
             selectedTabIndex = pagerState.currentPage,
             containerColor = Color.Transparent,
@@ -413,19 +419,36 @@ private fun PlaylistsOnlineContent(
         }
         else -> {
             Column(Modifier.fillMaxSize()) {
-                // Botón crear playlist online
-                Box(
+                // Barra de acciones: Crear lista online + Refrescar
+                Row(
                     modifier = Modifier
-                        .padding(16.dp)
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(appColors.accent)
-                        .clickable { showCreate = true }
-                        .padding(horizontal = 20.dp, vertical = 10.dp)
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Add, contentDescription = "Crear", tint = com.frito.music.ui.theme.textColorForBackground(appColors.accent), modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Crear lista online", color = com.frito.music.ui.theme.textColorForBackground(appColors.accent), fontWeight = FontWeight.SemiBold)
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(appColors.accent)
+                            .clickable { showCreate = true }
+                            .padding(horizontal = 20.dp, vertical = 10.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Add, contentDescription = "Crear", tint = com.frito.music.ui.theme.textColorForBackground(appColors.accent), modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Crear lista online", color = com.frito.music.ui.theme.textColorForBackground(appColors.accent), fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+
+                    IconButton(
+                        onClick = { onlineLibraryViewModel.loadOnlinePlaylists() }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Actualizar",
+                            tint = appColors.textPrimary
+                        )
                     }
                 }
 

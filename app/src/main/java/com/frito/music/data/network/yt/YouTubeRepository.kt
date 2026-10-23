@@ -442,9 +442,11 @@ object YouTubeRepository {
      */
     suspend fun getLikedPlaylists(): Result<List<PlaylistItem>> = runCatching {
         val page = YouTube.library("FEmusic_liked_playlists").getOrThrow()
-        page.items
+        val remote = page.items
             .filterIsInstance<PlaylistItem>()
             .filterNot { isLikedSongsEntry(it) }
+        val localMigrated = com.frito.music.data.repository.MigratedPlaylistsManager.getAll()
+        (localMigrated + remote).distinctBy { it.id }
     }
 
     /**
@@ -678,9 +680,11 @@ object YouTubeRepository {
 
     suspend fun getUserPlaylists(): Result<List<PlaylistItem>> = runCatching {
         val result = YouTube.library("FEmusic_liked_playlists").getOrThrow()
-        result.items
+        val remote = result.items
             .filterIsInstance<PlaylistItem>()
             .filterNot { isLikedSongsEntry(it) }
+        val localMigrated = com.frito.music.data.repository.MigratedPlaylistsManager.getAll()
+        (localMigrated + remote).distinctBy { it.id }
     }
 
     suspend fun getFeaturedPlaylists(): Result<List<PlaylistItem>> = withContext(Dispatchers.IO) {
@@ -704,7 +708,9 @@ object YouTubeRepository {
     }
 
     suspend fun deletePlaylist(playlistId: String): Result<Unit> = withContext(Dispatchers.IO) {
-        YouTube.deletePlaylist(playlistId).map { }
+        val cleanId = playlistId.removePrefix("VL")
+        com.frito.music.data.repository.MigratedPlaylistsManager.delete(cleanId)
+        YouTube.deletePlaylist(cleanId).map { }
     }
 
     suspend fun subscribeChannel(channelId: String): Result<Boolean> = withContext(Dispatchers.IO) {
@@ -729,7 +735,16 @@ object YouTubeRepository {
     }
 
     suspend fun createYouTubePlaylist(title: String, videoIds: List<String>? = null): Result<String> = runCatching {
-        YouTube.createPlaylist(title, videoIds) ?: throw Exception("Failed to create playlist")
+        val playlistId = YouTube.createPlaylist(title, videoIds) ?: throw Exception("Failed to create playlist")
+        val cleanId = playlistId.removePrefix("VL")
+        try {
+            YouTube.likePlaylist(cleanId, true)
+        } catch (_: Exception) {}
+        playlistId
+    }
+
+    suspend fun registerPlayback(videoId: String, playlistId: String? = null): Result<Unit> = withContext(Dispatchers.IO) {
+        YouTube.registerPlaybackForVideo(videoId, playlistId)
     }
 
     suspend fun addToPlaylist(playlistId: String, videoId: String): Result<Unit> = runCatching {
