@@ -549,7 +549,7 @@ class MainActivity : ComponentActivity() {
                                         "gestor_descargas" -> DownloadsManagerScreen(onBack = { currentSubScreen = null })
                                         "ocultos" -> HiddenItemsScreen(homeViewModel = homeViewModel, onBack = { currentSubScreen = null })
                                         "recap" -> RecapScreen(onBack = { currentSubScreen = null })
-                                        "calidades" -> StreamQualityScreen(onBack = { currentSubScreen = null })
+                                        "calidades" -> StreamQualityScreen(playerViewModel = playerViewModel, onBack = { currentSubScreen = null })
                                         "crossfade" -> CrossfadeSettingsScreen(onBack = { currentSubScreen = null })
                                         "almacenamiento" -> StorageCacheScreen(onBack = { currentSubScreen = null })
                                         "playlist_migrate" -> PlaylistMigrateScreen(

@@ -11,6 +11,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.Tracks
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.frito.music.data.models.AudioFile
@@ -60,6 +61,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         _currentAudio.value = audio
         _currentVideoId.value = videoId
         loadLyricsForCurrentAudio()
+        updateRealAudioFormat()
     }
 
     /** Limpia el estado "preparando" cuando la resolución de la URL falla,
@@ -77,6 +79,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             _currentVideoId.value = null
         }
         loadLyricsForCurrentAudio()
+        updateRealAudioFormat()
     }
 
     private val _progress = MutableStateFlow(0f)
@@ -111,6 +114,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _currentVideoId = MutableStateFlow<String?>(null)
     val currentVideoId: StateFlow<String?> = _currentVideoId.asStateFlow()
+
+    private val _realAudioFormat = MutableStateFlow<RealAudioFormatInfo?>(null)
+    val realAudioFormat: StateFlow<RealAudioFormatInfo?> = _realAudioFormat.asStateFlow()
 
     // --- Cola de streaming con resolución perezosa de URLs ---
     // Los items pendientes se encolan con uri vacía y se resuelven cuando
@@ -202,6 +208,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             }
 
             _currentQueueIndex.value = controller.currentMediaItemIndex
+            updateRealAudioFormat()
             if (_currentQueue.value.isEmpty() && controller.mediaItemCount > 0) {
                 val list = mutableListOf<AudioFile>()
                 for (i in 0 until controller.mediaItemCount) {
@@ -226,6 +233,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             }
 
             controller.addListener(object : Player.Listener {
+                override fun onTracksChanged(tracks: Tracks) {
+                    updateRealAudioFormat()
+                }
+
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     _isPlaying.value = isPlaying
                     // Si algo está sonando, la racha de fallos se rompe y la
@@ -244,6 +255,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     if (mediaItem == null) {
                         _currentAudio.value = null
                         _currentVideoId.value = null
+                        updateRealAudioFormat()
                         return
                     }
                     val id = mediaItem.mediaId
@@ -282,10 +294,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     _durationMs.value = controller.duration.coerceAtLeast(0L)
                     resolveCurrentIfPending()
                     loadLyricsForCurrentAudio()
+                    updateRealAudioFormat()
                 }
 
                 override fun onPlaybackStateChanged(playbackState: Int) {
                     _durationMs.value = controller.duration.coerceAtLeast(0L)
+                    if (playbackState == Player.STATE_READY) {
+                        updateRealAudioFormat()
+                    }
                 }
 
                 override fun onPlayerError(error: PlaybackException) {
@@ -325,6 +341,146 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             "slowed" -> setPlaybackParameters(0.97f, 0.85f)
             "normal" -> setPlaybackParameters(1.00f, 1.00f)
             "nightcore" -> setPlaybackParameters(1.05f, 1.30f)
+        }
+    }
+
+    fun updateRealAudioFormat() {
+        val controller = mediaController
+        val current = _currentAudio.value
+        val videoId = _currentVideoId.value
+
+        val isLocal = current?.path?.let { !it.startsWith("http://") && !it.startsWith("https://") } ?: false
+        val resolved = videoId?.let { YouTubeRepository.getResolvedFormatDetails(it) }
+
+        val audioTrack = controller?.currentTracks?.groups
+            ?.firstOrNull { it.isSelected && it.type == C.TRACK_TYPE_AUDIO }
+            ?.let { group ->
+                (0 until group.length).firstOrNull { group.isTrackSelected(it) }?.let { group.getTrackFormat(it) }
+                    ?: if (group.length > 0) group.getTrackFormat(0) else null
+            }
+
+        if (resolved != null) {
+            val trackBitrate = (audioTrack?.bitrate ?: 0).takeIf { it > 0 } ?: (resolved.bitrate)
+            val trackSampleRate = (audioTrack?.sampleRate ?: 0).takeIf { it > 0 } ?: resolved.sampleRate
+            val channels = (audioTrack?.channelCount ?: 2).coerceAtLeast(1)
+            _realAudioFormat.value = RealAudioFormatInfo(
+                codec = resolved.codec,
+                container = resolved.container,
+                bitrateKbps = (trackBitrate / 1000).coerceAtLeast(1),
+                sampleRateHz = trackSampleRate,
+                channelCount = channels,
+                itag = resolved.itag,
+                isLocal = false,
+                sourceDescription = "YouTube Audio (itag ${resolved.itag})"
+            )
+        } else if (audioTrack != null) {
+            val mime = audioTrack.sampleMimeType.orEmpty().lowercase()
+            val codecs = audioTrack.codecs.orEmpty().lowercase()
+            val cleanCodec = when {
+                mime.contains("opus") || codecs.contains("opus") -> "OPUS"
+                mime.contains("mp4a") || mime.contains("aac") || codecs.contains("mp4a") || codecs.contains("aac") -> "AAC"
+                mime.contains("flac") -> "FLAC"
+                mime.contains("mpeg") || mime.contains("mp3") -> "MP3"
+                mime.contains("vorbis") -> "VORBIS"
+                else -> if (isLocal) "LOCAL" else "STREAM"
+            }
+            val container = when {
+                mime.contains("webm") -> "WebM"
+                mime.contains("mp4") -> "M4A"
+                mime.contains("ogg") -> "OGG"
+                isLocal -> "Local"
+                else -> "Audio"
+            }
+            val bitrateKbps = when {
+                audioTrack.bitrate > 0 -> audioTrack.bitrate / 1000
+                audioTrack.averageBitrate > 0 -> audioTrack.averageBitrate / 1000
+                else -> 0
+            }
+            _realAudioFormat.value = RealAudioFormatInfo(
+                codec = cleanCodec,
+                container = container,
+                bitrateKbps = bitrateKbps,
+                sampleRateHz = audioTrack.sampleRate.coerceAtLeast(0),
+                channelCount = audioTrack.channelCount.coerceAtLeast(1),
+                itag = null,
+                isLocal = isLocal,
+                sourceDescription = if (isLocal) "Archivo Local" else "Stream de Audio"
+            )
+        } else if (current != null) {
+            if (isLocal) {
+                val ext = current.path.substringAfterLast(".", "AUDIO").uppercase()
+                _realAudioFormat.value = RealAudioFormatInfo(
+                    codec = ext,
+                    container = "Local",
+                    bitrateKbps = 0,
+                    sampleRateHz = 44100,
+                    channelCount = 2,
+                    itag = null,
+                    isLocal = true,
+                    sourceDescription = "Archivo en el dispositivo"
+                )
+            } else {
+                val prefQuality = com.frito.music.data.preferences.StreamQualityPreferences.getQuality(getApplication())
+                val prefCodec = com.frito.music.data.preferences.StreamQualityPreferences.getCodecPreference(getApplication())
+                val estimatedBitrate = when (prefQuality) {
+                    com.frito.music.data.preferences.StreamQuality.HIGH -> if (prefCodec == com.frito.music.data.preferences.AudioCodecPreference.AAC) 256 else 160
+                    com.frito.music.data.preferences.StreamQuality.NORMAL -> 128
+                    com.frito.music.data.preferences.StreamQuality.LOW -> if (prefCodec == com.frito.music.data.preferences.AudioCodecPreference.AAC) 48 else 64
+                }
+                val codecName = when (prefCodec) {
+                    com.frito.music.data.preferences.AudioCodecPreference.AAC -> "AAC"
+                    com.frito.music.data.preferences.AudioCodecPreference.OPUS -> "OPUS"
+                    com.frito.music.data.preferences.AudioCodecPreference.AUTO -> "AUTO"
+                }
+                val container = if (prefCodec == com.frito.music.data.preferences.AudioCodecPreference.AAC) "M4A" else "WebM"
+                _realAudioFormat.value = RealAudioFormatInfo(
+                    codec = codecName,
+                    container = container,
+                    bitrateKbps = estimatedBitrate,
+                    sampleRateHz = 48000,
+                    channelCount = 2,
+                    itag = null,
+                    isLocal = false,
+                    sourceDescription = "Conectando stream..."
+                )
+            }
+        } else {
+            _realAudioFormat.value = null
+        }
+    }
+
+    fun reloadCurrentStreamQuality() {
+        val controller = mediaController ?: return
+        val current = _currentAudio.value ?: return
+        val videoId = _currentVideoId.value ?: return
+        viewModelScope.launch {
+            YouTubeRepository.clearStreamUrlCache()
+            val currentPos = controller.currentPosition
+            val isCurrentlyPlaying = controller.isPlaying
+            val newUrl = resolveStreamWithFallback(videoId, current.title, current.artist, preferNewPipe = false)
+            if (!newUrl.isNullOrBlank()) {
+                val updatedAudio = current.copy(path = newUrl)
+                _currentAudio.value = updatedAudio
+                val key = controller.currentMediaItem?.mediaId
+                if (key != null) {
+                    audioFilesMap[key] = updatedAudio
+                }
+
+                val currentIdx = controller.currentMediaItemIndex
+                if (currentIdx in 0 until controller.mediaItemCount) {
+                    val currentItem = controller.getMediaItemAt(currentIdx)
+                    controller.replaceMediaItem(
+                        currentIdx,
+                        currentItem.buildUpon()
+                            .setUri(Uri.parse(newUrl))
+                            .setCustomCacheKey(videoId)
+                            .build()
+                    )
+                    controller.seekTo(currentPos)
+                    if (isCurrentlyPlaying) controller.play()
+                }
+                updateRealAudioFormat()
+            }
         }
     }
 
@@ -1035,3 +1191,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         super.onCleared()
     }
 }
+
+data class RealAudioFormatInfo(
+    val codec: String,
+    val container: String,
+    val bitrateKbps: Int,
+    val sampleRateHz: Int,
+    val channelCount: Int = 2,
+    val itag: Int? = null,
+    val isLocal: Boolean = false,
+    val sourceDescription: String = "YouTube Audio"
+)
+

@@ -1821,7 +1821,26 @@ private fun PlayerProgressSection(
     val progress by viewModel.progress.collectAsState()
     val positionMs by viewModel.positionMs.collectAsState()
     val durationMs by viewModel.durationMs.collectAsState()
+    val realFormat by viewModel.realAudioFormat.collectAsState()
     val isDark = appColors.isDark
+    var showFormatDialog by remember { mutableStateOf(false) }
+
+    val formatDotColor = when {
+        !isOnline -> appColors.accent
+        realFormat?.codec == "OPUS" -> Color(0xFF3B82F6) // Neon Blue
+        realFormat?.codec == "AAC" -> Color(0xFFA855F7)  // Neon Purple
+        else -> Glassmorphism.emeraldAccent
+    }
+
+    val formatBadgeText = if (isOnline) {
+        val codec = realFormat?.codec ?: "STREAM"
+        val bitrate = realFormat?.bitrateKbps?.takeIf { it > 0 }?.let { "$it kbps" } ?: "Auto"
+        "$codec • $bitrate"
+    } else {
+        val ext = realFormat?.codec?.ifBlank { null }
+            ?: (if (audioPath.contains(".")) audioPath.substringAfterLast(".").uppercase() else "AUDIO")
+        "$ext • LOCAL"
+    }
 
     Column(modifier = modifier.fillMaxWidth()) {
         WaveformProgress(
@@ -1850,15 +1869,16 @@ private fun PlayerProgressSection(
                 fontWeight = FontWeight.SemiBold
             )
 
-            // Badge central de calidad de audio
+            // Badge central interactivo de calidad de audio
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(6.dp))
                     .background(
-                        if (isDark) Color.White.copy(alpha = 0.06f)
-                        else Color.Black.copy(alpha = 0.04f)
+                        if (isDark) Color.White.copy(alpha = 0.08f)
+                        else Color.Black.copy(alpha = 0.05f)
                     )
-                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                    .clickable { showFormatDialog = true }
+                    .padding(horizontal = 8.dp, vertical = 3.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -1866,17 +1886,13 @@ private fun PlayerProgressSection(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(5.dp)
+                            .size(6.dp)
                             .clip(CircleShape)
-                            .background(
-                                if (isOnline) Glassmorphism.emeraldAccent else appColors.accent
-                            )
+                            .background(formatDotColor)
                     )
-                    val quality = com.frito.music.data.preferences.StreamQualityPreferences.getQuality(LocalContext.current)
                     Text(
-                        text = if (isOnline) "Streaming • ${quality.kbpsLabel}"
-                        else (if (audioPath.contains(".")) audioPath.substringAfterLast(".").uppercase() else "AUDIO"),
-                        color = appColors.textSecondary.copy(alpha = 0.85f),
+                        text = formatBadgeText,
+                        color = appColors.textPrimary.copy(alpha = 0.90f),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -1890,6 +1906,105 @@ private fun PlayerProgressSection(
                 fontWeight = FontWeight.SemiBold
             )
         }
+    }
+
+    if (showFormatDialog) {
+        val context = LocalContext.current
+        val summaryPref = com.frito.music.data.preferences.StreamQualityPreferences.getSummaryText(context)
+        val format = realFormat
+
+        AlertDialog(
+            onDismissRequest = { showFormatDialog = false },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(formatDotColor)
+                    )
+                    Text(
+                        text = "Estadísticas de Audio",
+                        color = appColors.textPrimary,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "Información técnica en tiempo real provista por el motor de reproducción ExoPlayer:",
+                        color = appColors.textSecondary,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp
+                    )
+
+                    HorizontalDivider(color = appColors.textSecondary.copy(alpha = 0.2f))
+
+                    AudioTelemetryRow("Códec", format?.codec ?: (if (isOnline) "Auto / Cargando" else "Local"), appColors)
+                    AudioTelemetryRow("Contenedor", format?.container ?: (if (isOnline) "WebM / M4A" else "Archivo"), appColors)
+                    AudioTelemetryRow("Tasa de bits real", if ((format?.bitrateKbps ?: 0) > 0) "${format?.bitrateKbps} kbps" else "Calculando...", appColors)
+                    AudioTelemetryRow("Muestreo", if ((format?.sampleRateHz ?: 0) > 0) "${format?.sampleRateHz} Hz" else "44,100 / 48,000 Hz", appColors)
+                    AudioTelemetryRow("Canales", if ((format?.channelCount ?: 0) > 0) "${format?.channelCount} (Estéreo)" else "Estéreo", appColors)
+                    if (isOnline && format?.itag != null) {
+                        AudioTelemetryRow("ITAG YouTube", "#${format.itag}", appColors)
+                    }
+                    AudioTelemetryRow("Fuente", format?.sourceDescription ?: (if (isOnline) "YouTube Stream" else "Dispositivo local"), appColors)
+                    AudioTelemetryRow("Ajuste activo", summaryPref, appColors)
+                }
+            },
+            confirmButton = {
+                if (isOnline) {
+                    TextButton(
+                        onClick = {
+                            viewModel.reloadCurrentStreamQuality()
+                            showFormatDialog = false
+                        }
+                    ) {
+                        Text("Recargar Stream", color = Glassmorphism.emeraldAccent, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showFormatDialog = false }) {
+                    Text("Cerrar", color = appColors.textSecondary)
+                }
+            },
+            containerColor = appColors.surface,
+            shape = RoundedCornerShape(20.dp)
+        )
+    }
+}
+
+@Composable
+private fun AudioTelemetryRow(
+    label: String,
+    value: String,
+    appColors: com.frito.music.ui.theme.AppColors
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            color = appColors.textSecondary,
+            fontSize = 13.sp
+        )
+        Text(
+            text = value,
+            color = appColors.textPrimary,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 

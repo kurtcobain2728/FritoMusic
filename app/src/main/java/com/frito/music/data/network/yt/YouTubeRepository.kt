@@ -47,6 +47,21 @@ object YouTubeRepository {
     private val streamUrlCache = ConcurrentHashMap<String, CachedUrl>()
     private const val STREAM_URL_TTL_MS = 4 * 60 * 60 * 1000L
 
+    data class ResolvedFormatDetails(
+        val videoId: String,
+        val codec: String,
+        val container: String,
+        val bitrate: Int,
+        val sampleRate: Int,
+        val itag: Int?,
+        val mimeType: String
+    )
+    private val lastResolvedFormatDetails = ConcurrentHashMap<String, ResolvedFormatDetails>()
+
+    fun getResolvedFormatDetails(videoId: String): ResolvedFormatDetails? {
+        return lastResolvedFormatDetails[videoId]
+    }
+
     /**
      * signatureTimestamp global de la sesión (viene del player JS de YouTube y
      * cambia con poca frecuencia). Los clientes con useSignatureTimestamp lo
@@ -67,7 +82,9 @@ object YouTubeRepository {
     }
 
     private fun getStreamQualityKey(): String {
-        return appContext?.let { com.frito.music.data.preferences.StreamQualityPreferences.getQuality(it).key } ?: "high"
+        val q = appContext?.let { com.frito.music.data.preferences.StreamQualityPreferences.getQuality(it).key } ?: "high"
+        val c = appContext?.let { com.frito.music.data.preferences.StreamQualityPreferences.getCodecPreference(it).key } ?: "auto"
+        return "${c}_$q"
     }
 
     private fun getCachedStreamUrl(videoId: String): String? {
@@ -226,12 +243,14 @@ object YouTubeRepository {
         return runCatching { poTokenGenerator.getWebClientPoToken(videoId, sessionId) }.getOrNull()
     }
 
-    /** Ordena formatos de audio según calidad seleccionada por el usuario (Alta, Normal, Baja). */
+    /** Ordena formatos de audio según calidad y códec seleccionados por el usuario (Alta, Normal, Baja / OPUS, AAC, Auto). */
     private fun selectAudioFormatCandidates(
         response: PlayerResponse,
     ): List<PlayerResponse.StreamingData.Format> {
         val preferredQuality = appContext?.let { com.frito.music.data.preferences.StreamQualityPreferences.getQuality(it) }
             ?: com.frito.music.data.preferences.StreamQuality.HIGH
+        val preferredCodec = appContext?.let { com.frito.music.data.preferences.StreamQualityPreferences.getCodecPreference(it) }
+            ?: com.frito.music.data.preferences.AudioCodecPreference.AUTO
 
         val formats = response.streamingData?.adaptiveFormats
             ?.asSequence()
@@ -241,26 +260,26 @@ object YouTubeRepository {
 
         val comparator = when (preferredQuality) {
             com.frito.music.data.preferences.StreamQuality.HIGH -> {
-                compareByDescending<PlayerResponse.StreamingData.Format> { it.bitrate }
-                    .thenByDescending { codecRank(extractCodec(it.mimeType)) }
+                compareByDescending<PlayerResponse.StreamingData.Format> { codecRank(extractCodec(it.mimeType), it.mimeType, preferredCodec) }
+                    .thenByDescending { it.bitrate }
                     .thenByDescending { it.audioSampleRate ?: 0 }
             }
             com.frito.music.data.preferences.StreamQuality.NORMAL -> {
                 // Balance estándar (~128 kbps)
-                compareBy<PlayerResponse.StreamingData.Format> { kotlin.math.abs(it.bitrate - 128_000) }
-                    .thenByDescending { codecRank(extractCodec(it.mimeType)) }
+                compareByDescending<PlayerResponse.StreamingData.Format> { codecRank(extractCodec(it.mimeType), it.mimeType, preferredCodec) }
+                    .thenBy { kotlin.math.abs(it.bitrate - 128_000) }
             }
             com.frito.music.data.preferences.StreamQuality.LOW -> {
-                // Modo ahorro (~64 kbps Opus/AAC)
-                compareBy<PlayerResponse.StreamingData.Format> { it.bitrate }
-                    .thenByDescending { codecRank(extractCodec(it.mimeType)) }
+                // Modo ahorro (~48-64 kbps Opus/AAC)
+                compareByDescending<PlayerResponse.StreamingData.Format> { codecRank(extractCodec(it.mimeType), it.mimeType, preferredCodec) }
+                    .thenBy { it.bitrate }
             }
         }
 
         val result = formats.sortedWith(comparator).toList()
         android.util.Log.i(
             "YouTubeRepository",
-            "selectAudioFormatCandidates calidad=$preferredQuality bitrate=${result.firstOrNull()?.bitrate} formato=${result.firstOrNull()?.mimeType}"
+            "selectAudioFormatCandidates codec=$preferredCodec calidad=$preferredQuality formato=${result.firstOrNull()?.mimeType} bitrate=${result.firstOrNull()?.bitrate}"
         )
         return result
     }
@@ -270,10 +289,6 @@ object YouTubeRepository {
         videoId: String,
         client: YouTubeClient,
     ): String? {
-        // Igual que FridaMusic: si el extractor (con desobfuscación n-sig) no
-        // devuelve URL, usar la URL DIRECTA del formato como respaldo.
-        // Sin este respaldo, un fallo de desobfuscación descartaba formatos
-        // válidos y la canción no reproducía.
         val url = NewPipeExtractor.getStreamUrl(format, videoId)
             ?: format.url
             ?: return null
@@ -288,13 +303,34 @@ object YouTubeRepository {
             ?.substringBefore(',')
             ?.trim()
 
-    private fun codecRank(codec: String?): Int =
-        when {
-            codec.isNullOrBlank() -> 0
-            codec.contains("opus", ignoreCase = true) -> 3
-            codec.contains("mp4a", ignoreCase = true) -> 2
-            else -> 1
+    private fun codecRank(codec: String?, mimeType: String, preferredCodec: com.frito.music.data.preferences.AudioCodecPreference): Int {
+        val isOpus = (codec != null && codec.contains("opus", ignoreCase = true)) || mimeType.contains("opus", ignoreCase = true) || mimeType.contains("webm", ignoreCase = true)
+        val isAac = (codec != null && (codec.contains("mp4a", ignoreCase = true) || codec.contains("aac", ignoreCase = true))) || mimeType.contains("mp4", ignoreCase = true)
+
+        return when (preferredCodec) {
+            com.frito.music.data.preferences.AudioCodecPreference.AAC -> {
+                when {
+                    isAac -> 20
+                    isOpus -> 5
+                    else -> 1
+                }
+            }
+            com.frito.music.data.preferences.AudioCodecPreference.OPUS -> {
+                when {
+                    isOpus -> 20
+                    isAac -> 5
+                    else -> 1
+                }
+            }
+            com.frito.music.data.preferences.AudioCodecPreference.AUTO -> {
+                when {
+                    isOpus -> 10
+                    isAac -> 9
+                    else -> 1
+                }
+            }
         }
+    }
 
     /** Descarta formatos de vista previa (duración muy inferior a la esperada). */
     private fun isLikelyPreview(
@@ -542,9 +578,25 @@ object YouTubeRepository {
 
                 lastSuccessfulClientKey = StreamClientUtils.buildClientKey(client)
                 streamPrefs?.edit()?.putString(KEY_LAST_CLIENT, lastSuccessfulClientKey)?.apply()
+                val rawCodec = extractCodec(format.mimeType)?.uppercase() ?: ""
+                val cleanCodec = when {
+                    rawCodec.contains("OPUS") || format.mimeType.contains("opus", ignoreCase = true) -> "OPUS"
+                    rawCodec.contains("MP4A") || rawCodec.contains("AAC") || format.mimeType.contains("mp4", ignoreCase = true) -> "AAC"
+                    else -> rawCodec.ifBlank { "AUDIO" }
+                }
+                val container = if (format.mimeType.contains("webm", ignoreCase = true)) "WebM" else "M4A"
+                lastResolvedFormatDetails[videoId] = ResolvedFormatDetails(
+                    videoId = videoId,
+                    codec = cleanCodec,
+                    container = container,
+                    bitrate = format.bitrate,
+                    sampleRate = format.audioSampleRate ?: 44100,
+                    itag = format.itag,
+                    mimeType = format.mimeType
+                )
                 android.util.Log.i(
                     "YouTubeRepository",
-                    "resolved videoId=$videoId client=${client.clientName}@${client.clientVersion} itag=${format.itag} bitrate=${format.bitrate}"
+                    "resolved videoId=$videoId client=${client.clientName}@${client.clientVersion} itag=${format.itag} codec=$cleanCodec bitrate=${format.bitrate}"
                 )
                 return candidateUrl
             }

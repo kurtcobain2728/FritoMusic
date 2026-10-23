@@ -56,9 +56,7 @@ fun MoreScreen(
     val appColors = LocalAppColors.current
     val context = LocalContext.current
 
-    val currentQuality = remember {
-        com.frito.music.data.preferences.StreamQualityPreferences.getQuality(context)
-    }
+    val qualitySummary = com.frito.music.data.preferences.StreamQualityPreferences.getSummaryText(context)
     val crossfadeEnabled = remember {
         com.frito.music.data.preferences.CrossfadePreferences.isEnabled(context)
     }
@@ -107,7 +105,7 @@ fun MoreScreen(
         MenuItem("Recap Musical", "Tus minutos, canciones y artistas más escuchados", Icons.Default.AutoAwesome, Color(0xFF10B981)) { onNavigateToRecap() },
         MenuItem("Favoritos", "$favoritesCount canciones", Icons.Default.Favorite, Color(0xFFFF6B6B)) { onNavigateToFavorites() },
         MenuItem("Listas de Reproducción", "$playlistsCount listas", Icons.AutoMirrored.Filled.FormatListBulleted, appColors.accent) { onNavigateToPlaylists() },
-        MenuItem("Calidad de Streaming", "${currentQuality.title} (${currentQuality.kbpsLabel})", Icons.Default.HighQuality, Color(0xFFE91E63)) { onNavigateToStreamQuality() },
+        MenuItem("Calidad de Streaming", qualitySummary, Icons.Default.HighQuality, Color(0xFFE91E63)) { onNavigateToStreamQuality() },
         MenuItem("Crossfade", if (crossfadeEnabled) "$crossfadeDuration s de fundido" else "Desactivado", Icons.Default.GraphicEq, Color(0xFF00E676)) { onNavigateToCrossfade() },
         MenuItem("Almacenamiento y Caché", "${com.frito.music.data.preferences.StorageCacheManager.formatBytes(cacheLimit)} máx • Administrar", Icons.Default.Storage, Color(0xFF3F51B5)) { onNavigateToStorageCache() },
         MenuItem("Migrar Playlist", "Importa de Spotify, Apple, Deezer, YT y más", Icons.Default.SwapHoriz, Color(0xFF1DB954)) { onNavigateToMigrate() },
