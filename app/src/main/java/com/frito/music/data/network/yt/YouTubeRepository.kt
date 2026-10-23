@@ -674,6 +674,10 @@ object YouTubeRepository {
 
     private val videoStreamUrlCache = ConcurrentHashMap<String, CachedUrl>()
 
+    fun invalidateVideoStreamCache(videoId: String) {
+        videoStreamUrlCache.remove(videoId)
+    }
+
     suspend fun hasVideoTrack(videoId: String): Boolean = withContext(Dispatchers.IO) {
         runCatching {
             if (videoStreamUrlCache.containsKey(videoId)) return@withContext true
@@ -685,6 +689,7 @@ object YouTubeRepository {
     /**
      * Resuelve la URL directa del stream de video (.mp4) para el reproductor nativo.
      * Elimina el uso de WebView/iframe evitando el Error 152 / Error 150 de YouTube.
+     * Valida la conectividad real HTTP 200/206 antes de entregar o cachear la URL.
      */
     suspend fun getVideoStreamUrl(videoId: String): Result<String> = withContext(Dispatchers.IO) {
         runCatching {
@@ -696,35 +701,59 @@ object YouTubeRepository {
                 }
             }
 
-            // 1. Extraer directo desde clientes YouTube con soporte MP4
-            val clientsToTry = listOf(ANDROID_VR_1_61_48, TVHTML5_SIMPLY_EMBEDDED_PLAYER, WEB_REMIX, PREFERRED_STREAM_CLIENT)
+            // 1. Extraer directo vía NewPipeExtractor (especializado en video MP4/muxed, rápido y sin bot-checks)
+            val directVideoUrl = NewPipeExtractor.getVideoStreamUrl(videoId)
+            if (!directVideoUrl.isNullOrBlank()) {
+                if (isStreamUrlPlayable(directVideoUrl)) {
+                    android.util.Log.i("YouTubeRepository", "Stream de video obtenido y validado vía NewPipeExtractor: $directVideoUrl")
+                    videoStreamUrlCache[videoId] = CachedUrl(directVideoUrl, System.currentTimeMillis())
+                    return@runCatching directVideoUrl
+                }
+            }
+
+            // 2. Fallback a clientes YouTube con soporte MP4
+            val clientsToTry = listOf(
+                ANDROID_TESTSUITE,
+                PREFERRED_STREAM_CLIENT, // IOS
+                TVHTML5_SIMPLY_EMBEDDED_PLAYER,
+                WEB,
+                WEB_REMIX,
+                ANDROID_VR_NO_AUTH
+            )
             for (client in clientsToTry) {
+                val poToken = poTokenFor(client, videoId)
                 val response = YouTube.player(
                     videoId = videoId,
                     client = client,
-                    signatureTimestamp = signatureTimestampFor(client, videoId)
+                    signatureTimestamp = signatureTimestampFor(client, videoId),
+                    poToken = poToken?.playerRequestPoToken
                 ).getOrNull()
 
-                val formats = response?.streamingData?.adaptiveFormats.orEmpty() + response?.streamingData?.formats.orEmpty()
+                if (response == null || response.playabilityStatus.status != "OK") {
+                    continue
+                }
+
+                val formats = response.streamingData?.adaptiveFormats.orEmpty() + response.streamingData?.formats.orEmpty()
                 val videoFormat = formats
                     .filter { (it.mimeType.startsWith("video/mp4") || it.mimeType.startsWith("video/webm")) && (it.width ?: 0) > 0 }
                     .minByOrNull { kotlin.math.abs((it.height ?: 720) - 720) }
 
                 if (videoFormat != null) {
-                    val candidate = findUrlOrNull(videoFormat, videoId, client) ?: videoFormat.url
-                    if (!candidate.isNullOrBlank()) {
-                        android.util.Log.i("YouTubeRepository", "Stream de video obtenido vía ${client.clientName}: $candidate")
-                        videoStreamUrlCache[videoId] = CachedUrl(candidate, System.currentTimeMillis())
-                        return@runCatching candidate
+                    val rawCandidate = findUrlOrNull(videoFormat, videoId, client) ?: videoFormat.url
+                    if (!rawCandidate.isNullOrBlank()) {
+                        val candidateUrl: String = poToken?.streamingDataPoToken?.takeIf { client.useWebPoTokens }?.let {
+                            StreamClientUtils.appendPoToken(rawCandidate, it)
+                        } ?: rawCandidate
+
+                        if (isStreamUrlPlayable(candidateUrl)) {
+                            android.util.Log.i("YouTubeRepository", "Stream de video obtenido y validado vía ${client.clientName}: $candidateUrl")
+                            videoStreamUrlCache[videoId] = CachedUrl(candidateUrl, System.currentTimeMillis())
+                            return@runCatching candidateUrl
+                        } else {
+                            android.util.Log.d("YouTubeRepository", "Stream de video vía ${client.clientName} rechazado en verificación de red")
+                        }
                     }
                 }
-            }
-
-            // 2. Fallback a NewPipe extractor directo
-            val directVideoUrl = NewPipeExtractor.getVideoStreamUrl(videoId)
-            if (!directVideoUrl.isNullOrBlank()) {
-                videoStreamUrlCache[videoId] = CachedUrl(directVideoUrl, System.currentTimeMillis())
-                return@runCatching directVideoUrl
             }
 
             throw Exception("No se encontró stream de video reproducible para $videoId")

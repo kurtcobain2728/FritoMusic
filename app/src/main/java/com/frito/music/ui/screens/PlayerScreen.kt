@@ -66,6 +66,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -197,6 +198,7 @@ fun PlayerScreen(
                 videoId = currentVideoId!!,
                 isPlaying = isPlaying,
                 positionMs = positionMs,
+                albumArtUri = audio.albumUri?.let { ImageUtils.highRes(it) } ?: audio.albumUri,
                 onFallbackToCover = { isVideoMode = false },
                 modifier = Modifier.fillMaxSize()
             )
@@ -2148,7 +2150,8 @@ fun WaveformProgress(
 /**
  * Reproductor de video nativo Canvas con aceleración por hardware (ExoPlayer).
  * Reproduce streams directos .mp4 silenciados y sincronizados con el audio de MusicService.
- * No utiliza WebViews ni iframes, eliminando por completo el Error 152 / 150 de YouTube.
+ * Utiliza TextureView mediante PlayerView con surface_type="texture_view" para integración nativa con Jetpack Compose.
+ * Soporta crossfade fluido al decodificar el primer fotograma y carátula ambiental mientras conecta.
  */
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
@@ -2156,15 +2159,18 @@ private fun NativeVideoCanvasPlayer(
     videoId: String,
     isPlaying: Boolean,
     positionMs: Long,
+    albumArtUri: String?,
     onFallbackToCover: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     var videoUrl by remember(videoId) { mutableStateOf<String?>(null) }
     var isLoading by remember(videoId) { mutableStateOf(true) }
+    var isFirstFrameRendered by remember(videoId) { mutableStateOf(false) }
 
     LaunchedEffect(videoId) {
         isLoading = true
+        isFirstFrameRendered = false
         val result = com.frito.music.data.network.yt.YouTubeRepository.getVideoStreamUrl(videoId)
         val url = result.getOrNull()
         if (!url.isNullOrBlank()) {
@@ -2181,103 +2187,143 @@ private fun NativeVideoCanvasPlayer(
         }
     }
 
-    if (isLoading) {
-        Box(
-            modifier = modifier.background(Color.Black),
-            contentAlignment = Alignment.Center
-        ) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        // 1. Capa ambiental de fondo: Carátula suavemente difuminada para evitar pantalla en negro
+        if (!albumArtUri.isNullOrBlank()) {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(albumArtUri)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .blur(radius = 35.dp)
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
+            )
+        }
+
+        // 2. Indicador sutil de carga si aún está conectando el stream o esperando el primer fotograma
+        if (isLoading || !isFirstFrameRendered) {
             CircularProgressIndicator(
                 color = Glassmorphism.emeraldAccent,
                 modifier = Modifier.size(36.dp),
                 strokeWidth = 2.5.dp
             )
         }
-    } else if (videoUrl != null) {
-        val exoPlayer = remember(context, videoUrl) {
-            val okHttpFactory = OkHttpDataSource.Factory(
-                com.frito.music.data.network.yt.PlaybackHttpClient.client
-            )
-            val defaultDataSource = DefaultDataSource.Factory(context, okHttpFactory)
-            val resolvingDataSource = androidx.media3.datasource.ResolvingDataSource.Factory(defaultDataSource) { dataSpec ->
-                if (dataSpec.length < 0) {
-                    val host = dataSpec.uri.host
-                    if (host != null && com.frito.music.data.network.yt.StreamClientUtils.isYouTubeMediaHost(host)) {
-                        val totalLength = dataSpec.uri.getQueryParameter("clen")?.toLongOrNull()?.takeIf { it > 0 }
-                        if (totalLength != null) {
-                            val remaining = totalLength - dataSpec.position
-                            if (remaining > 0) {
-                                dataSpec.buildUpon().setLength(remaining).build()
+
+        // 3. Reproductor ExoPlayer acoplado a TextureView
+        if (videoUrl != null) {
+            val exoPlayer = remember(context, videoUrl) {
+                val okHttpFactory = OkHttpDataSource.Factory(
+                    com.frito.music.data.network.yt.PlaybackHttpClient.client
+                )
+                val defaultDataSource = DefaultDataSource.Factory(context, okHttpFactory)
+                val resolvingDataSource = androidx.media3.datasource.ResolvingDataSource.Factory(defaultDataSource) { dataSpec ->
+                    if (dataSpec.length < 0) {
+                        val host = dataSpec.uri.host
+                        if (host != null && com.frito.music.data.network.yt.StreamClientUtils.isYouTubeMediaHost(host)) {
+                            val totalLength = dataSpec.uri.getQueryParameter("clen")?.toLongOrNull()?.takeIf { it > 0 }
+                            if (totalLength != null) {
+                                val remaining = totalLength - dataSpec.position
+                                if (remaining > 0) {
+                                    dataSpec.buildUpon().setLength(remaining).build()
+                                } else dataSpec
                             } else dataSpec
                         } else dataSpec
                     } else dataSpec
-                } else dataSpec
-            }
-            val mediaSourceFactory = DefaultMediaSourceFactory(resolvingDataSource)
-
-            ExoPlayer.Builder(context)
-                .setMediaSourceFactory(mediaSourceFactory)
-                .build().apply {
-                    volume = 0f // Silenciado: el audio de alta fidelidad suena desde MusicService
-                    repeatMode = Player.REPEAT_MODE_ONE
-                    setMediaItem(MediaItem.fromUri(videoUrl!!))
-                    prepare()
-                    if (positionMs > 0) {
-                        seekTo(positionMs)
-                    }
-                    if (isPlaying) {
-                        play()
-                    }
-                    addListener(object : Player.Listener {
-                        override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
-                            android.util.Log.w("NativeVideoCanvas", "ExoPlayer video error: ${error.message}", error)
-                            onFallbackToCover()
-                        }
-                    })
                 }
-        }
+                val mediaSourceFactory = DefaultMediaSourceFactory(resolvingDataSource)
 
-        DisposableEffect(exoPlayer) {
-            onDispose {
-                exoPlayer.release()
+                ExoPlayer.Builder(context)
+                    .setMediaSourceFactory(mediaSourceFactory)
+                    .build().apply {
+                        volume = 0f // Silenciado: el audio de alta fidelidad suena desde MusicService
+                        repeatMode = Player.REPEAT_MODE_ONE
+                        addListener(object : Player.Listener {
+                            override fun onRenderedFirstFrame() {
+                                android.util.Log.i("NativeVideoCanvas", "onRenderedFirstFrame")
+                                isFirstFrameRendered = true
+                            }
+
+                            override fun onPlaybackStateChanged(playbackState: Int) {
+                                android.util.Log.i("NativeVideoCanvas", "playbackState: $playbackState")
+                                if (playbackState == Player.STATE_READY) {
+                                    isFirstFrameRendered = true
+                                }
+                            }
+
+                            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                                android.util.Log.w("NativeVideoCanvas", "ExoPlayer video error: ${error.message}", error)
+                                com.frito.music.data.network.yt.YouTubeRepository.invalidateVideoStreamCache(videoId)
+                                onFallbackToCover()
+                            }
+                        })
+                        setMediaItem(MediaItem.fromUri(videoUrl!!))
+                        prepare()
+                        if (positionMs > 0) {
+                            seekTo(positionMs)
+                        }
+                        if (isPlaying) {
+                            play()
+                        }
+                    }
             }
-        }
 
-        // Sincronizar play / pause
-        LaunchedEffect(isPlaying) {
-            if (isPlaying) {
-                if (!exoPlayer.isPlaying) exoPlayer.play()
-            } else {
-                if (exoPlayer.isPlaying) exoPlayer.pause()
+            DisposableEffect(exoPlayer) {
+                onDispose {
+                    exoPlayer.release()
+                }
             }
-        }
 
-        // Sincronizar seek manual si se desvía más de 2 segundos
-        LaunchedEffect(positionMs) {
-            val delta = kotlin.math.abs(exoPlayer.currentPosition - positionMs)
-            if (delta > 2000L) {
-                exoPlayer.seekTo(positionMs)
+            // Sincronizar play / pause
+            LaunchedEffect(isPlaying) {
+                if (isPlaying) {
+                    if (!exoPlayer.isPlaying) exoPlayer.play()
+                } else {
+                    if (exoPlayer.isPlaying) exoPlayer.pause()
+                }
             }
-        }
 
-        AndroidView(
-            factory = { ctx ->
-                PlayerView(ctx).apply {
-                    layoutParams = ViewGroup.LayoutParams(
+            // Sincronizar seek manual si se desvía más de 2 segundos
+            LaunchedEffect(positionMs) {
+                val delta = kotlin.math.abs(exoPlayer.currentPosition - positionMs)
+                if (delta > 2000L) {
+                    exoPlayer.seekTo(positionMs)
+                }
+            }
+
+            AndroidView(
+                factory = { ctx ->
+                    val view = android.view.LayoutInflater.from(ctx).inflate(
+                        com.frito.music.R.layout.view_video_canvas,
+                        null,
+                        false
+                    ) as androidx.media3.ui.PlayerView
+                    view.layoutParams = ViewGroup.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
-                    useController = false
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                    player = exoPlayer
-                    setBackgroundColor(android.graphics.Color.BLACK)
-                }
-            },
-            update = { playerView ->
-                if (playerView.player != exoPlayer) {
-                    playerView.player = exoPlayer
-                }
-            },
-            modifier = modifier
-        )
+                    view.useController = false
+                    view.resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                    view.setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)
+                    view.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                    view.player = exoPlayer
+                    view
+                },
+                update = { playerView ->
+                    if (playerView.player != exoPlayer) {
+                        playerView.player = exoPlayer
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
     }
 }
