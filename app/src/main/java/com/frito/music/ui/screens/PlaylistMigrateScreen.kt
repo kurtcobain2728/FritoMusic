@@ -127,6 +127,7 @@ fun PlaylistMigrateScreen(
 
                         currentSongProgress = "Creando lista en tu cuenta de YouTube Music..."
                         PlaylistMigratorService.syncToYouTubeAccount(playlist)
+                        onlineLibraryViewModel?.loadOnlinePlaylists()
                         onlineLibraryViewModel?.loadLikedSongs()
                         showSuccessDialog = true
                     } catch (e: Exception) {

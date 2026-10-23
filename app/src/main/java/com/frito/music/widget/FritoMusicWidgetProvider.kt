@@ -99,6 +99,8 @@ class FritoMusicWidgetProvider : AppWidgetProvider() {
             context.sendBroadcast(intent)
         }
 
+        private val bitmapCache = android.util.LruCache<String, Bitmap>(20)
+
         fun updateAppWidget(
             context: Context,
             appWidgetManager: AppWidgetManager,
@@ -142,28 +144,37 @@ class FritoMusicWidgetProvider : AppWidgetProvider() {
                 createActionPendingIntent(context, ACTION_PREV, 103)
             )
 
-            // Cargar carátula de forma asíncrona usando Coil si hay Uri
+            // Anti-flicker: comprobar si la carátula ya está en memoria caché
             if (!albumUri.isNullOrBlank()) {
-                val imageLoader = ImageLoader(context)
-                val request = ImageRequest.Builder(context)
-                    .data(albumUri)
-                    .allowHardware(false) // Necesario para extraer Bitmap a RemoteViews
-                    .target { drawable ->
-                        val bitmap = (drawable as? BitmapDrawable)?.bitmap
-                        if (bitmap != null) {
-                            views.setImageViewBitmap(R.id.widget_cover, bitmap)
-                            appWidgetManager.updateAppWidget(appWidgetId, views)
+                val cachedBitmap = bitmapCache.get(albumUri)
+                if (cachedBitmap != null) {
+                    views.setImageViewBitmap(R.id.widget_cover, cachedBitmap)
+                    appWidgetManager.updateAppWidget(appWidgetId, views)
+                } else {
+                    // Actualizar el texto y botón de play de inmediato sin resetear la imagen
+                    appWidgetManager.updateAppWidget(appWidgetId, views)
+                    
+                    val imageLoader = ImageLoader(context)
+                    val request = ImageRequest.Builder(context)
+                        .data(albumUri)
+                        .allowHardware(false) // Necesario para Bitmap en RemoteViews
+                        .target { drawable ->
+                            val bitmap = (drawable as? BitmapDrawable)?.bitmap
+                            if (bitmap != null) {
+                                bitmapCache.put(albumUri, bitmap)
+                                views.setImageViewBitmap(R.id.widget_cover, bitmap)
+                                appWidgetManager.updateAppWidget(appWidgetId, views)
+                            }
                         }
+                        .build()
+                    CoroutineScope(Dispatchers.IO).launch {
+                        imageLoader.execute(request)
                     }
-                    .build()
-                CoroutineScope(Dispatchers.IO).launch {
-                    imageLoader.execute(request)
                 }
             } else {
                 views.setImageViewResource(R.id.widget_cover, R.drawable.ic_shortcut_library)
+                appWidgetManager.updateAppWidget(appWidgetId, views)
             }
-
-            appWidgetManager.updateAppWidget(appWidgetId, views)
         }
 
         private fun createActionPendingIntent(context: Context, action: String, requestCode: Int): PendingIntent {

@@ -39,6 +39,7 @@ import kotlinx.coroutines.launch
 fun PlaylistsScreen(
     playerViewModel: PlayerViewModel,
     onlineLibraryViewModel: OnlineLibraryViewModel,
+    initialTab: Int = 0,
     onNavigateToOnlinePlaylist: (String) -> Unit,
     onBack: () -> Unit,
     onPlaylistClick: (com.frito.music.data.models.Playlist) -> Unit
@@ -90,7 +91,7 @@ fun PlaylistsScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         // Pestañas Offline | Online
-        val pagerState = rememberPagerState(pageCount = { 2 })
+        val pagerState = rememberPagerState(initialPage = initialTab, pageCount = { 2 })
         TabRow(
             selectedTabIndex = pagerState.currentPage,
             containerColor = Color.Transparent,

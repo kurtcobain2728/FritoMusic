@@ -20,12 +20,13 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import android.view.ViewGroup
-import android.webkit.PermissionRequest
-import android.webkit.WebChromeClient
-import android.webkit.WebResourceRequest
-import android.webkit.WebSettings
-import android.webkit.WebView
-import android.webkit.WebViewClient
+import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.okhttp.OkHttpDataSource
+import androidx.media3.ui.PlayerView
+import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -132,6 +133,7 @@ fun PlayerScreen(
     val playbackPitch by viewModel.playbackPitch.collectAsState()
     val currentQueue by viewModel.currentQueue.collectAsState()
     val currentQueueIndex by viewModel.currentQueueIndex.collectAsState()
+    val positionMs by viewModel.positionMs.collectAsState()
 
     var showLyrics by remember { mutableStateOf(false) }
     var showPlaylistSheet by remember { mutableStateOf(false) }
@@ -143,6 +145,16 @@ fun PlayerScreen(
     var showSpeedPitchSheet by remember { mutableStateOf(false) }
     var showQueueSheet by remember { mutableStateOf(false) }
     var isVideoMode by remember(currentVideoId) { mutableStateOf(false) }
+    var isVideoAvailable by remember(currentVideoId) { mutableStateOf(false) }
+
+    LaunchedEffect(currentVideoId, isOnline) {
+        isVideoMode = false
+        isVideoAvailable = false
+        if (isOnline && !currentVideoId.isNullOrBlank()) {
+            val available = com.frito.music.data.network.yt.YouTubeRepository.hasVideoTrack(currentVideoId!!)
+            isVideoAvailable = available
+        }
+    }
 
     val appColors = LocalAppColors.current
     val haptics = rememberAppHaptics()
@@ -179,8 +191,30 @@ fun PlayerScreen(
                 )
             }
     ) {
-        // Fondo ambiental difuminado
-        if (appColors.backgroundImageUri != null) {
+        // Fondo del reproductor: Video Canvas full-bleed (estilo Spotify Canvas / YT Music) o ambiental
+        if (isVideoMode && !currentVideoId.isNullOrBlank()) {
+            NativeVideoCanvasPlayer(
+                videoId = currentVideoId!!,
+                isPlaying = isPlaying,
+                positionMs = positionMs,
+                onFallbackToCover = { isVideoMode = false },
+                modifier = Modifier.fillMaxSize()
+            )
+            // Gradiente oscuro para máxima legibilidad de títulos y controles
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.Black.copy(alpha = 0.65f),
+                                Color.Black.copy(alpha = 0.20f),
+                                Color.Black.copy(alpha = 0.90f)
+                            )
+                        )
+                    )
+            )
+        } else if (appColors.backgroundImageUri != null) {
             AsyncImage(
                 model = appColors.backgroundImageUri,
                 contentDescription = null,
@@ -381,16 +415,16 @@ fun PlayerScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Toggle [ Carátula | Video ] si hay stream con videoId
-            if (currentVideoId != null) {
+            // Toggle [ Carátula | Video ] visible únicamente si la pista es online y tiene video disponible
+            if (isOnline && !currentVideoId.isNullOrBlank() && isVideoAvailable) {
                 Row(
                     modifier = Modifier
                         .padding(bottom = 10.dp)
                         .clip(RoundedCornerShape(20.dp))
-                        .background(if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f))
+                        .background(if (isDark) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f))
                         .border(
                             width = 1.dp,
-                            color = if (isDark) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.08f),
+                            color = if (isDark) Color.White.copy(alpha = 0.16f) else Color.Black.copy(alpha = 0.10f),
                             shape = RoundedCornerShape(20.dp)
                         )
                         .padding(3.dp),
@@ -400,7 +434,7 @@ fun PlayerScreen(
                         modifier = Modifier
                             .clip(RoundedCornerShape(16.dp))
                             .background(
-                                if (!isVideoMode) (if (isDark) Color.White.copy(alpha = 0.18f) else Color.Black.copy(alpha = 0.14f))
+                                if (!isVideoMode) (if (isDark) Color.White.copy(alpha = 0.22f) else Color.Black.copy(alpha = 0.16f))
                                 else Color.Transparent
                             )
                             .clickable {
@@ -421,7 +455,7 @@ fun PlayerScreen(
                         modifier = Modifier
                             .clip(RoundedCornerShape(16.dp))
                             .background(
-                                if (isVideoMode) (if (isDark) Color.White.copy(alpha = 0.18f) else Color.Black.copy(alpha = 0.14f))
+                                if (isVideoMode) Glassmorphism.emeraldAccent.copy(alpha = 0.35f)
                                 else Color.Transparent
                             )
                             .clickable {
@@ -432,7 +466,7 @@ fun PlayerScreen(
                     ) {
                         Text(
                             text = "Video",
-                            color = if (isVideoMode) appColors.textPrimary else appColors.textSecondary,
+                            color = if (isVideoMode) Color.White else appColors.textSecondary,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -440,155 +474,7 @@ fun PlayerScreen(
                 }
             }
 
-            if (isVideoMode && currentVideoId != null) {
-                // Reproductor de video oficial que reemplaza a la carátula en el centro
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 4.dp)
-                        .aspectRatio(16f / 9f)
-                        .glowShadow(
-                            color = Color.Black,
-                            alpha = if (isDark) 0.55f else 0.20f,
-                            blurRadius = 36.dp,
-                            offsetY = 16.dp,
-                            shape = RoundedCornerShape(24.dp)
-                        )
-                        .then(
-                            if (isPlaying) {
-                                Modifier.glowShadow(
-                                    color = Glassmorphism.emeraldAccent,
-                                    alpha = 0.25f,
-                                    blurRadius = 36.dp,
-                                    spreadRadius = 1.dp,
-                                    offsetY = 8.dp,
-                                    shape = RoundedCornerShape(24.dp)
-                                )
-                            } else Modifier
-                        )
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(Color.Black)
-                        .border(
-                            width = 1.dp,
-                            color = if (isDark) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.10f),
-                            shape = RoundedCornerShape(24.dp)
-                        )
-                ) {
-                    key(currentVideoId) {
-                        AndroidView(
-                            factory = { ctx ->
-                                WebView(ctx).apply {
-                                    layoutParams = ViewGroup.LayoutParams(
-                                        ViewGroup.LayoutParams.MATCH_PARENT,
-                                        ViewGroup.LayoutParams.MATCH_PARENT
-                                    )
-                                    setBackgroundColor(android.graphics.Color.BLACK)
-                                    settings.apply {
-                                        javaScriptEnabled = true
-                                        domStorageEnabled = true
-                                        databaseEnabled = true
-                                        mediaPlaybackRequiresUserGesture = false
-                                        allowContentAccess = true
-                                        allowFileAccess = true
-                                        loadWithOverviewMode = true
-                                        useWideViewPort = true
-                                        mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                                        cacheMode = WebSettings.LOAD_DEFAULT
-                                        val defaultUa = userAgentString
-                                        userAgentString = defaultUa.replace("; wv", "").replace("Version/4.0 ", "")
-                                    }
-                                    addJavascriptInterface(
-                                        object {
-                                            @android.webkit.JavascriptInterface
-                                            fun onVideoError(code: Int) {
-                                                coroutineScope.launch(kotlinx.coroutines.Dispatchers.Main) {
-                                                    isVideoMode = false
-                                                    android.widget.Toast.makeText(
-                                                        context,
-                                                        "El video no permite reproducción externa, mostrando carátula",
-                                                        android.widget.Toast.LENGTH_SHORT
-                                                    ).show()
-                                                }
-                                            }
-                                        },
-                                        "CanvasBridge"
-                                    )
-                                    webChromeClient = object : WebChromeClient() {
-                                        override fun onPermissionRequest(request: PermissionRequest?) {
-                                            request?.grant(request.resources)
-                                        }
-                                    }
-                                    webViewClient = object : WebViewClient() {
-                                        override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                                            val url = request?.url?.toString().orEmpty()
-                                            if (url.contains("youtube.com") ||
-                                                url.contains("googlevideo.com") ||
-                                                url.contains("ytimg.com") ||
-                                                url.contains("google.com") ||
-                                                url.contains("youtube-nocookie.com") ||
-                                                url.startsWith("data:") ||
-                                                url.startsWith("blob:")) {
-                                                return false
-                                            }
-                                            return true
-                                        }
-                                    }
-                                    val html = """
-                                        <!DOCTYPE html>
-                                        <html>
-                                        <head>
-                                            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-                                            <style>
-                                                * { margin: 0; padding: 0; box-sizing: border-box; }
-                                                html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
-                                                iframe { width: 100%; height: 100%; border: none; }
-                                            </style>
-                                        </head>
-                                        <body>
-                                            <iframe
-                                                id="player"
-                                                src="https://www.youtube.com/embed/$currentVideoId?autoplay=1&mute=1&controls=1&playsinline=1&rel=0&modestbranding=1&enablejsapi=1&origin=https://www.youtube.com"
-                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                allowfullscreen>
-                                            </iframe>
-                                            <script>
-                                                var iframe = document.getElementById('player');
-                                                function sendCmd(func) {
-                                                    if (iframe && iframe.contentWindow) {
-                                                        iframe.contentWindow.postMessage(JSON.stringify({
-                                                            'event': 'command',
-                                                            'func': func,
-                                                            'args': []
-                                                        }), '*');
-                                                    }
-                                                }
-                                                window.addEventListener('message', function(e) {
-                                                    try {
-                                                        var d = JSON.parse(e.data);
-                                                        if (d.event === 'onError' && window.CanvasBridge) {
-                                                            window.CanvasBridge.onVideoError(d.info || 150);
-                                                        }
-                                                    } catch(err) {}
-                                                });
-                                            </script>
-                                        </body>
-                                        </html>
-                                    """.trimIndent()
-                                    loadDataWithBaseURL("https://www.youtube.com", html, "text/html", "UTF-8", null)
-                                }
-                            },
-                            update = { webView ->
-                                if (isPlaying) {
-                                    webView.evaluateJavascript("sendCmd('playVideo')", null)
-                                } else {
-                                    webView.evaluateJavascript("sendCmd('pauseVideo')", null)
-                                }
-                            },
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
-                }
-            } else {
+            if (!isVideoMode) {
                 // Carátula 3D con Scale Punch y Aura Esmeralda Dinámica
                 val albumArtScale by animateFloatAsState(
                     targetValue = if (isPlaying) 1.0f else 0.92f,
@@ -605,18 +491,18 @@ fun PlayerScreen(
                         .glowShadow(
                             color = Color.Black,
                             alpha = if (isDark) 0.55f else 0.18f,
-                            blurRadius = 36.dp,
-                            offsetY = 16.dp,
+                            blurRadius = 40.dp,
+                            offsetY = 18.dp,
                             shape = RoundedCornerShape(28.dp)
                         )
                         .then(
                             if (isPlaying) {
                                 Modifier.glowShadow(
                                     color = Glassmorphism.emeraldAccent,
-                                    alpha = 0.28f,
+                                    alpha = if (isDark) 0.35f else 0.25f,
                                     blurRadius = 36.dp,
-                                    spreadRadius = 2.dp,
-                                    offsetY = 10.dp,
+                                    spreadRadius = 1.dp,
+                                    offsetY = 8.dp,
                                     shape = RoundedCornerShape(28.dp)
                                 )
                             } else Modifier
@@ -624,31 +510,48 @@ fun PlayerScreen(
                         .clip(RoundedCornerShape(28.dp))
                         .background(appColors.surface)
                         .border(
-                            width = 1.2.dp,
-                            color = Color.White.copy(alpha = if (isDark) 0.14f else 0.25f),
+                            width = 1.dp,
+                            color = if (isDark) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f),
                             shape = RoundedCornerShape(28.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MusicNote,
-                        contentDescription = null,
-                        tint = appColors.textSecondary.copy(alpha = 0.35f),
-                        modifier = Modifier.size(100.dp)
-                    )
-
-                    if (audio.albumUri != null) {
-                        AsyncImage(
-                            model = ImageRequest.Builder(context)
-                                .data(ImageUtils.highRes(audio.albumUri))
-                                .crossfade(300)
-                                .build(),
-                            contentDescription = "Carátula",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
                         )
+                ) {
+                    val cover = audio.albumUri?.let { ImageUtils.highRes(it) } ?: audio.albumUri
+                    if (!cover.isNullOrBlank()) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(cover)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = "Carátula de ${audio.title}",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.linearGradient(
+                                        listOf(
+                                            appColors.accent.copy(alpha = 0.3f),
+                                            appColors.accent.copy(alpha = 0.1f)
+                                        )
+                                    )
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MusicNote,
+                                contentDescription = null,
+                                tint = appColors.accent,
+                                modifier = Modifier.size(72.dp)
+                            )
+                        }
                     }
                 }
+            } else {
+                // Modo Video activo: la carátula se retira por completo para mostrar el video Canvas en todo el reproductor
+                Spacer(modifier = Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.weight(1f))
@@ -1969,8 +1872,9 @@ private fun PlayerProgressSection(
                                 if (isOnline) Glassmorphism.emeraldAccent else appColors.accent
                             )
                     )
+                    val quality = com.frito.music.data.preferences.StreamQualityPreferences.getQuality(LocalContext.current)
                     Text(
-                        text = if (isOnline) "Streaming • Alta fidelidad"
+                        text = if (isOnline) "Streaming • ${quality.kbpsLabel}"
                         else (if (audioPath.contains(".")) audioPath.substringAfterLast(".").uppercase() else "AUDIO"),
                         color = appColors.textSecondary.copy(alpha = 0.85f),
                         fontSize = 11.sp,
@@ -2123,5 +2027,142 @@ fun WaveformProgress(
                 center = Offset(thumbX, height / 2)
             )
         }
+    }
+}
+
+/**
+ * Reproductor de video nativo Canvas con aceleración por hardware (ExoPlayer).
+ * Reproduce streams directos .mp4 silenciados y sincronizados con el audio de MusicService.
+ * No utiliza WebViews ni iframes, eliminando por completo el Error 152 / 150 de YouTube.
+ */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+@Composable
+private fun NativeVideoCanvasPlayer(
+    videoId: String,
+    isPlaying: Boolean,
+    positionMs: Long,
+    onFallbackToCover: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    var videoUrl by remember(videoId) { mutableStateOf<String?>(null) }
+    var isLoading by remember(videoId) { mutableStateOf(true) }
+
+    LaunchedEffect(videoId) {
+        isLoading = true
+        val result = com.frito.music.data.network.yt.YouTubeRepository.getVideoStreamUrl(videoId)
+        val url = result.getOrNull()
+        if (!url.isNullOrBlank()) {
+            videoUrl = url
+            isLoading = false
+        } else {
+            isLoading = false
+            android.widget.Toast.makeText(
+                context,
+                "No se pudo cargar el stream de video, mostrando carátula",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
+            onFallbackToCover()
+        }
+    }
+
+    if (isLoading) {
+        Box(
+            modifier = modifier.background(Color.Black),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(
+                color = Glassmorphism.emeraldAccent,
+                modifier = Modifier.size(36.dp),
+                strokeWidth = 2.5.dp
+            )
+        }
+    } else if (videoUrl != null) {
+        val exoPlayer = remember(context, videoUrl) {
+            val okHttpFactory = OkHttpDataSource.Factory(
+                com.frito.music.data.network.yt.PlaybackHttpClient.client
+            )
+            val defaultDataSource = DefaultDataSource.Factory(context, okHttpFactory)
+            val resolvingDataSource = androidx.media3.datasource.ResolvingDataSource.Factory(defaultDataSource) { dataSpec ->
+                if (dataSpec.length < 0) {
+                    val host = dataSpec.uri.host
+                    if (host != null && com.frito.music.data.network.yt.StreamClientUtils.isYouTubeMediaHost(host)) {
+                        val totalLength = dataSpec.uri.getQueryParameter("clen")?.toLongOrNull()?.takeIf { it > 0 }
+                        if (totalLength != null) {
+                            val remaining = totalLength - dataSpec.position
+                            if (remaining > 0) {
+                                dataSpec.buildUpon().setLength(remaining).build()
+                            } else dataSpec
+                        } else dataSpec
+                    } else dataSpec
+                } else dataSpec
+            }
+            val mediaSourceFactory = DefaultMediaSourceFactory(resolvingDataSource)
+
+            ExoPlayer.Builder(context)
+                .setMediaSourceFactory(mediaSourceFactory)
+                .build().apply {
+                    volume = 0f // Silenciado: el audio de alta fidelidad suena desde MusicService
+                    repeatMode = Player.REPEAT_MODE_ONE
+                    setMediaItem(MediaItem.fromUri(videoUrl!!))
+                    prepare()
+                    if (positionMs > 0) {
+                        seekTo(positionMs)
+                    }
+                    if (isPlaying) {
+                        play()
+                    }
+                    addListener(object : Player.Listener {
+                        override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                            android.util.Log.w("NativeVideoCanvas", "ExoPlayer video error: ${error.message}", error)
+                            onFallbackToCover()
+                        }
+                    })
+                }
+        }
+
+        DisposableEffect(exoPlayer) {
+            onDispose {
+                exoPlayer.release()
+            }
+        }
+
+        // Sincronizar play / pause
+        LaunchedEffect(isPlaying) {
+            if (isPlaying) {
+                if (!exoPlayer.isPlaying) exoPlayer.play()
+            } else {
+                if (exoPlayer.isPlaying) exoPlayer.pause()
+            }
+        }
+
+        // Sincronizar seek manual si se desvía más de 2 segundos
+        LaunchedEffect(positionMs) {
+            val delta = kotlin.math.abs(exoPlayer.currentPosition - positionMs)
+            if (delta > 2000L) {
+                exoPlayer.seekTo(positionMs)
+            }
+        }
+
+        AndroidView(
+            factory = { ctx ->
+                PlayerView(ctx).apply {
+                    layoutParams = ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                    useController = false
+                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                    player = exoPlayer
+                    setBackgroundColor(android.graphics.Color.BLACK)
+                }
+            },
+            update = { playerView ->
+                if (playerView.player != exoPlayer) {
+                    playerView.player = exoPlayer
+                }
+            },
+            modifier = modifier
+        )
     }
 }

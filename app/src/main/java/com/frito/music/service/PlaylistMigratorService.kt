@@ -430,13 +430,21 @@ object PlaylistMigratorService {
             throw Exception("No hay canciones resueltas en YouTube para crear la lista.")
         }
 
-        val playlistId = YouTube.createPlaylist(playlist.title)
-            ?: throw Exception("No se pudo crear la lista en tu cuenta de YouTube Music.")
+        val playlistId = try {
+            YouTube.createPlaylist(playlist.title, videoIds)
+        } catch (e: Exception) {
+            android.util.Log.w("PlaylistMigrator", "Fallo al crear playlist con canciones en lote, reintentando...", e)
+            null
+        } ?: YouTube.createPlaylist(playlist.title)
+          ?: throw Exception("No se pudo crear la lista en tu cuenta de YouTube Music.")
 
         for (id in videoIds) {
             try {
                 YouTube.addToPlaylist(playlistId, id)
-            } catch (_: Exception) {}
+                delay(80L)
+            } catch (e: Exception) {
+                android.util.Log.w("PlaylistMigrator", "Error agregando video $id a $playlistId", e)
+            }
         }
         playlistId
     }

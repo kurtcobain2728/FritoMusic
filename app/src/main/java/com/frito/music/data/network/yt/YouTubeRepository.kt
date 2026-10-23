@@ -61,15 +61,24 @@ object YouTubeRepository {
             NewPipeExtractor.getSignatureTimestamp(videoId).getOrNull()?.also {
                 signatureTimestampCache = it
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
             null
         }
     }
 
+    private fun getStreamQualityKey(): String {
+        return appContext?.let { com.frito.music.data.preferences.StreamQualityPreferences.getQuality(it).key } ?: "high"
+    }
+
     private fun getCachedStreamUrl(videoId: String): String? {
-        val entry = streamUrlCache[videoId] ?: return null
+        val key = "${videoId}_${getStreamQualityKey()}"
+        val entry = streamUrlCache[key] ?: streamUrlCache[videoId] ?: return null
         return if (System.currentTimeMillis() - entry.timestamp < STREAM_URL_TTL_MS) entry.url
-        else { streamUrlCache.remove(videoId); null }
+        else { 
+            streamUrlCache.remove(key)
+            streamUrlCache.remove(videoId)
+            null 
+        }
     }
 
     /**
@@ -78,7 +87,15 @@ object YouTubeRepository {
      * "envenenada" (bloqueada por bot-detection) y no debe reutilizarse.
      */
     fun invalidateStreamUrl(videoId: String) {
+        val key = "${videoId}_${getStreamQualityKey()}"
+        streamUrlCache.remove(key)
         streamUrlCache.remove(videoId)
+    }
+
+    fun clearStreamUrlCache() {
+        streamUrlCache.clear()
+        videoStreamUrlCache.clear()
+        android.util.Log.i("YouTubeRepository", "Caché de URLs de streaming limpiada por cambio de calidad")
     }
 
     /**
@@ -158,8 +175,12 @@ object YouTubeRepository {
     private const val KEY_LAST_CLIENT = "last_successful_client"
     private var streamPrefs: android.content.SharedPreferences? = null
 
+    @Volatile
+    private var appContext: android.content.Context? = null
+
     /** Carga el último cliente exitoso guardado (llamar desde Application). */
     fun init(context: android.content.Context) {
+        appContext = context.applicationContext
         streamPrefs = context.getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
         val saved = streamPrefs?.getString(KEY_LAST_CLIENT, null)
         if (!saved.isNullOrBlank() && lastSuccessfulClientKey == null) {
@@ -205,22 +226,44 @@ object YouTubeRepository {
         return runCatching { poTokenGenerator.getWebClientPoToken(videoId, sessionId) }.getOrNull()
     }
 
-    /** Ordena formatos de audio: URL directa > bitrate > códec (opus>aac) > sample rate. */
+    /** Ordena formatos de audio según calidad seleccionada por el usuario (Alta, Normal, Baja). */
     private fun selectAudioFormatCandidates(
         response: PlayerResponse,
-    ): List<PlayerResponse.StreamingData.Format> =
-        response.streamingData?.adaptiveFormats
+    ): List<PlayerResponse.StreamingData.Format> {
+        val preferredQuality = appContext?.let { com.frito.music.data.preferences.StreamQualityPreferences.getQuality(it) }
+            ?: com.frito.music.data.preferences.StreamQuality.HIGH
+
+        val formats = response.streamingData?.adaptiveFormats
             ?.asSequence()
             ?.filter { it.mimeType.startsWith("audio/") && it.bitrate > 0 }
             ?.filter { it.url != null || it.signatureCipher != null || it.cipher != null }
-            ?.sortedWith(
-                compareByDescending<PlayerResponse.StreamingData.Format> { it.url != null }
-                    .thenByDescending { it.bitrate }
+            ?: return emptyList()
+
+        val comparator = when (preferredQuality) {
+            com.frito.music.data.preferences.StreamQuality.HIGH -> {
+                compareByDescending<PlayerResponse.StreamingData.Format> { it.bitrate }
                     .thenByDescending { codecRank(extractCodec(it.mimeType)) }
                     .thenByDescending { it.audioSampleRate ?: 0 }
-            )
-            ?.toList()
-            .orEmpty()
+            }
+            com.frito.music.data.preferences.StreamQuality.NORMAL -> {
+                // Balance estándar (~128 kbps)
+                compareBy<PlayerResponse.StreamingData.Format> { kotlin.math.abs(it.bitrate - 128_000) }
+                    .thenByDescending { codecRank(extractCodec(it.mimeType)) }
+            }
+            com.frito.music.data.preferences.StreamQuality.LOW -> {
+                // Modo ahorro (~64 kbps Opus/AAC)
+                compareBy<PlayerResponse.StreamingData.Format> { it.bitrate }
+                    .thenByDescending { codecRank(extractCodec(it.mimeType)) }
+            }
+        }
+
+        val result = formats.sortedWith(comparator).toList()
+        android.util.Log.i(
+            "YouTubeRepository",
+            "selectAudioFormatCandidates calidad=$preferredQuality bitrate=${result.firstOrNull()?.bitrate} formato=${result.firstOrNull()?.mimeType}"
+        )
+        return result
+    }
 
     private fun findUrlOrNull(
         format: PlayerResponse.StreamingData.Format,
@@ -525,14 +568,16 @@ object YouTubeRepository {
             }
 
             if (url != null) {
-                streamUrlCache[videoId] = CachedUrl(url, System.currentTimeMillis())
+                val cacheKey = "${videoId}_${getStreamQualityKey()}"
+                streamUrlCache[cacheKey] = CachedUrl(url, System.currentTimeMillis())
                 return@runCatching url
             }
 
             // Fallback final NewPipe directo
             val newPipeUrl = NewPipeExtractor.newPipePlayer(videoId).firstOrNull()?.second
             if (!newPipeUrl.isNullOrEmpty() && isStreamUrlPlayable(newPipeUrl)) {
-                streamUrlCache[videoId] = CachedUrl(newPipeUrl, System.currentTimeMillis())
+                val cacheKey = "${videoId}_${getStreamQualityKey()}"
+                streamUrlCache[cacheKey] = CachedUrl(newPipeUrl, System.currentTimeMillis())
                 return@runCatching newPipeUrl
             }
 
@@ -547,16 +592,77 @@ object YouTubeRepository {
      */
     suspend fun getStreamUrlNewPipeFirst(videoId: String): Result<String> = withContext(Dispatchers.IO) {
         runCatching {
+            val cacheKey = "${videoId}_${getStreamQualityKey()}"
+            streamUrlCache.remove(cacheKey)
             streamUrlCache.remove(videoId)
 
             val newPipeUrls = NewPipeExtractor.newPipePlayer(videoId)
             val newPipeUrl = newPipeUrls.firstOrNull()?.second
             if (!newPipeUrl.isNullOrEmpty()) {
-                streamUrlCache[videoId] = CachedUrl(newPipeUrl, System.currentTimeMillis())
+                streamUrlCache[cacheKey] = CachedUrl(newPipeUrl, System.currentTimeMillis())
                 return@runCatching newPipeUrl
             }
 
             getStreamUrl(videoId).getOrThrow()
+        }
+    }
+
+    private val videoStreamUrlCache = ConcurrentHashMap<String, CachedUrl>()
+
+    suspend fun hasVideoTrack(videoId: String): Boolean = withContext(Dispatchers.IO) {
+        runCatching {
+            if (videoStreamUrlCache.containsKey(videoId)) return@withContext true
+            val res = getVideoStreamUrl(videoId)
+            res.isSuccess && !res.getOrNull().isNullOrBlank()
+        }.getOrDefault(false)
+    }
+
+    /**
+     * Resuelve la URL directa del stream de video (.mp4) para el reproductor nativo.
+     * Elimina el uso de WebView/iframe evitando el Error 152 / Error 150 de YouTube.
+     */
+    suspend fun getVideoStreamUrl(videoId: String): Result<String> = withContext(Dispatchers.IO) {
+        runCatching {
+            videoStreamUrlCache[videoId]?.let { cached ->
+                if (System.currentTimeMillis() - cached.timestamp < STREAM_URL_TTL_MS) {
+                    return@runCatching cached.url
+                } else {
+                    videoStreamUrlCache.remove(videoId)
+                }
+            }
+
+            // 1. Extraer directo desde clientes YouTube con soporte MP4
+            val clientsToTry = listOf(ANDROID_VR_1_61_48, TVHTML5_SIMPLY_EMBEDDED_PLAYER, WEB_REMIX, PREFERRED_STREAM_CLIENT)
+            for (client in clientsToTry) {
+                val response = YouTube.player(
+                    videoId = videoId,
+                    client = client,
+                    signatureTimestamp = signatureTimestampFor(client, videoId)
+                ).getOrNull()
+
+                val formats = response?.streamingData?.adaptiveFormats.orEmpty() + response?.streamingData?.formats.orEmpty()
+                val videoFormat = formats
+                    .filter { (it.mimeType.startsWith("video/mp4") || it.mimeType.startsWith("video/webm")) && (it.width ?: 0) > 0 }
+                    .minByOrNull { kotlin.math.abs((it.height ?: 720) - 720) }
+
+                if (videoFormat != null) {
+                    val candidate = findUrlOrNull(videoFormat, videoId, client) ?: videoFormat.url
+                    if (!candidate.isNullOrBlank()) {
+                        android.util.Log.i("YouTubeRepository", "Stream de video obtenido vía ${client.clientName}: $candidate")
+                        videoStreamUrlCache[videoId] = CachedUrl(candidate, System.currentTimeMillis())
+                        return@runCatching candidate
+                    }
+                }
+            }
+
+            // 2. Fallback a NewPipe extractor directo
+            val directVideoUrl = NewPipeExtractor.getVideoStreamUrl(videoId)
+            if (!directVideoUrl.isNullOrBlank()) {
+                videoStreamUrlCache[videoId] = CachedUrl(directVideoUrl, System.currentTimeMillis())
+                return@runCatching directVideoUrl
+            }
+
+            throw Exception("No se encontró stream de video reproducible para $videoId")
         }
     }
 
@@ -622,8 +728,8 @@ object YouTubeRepository {
         YouTube.playlist(playlistId).getOrThrow()
     }
 
-    suspend fun createYouTubePlaylist(title: String): Result<String> = runCatching {
-        YouTube.createPlaylist(title) ?: throw Exception("Failed to create playlist")
+    suspend fun createYouTubePlaylist(title: String, videoIds: List<String>? = null): Result<String> = runCatching {
+        YouTube.createPlaylist(title, videoIds) ?: throw Exception("Failed to create playlist")
     }
 
     suspend fun addToPlaylist(playlistId: String, videoId: String): Result<Unit> = runCatching {

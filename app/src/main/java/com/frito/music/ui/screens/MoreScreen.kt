@@ -47,11 +47,27 @@ fun MoreScreen(
     onNavigateToDownloadsManager: () -> Unit = {},
     onNavigateToHidden: () -> Unit = {},
     onNavigateToRecap: () -> Unit = {},
+    onNavigateToStreamQuality: () -> Unit = {},
+    onNavigateToCrossfade: () -> Unit = {},
+    onNavigateToStorageCache: () -> Unit = {},
     favoritesCount: Int,
     playlistsCount: Int
 ) {
     val appColors = LocalAppColors.current
     val context = LocalContext.current
+
+    val currentQuality = remember {
+        com.frito.music.data.preferences.StreamQualityPreferences.getQuality(context)
+    }
+    val crossfadeEnabled = remember {
+        com.frito.music.data.preferences.CrossfadePreferences.isEnabled(context)
+    }
+    val crossfadeDuration = remember {
+        com.frito.music.data.preferences.CrossfadePreferences.getDurationSeconds(context)
+    }
+    val cacheLimit = remember {
+        com.frito.music.data.preferences.StorageCacheManager.getMusicCacheLimitBytes(context)
+    }
 
     var showDownloadDirDialog by remember { mutableStateOf(false) }
     var currentDownloadDir by remember {
@@ -91,6 +107,9 @@ fun MoreScreen(
         MenuItem("Recap Musical", "Tus minutos, canciones y artistas más escuchados", Icons.Default.AutoAwesome, Color(0xFF10B981)) { onNavigateToRecap() },
         MenuItem("Favoritos", "$favoritesCount canciones", Icons.Default.Favorite, Color(0xFFFF6B6B)) { onNavigateToFavorites() },
         MenuItem("Listas de Reproducción", "$playlistsCount listas", Icons.AutoMirrored.Filled.FormatListBulleted, appColors.accent) { onNavigateToPlaylists() },
+        MenuItem("Calidad de Streaming", "${currentQuality.title} (${currentQuality.kbpsLabel})", Icons.Default.HighQuality, Color(0xFFE91E63)) { onNavigateToStreamQuality() },
+        MenuItem("Crossfade", if (crossfadeEnabled) "$crossfadeDuration s de fundido" else "Desactivado", Icons.Default.GraphicEq, Color(0xFF00E676)) { onNavigateToCrossfade() },
+        MenuItem("Almacenamiento y Caché", "${com.frito.music.data.preferences.StorageCacheManager.formatBytes(cacheLimit)} máx • Administrar", Icons.Default.Storage, Color(0xFF3F51B5)) { onNavigateToStorageCache() },
         MenuItem("Migrar Playlist", "Importa de Spotify, Apple, Deezer, YT y más", Icons.Default.SwapHoriz, Color(0xFF1DB954)) { onNavigateToMigrate() },
         MenuItem("Ocultos", "Ver y restaurar archivos y carpetas ocultos", Icons.Default.VisibilityOff, Color(0xFF7E57C2)) { onNavigateToHidden() },
         MenuItem("Ecualizador", "Ajusta el sonido", Icons.Default.Tune, Color(0xFF00BCD4)) { onNavigateToEqualizer() },

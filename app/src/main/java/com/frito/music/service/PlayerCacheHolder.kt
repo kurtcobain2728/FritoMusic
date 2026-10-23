@@ -44,4 +44,22 @@ object PlayerCacheHolder {
             }
         }
     }
+
+    /** Elimina todas las entradas de la caché de música (SimpleCache) de forma síncrona. */
+    suspend fun clearEntireCache() = kotlinx.coroutines.withContext(Dispatchers.IO) {
+        val c = cache ?: return@withContext
+        runCatching {
+            val targets = c.keys.toList()
+            targets.forEach { key -> c.removeResource(key) }
+            android.util.Log.i(
+                "PlayerCacheHolder",
+                "Caché completa de música limpiada (${targets.size} entradas)"
+            )
+        }.onFailure {
+            android.util.Log.w(
+                "PlayerCacheHolder",
+                "No se pudo limpiar la caché completa: ${it.message}"
+            )
+        }
+    }
 }

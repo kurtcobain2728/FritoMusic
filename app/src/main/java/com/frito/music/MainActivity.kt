@@ -142,6 +142,7 @@ class MainActivity : ComponentActivity() {
                     var selectedStreamArtistId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
                     var selectedStreamAlbumId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
                     var selectedStreamPlaylistId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+                    var playlistsInitialTab by androidx.compose.runtime.saveable.rememberSaveable { mutableIntStateOf(0) }
                     var isNavigatingBack by remember { mutableStateOf(false) }
 
                     // Gestión de accesos rápidos desde el launcher (App Shortcuts)
@@ -515,11 +516,15 @@ class MainActivity : ComponentActivity() {
                                         "listas" -> PlaylistsScreen(
                                             playerViewModel = playerViewModel,
                                             onlineLibraryViewModel = onlineLibraryViewModel,
+                                            initialTab = playlistsInitialTab,
                                             onNavigateToOnlinePlaylist = { playlistId ->
                                                 selectedStreamPlaylistId = playlistId
                                                 currentSubScreen = "online_playlist_detail"
                                             },
-                                            onBack = { currentSubScreen = null },
+                                            onBack = {
+                                                playlistsInitialTab = 0
+                                                currentSubScreen = null
+                                            },
                                             onPlaylistClick = { playlist ->
                                                 selectedPlaylist = playlist
                                                 currentSubScreen = "playlist_detail"
@@ -544,11 +549,15 @@ class MainActivity : ComponentActivity() {
                                         "gestor_descargas" -> DownloadsManagerScreen(onBack = { currentSubScreen = null })
                                         "ocultos" -> HiddenItemsScreen(homeViewModel = homeViewModel, onBack = { currentSubScreen = null })
                                         "recap" -> RecapScreen(onBack = { currentSubScreen = null })
+                                        "calidades" -> StreamQualityScreen(onBack = { currentSubScreen = null })
+                                        "crossfade" -> CrossfadeSettingsScreen(onBack = { currentSubScreen = null })
+                                        "almacenamiento" -> StorageCacheScreen(onBack = { currentSubScreen = null })
                                         "playlist_migrate" -> PlaylistMigrateScreen(
                                             onlineLibraryViewModel = onlineLibraryViewModel,
                                             onNavigateToLogin = { showYouTubeLogin = true },
                                             onNavigateToPlaylists = {
                                                 isNavigatingBack = true
+                                                playlistsInitialTab = 1
                                                 currentSubScreen = "listas"
                                             },
                                             onBack = { currentSubScreen = null }
@@ -733,7 +742,10 @@ class MainActivity : ComponentActivity() {
                                                 onNavigateToDonations = { isNavigatingBack = false; currentSubScreen = "donaciones" },
                                                 onNavigateToDownloadsManager = { isNavigatingBack = false; currentSubScreen = "gestor_descargas" },
                                                 onNavigateToHidden = { isNavigatingBack = false; currentSubScreen = "ocultos" },
-                                                onNavigateToRecap = { isNavigatingBack = false; currentSubScreen = "recap" }
+                                                onNavigateToRecap = { isNavigatingBack = false; currentSubScreen = "recap" },
+                                                onNavigateToStreamQuality = { isNavigatingBack = false; currentSubScreen = "calidades" },
+                                                onNavigateToCrossfade = { isNavigatingBack = false; currentSubScreen = "crossfade" },
+                                                onNavigateToStorageCache = { isNavigatingBack = false; currentSubScreen = "almacenamiento" }
                                             )
                                             else -> HomeScreen(homeViewModel = homeViewModel, playerViewModel = playerViewModel, isPlayerOpen = showPlayerScreen || currentAudio != null)
                                         }

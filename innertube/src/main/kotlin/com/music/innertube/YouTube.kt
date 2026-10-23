@@ -1178,8 +1178,8 @@ object YouTube {
         innerTube.moveSongPlaylist(WEB_REMIX, playlistId, setVideoId, successorSetVideoId)
     }
 
-    fun createPlaylist(title: String) = runBlocking {
-        innerTube.createPlaylist(WEB_REMIX, title).body<CreatePlaylistResponse>().playlistId
+    fun createPlaylist(title: String, videoIds: List<String>? = null) = runBlocking {
+        innerTube.createPlaylist(WEB_REMIX, title, videoIds).body<CreatePlaylistResponse>().playlistId
     }
 
     suspend fun renamePlaylist(playlistId: String, name: String) = runCatching {
@@ -1468,6 +1468,10 @@ object YouTube {
 
     fun getNewPipeStreamUrls(videoId: String): List<Pair<Int, String>> {
         return NewPipeExtractor.newPipePlayer(videoId)
+    }
+
+    fun getNewPipeVideoStreamUrl(videoId: String): String? {
+        return NewPipeExtractor.getVideoStreamUrl(videoId)
     }
 
     suspend fun newPipePlayer(

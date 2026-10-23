@@ -12,6 +12,14 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 @androidx.media3.common.util.UnstableApi
 class MusicService : MediaSessionService() {
@@ -122,11 +130,11 @@ class MusicService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
         
-        // Initialize cache (con protección: si el directorio está bloqueado por
-        // otra instancia, no crashear el servicio)
+        // Initialize cache con límite configurado por el usuario (mín 256MB, default 1GB, máx 8GB)
         cache = try {
             val cacheDir = File(cacheDir, "stream-cache")
-            val evictor = LeastRecentlyUsedCacheEvictor(500 * 1024 * 1024L) // 500MB
+            val cacheLimit = com.frito.music.data.preferences.StorageCacheManager.getMusicCacheLimitBytes(this)
+            val evictor = LeastRecentlyUsedCacheEvictor(cacheLimit)
             val databaseProvider = StandaloneDatabaseProvider(this)
             SimpleCache(cacheDir, evictor, databaseProvider)
         } catch (e: Exception) {
@@ -175,13 +183,242 @@ class MusicService : MediaSessionService() {
             }
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 updateWidget()
+                if (isPlaying) {
+                    startCrossfadeMonitoring(player)
+                } else {
+                    // Solo cancelamos si la pausa fue por intención del usuario (playWhenReady == false)
+                    // y no por un buffering/handover momentáneo
+                    if (!player.playWhenReady && !isPerformingHandover) {
+                        crossfadeJob?.cancel()
+                        cancelCrossfade(player)
+                    }
+                }
             }
             override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
                 updateWidget()
             }
+            override fun onPositionDiscontinuity(
+                oldPosition: androidx.media3.common.Player.PositionInfo,
+                newPosition: androidx.media3.common.Player.PositionInfo,
+                reason: Int
+            ) {
+                if (reason == androidx.media3.common.Player.DISCONTINUITY_REASON_SEEK && !isPerformingHandover) {
+                    cancelCrossfade(player)
+                }
+            }
         })
         if (player.audioSessionId != C.AUDIO_SESSION_ID_UNSET) {
             eqManager.attachAudioSession(player.audioSessionId)
+        }
+    }
+
+    // ── Motor de Crossfade real con superposición de audio (Dual-Player) ──
+    private val serviceScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main + kotlinx.coroutines.SupervisorJob())
+    private var crossfadeJob: kotlinx.coroutines.Job? = null
+    private var fadePlayer: ExoPlayer? = null
+    private var isCrossfading = false
+    private var isPerformingHandover = false
+    private var preloadedMediaId: String? = null
+
+    private fun getOrCreateFadePlayer(): ExoPlayer {
+        fadePlayer?.let { return it }
+        val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
+            .setBufferDurationsMs(
+                10_000,
+                30_000,
+                500,
+                1_000
+            )
+            .setPrioritizeTimeOverSizeThresholds(true)
+            .build()
+
+        val fp = ExoPlayer.Builder(this)
+            .setLoadControl(loadControl)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(createDataSourceFactory()))
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(C.USAGE_MEDIA)
+                    .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+                    .build(),
+                false // No roba el foco de audio
+            )
+            .build()
+        fadePlayer = fp
+        return fp
+    }
+
+    private fun startCrossfadeMonitoring(player: ExoPlayer) {
+        crossfadeJob?.cancel()
+        crossfadeJob = serviceScope.launch {
+            while (isActive) {
+                kotlinx.coroutines.delay(200)
+                if (!player.isPlaying || isCrossfading || isPerformingHandover) continue
+
+                val isEnabled = com.frito.music.data.preferences.CrossfadePreferences.isEnabled(this@MusicService)
+                if (!isEnabled) {
+                    if (player.volume < 1f) player.volume = 1f
+                    continue
+                }
+
+                val currentUri = player.currentMediaItem?.localConfiguration?.uri?.toString().orEmpty()
+                val isOnline = currentUri.startsWith("http://") || currentUri.startsWith("https://")
+                val isApplicable = if (isOnline) {
+                    com.frito.music.data.preferences.CrossfadePreferences.isApplyToOnline(this@MusicService)
+                } else {
+                    com.frito.music.data.preferences.CrossfadePreferences.isApplyToOffline(this@MusicService)
+                }
+
+                if (!isApplicable) {
+                    if (player.volume < 1f) player.volume = 1f
+                    continue
+                }
+
+                val duration = player.duration
+                val position = player.currentPosition
+                if (duration <= 0 || position <= 0) continue
+
+                val fadeSeconds = com.frito.music.data.preferences.CrossfadePreferences.getDurationSeconds(this@MusicService)
+                val fadeMs = fadeSeconds * 1000L
+
+                val remainingMs = duration - position
+                val nextIndex = player.nextMediaItemIndex
+                if (nextIndex == C.INDEX_UNSET) {
+                    // No hay siguiente pista: al final de la playlist hacemos fade-out suave
+                    if (remainingMs in 100L..fadeMs) {
+                        val progress = (remainingMs.toFloat() / fadeMs).coerceIn(0f, 1f)
+                        player.volume = progress
+                    }
+                    continue
+                }
+
+                // 1. Pre-buffering anticipado de la siguiente canción (10s antes del corte)
+                val preloadThresholdMs = fadeMs + 10_000L
+                if (remainingMs <= preloadThresholdMs) {
+                    val nextItem = player.getMediaItemAt(nextIndex)
+                    if (preloadedMediaId != nextItem.mediaId) {
+                        try {
+                            val fp = getOrCreateFadePlayer()
+                            fp.stop()
+                            fp.clearMediaItems()
+                            fp.volume = 0f
+                            fp.setMediaItem(nextItem)
+                            fp.prepare()
+                            fp.pause()
+                            preloadedMediaId = nextItem.mediaId
+                            android.util.Log.d("MusicService", "Crossfade: Pre-bufferizado ${nextItem.mediaMetadata.title}")
+                        } catch (e: Exception) {
+                            android.util.Log.w("MusicService", "Error al pre-bufferizar pista de crossfade", e)
+                        }
+                    }
+                }
+
+                // 2. Disparo de la mezcla cruzada
+                if (remainingMs in 300L..fadeMs) {
+                    triggerOverlappingCrossfade(player, remainingMs.coerceAtMost(fadeMs), nextIndex)
+                }
+            }
+        }
+    }
+
+    private fun triggerOverlappingCrossfade(player: ExoPlayer, effectiveFadeMs: Long, nextIndex: Int) {
+        if (isCrossfading || isPerformingHandover || !player.isPlaying) return
+        val nextItem = player.getMediaItemAt(nextIndex)
+
+        val fp = getOrCreateFadePlayer()
+        if (preloadedMediaId != nextItem.mediaId) {
+            fp.stop()
+            fp.clearMediaItems()
+            fp.volume = 0f
+            fp.setMediaItem(nextItem)
+            fp.prepare()
+            preloadedMediaId = nextItem.mediaId
+        }
+
+        isCrossfading = true
+        android.util.Log.i(
+            "MusicService",
+            "Iniciando Crossfade superpuesto (${effectiveFadeMs}ms): ${player.currentMediaItem?.mediaMetadata?.title} -> ${nextItem.mediaMetadata.title}"
+        )
+
+        serviceScope.launch {
+            // Si fadePlayer aún está conectando o bufferizando, esperamos hasta 800ms
+            var waitBuf = 0
+            while (waitBuf < 16 && fp.playbackState != androidx.media3.common.Player.STATE_READY) {
+                kotlinx.coroutines.delay(50)
+                waitBuf++
+            }
+
+            if (!isCrossfading || !player.isPlaying) {
+                cancelCrossfade(player)
+                return@launch
+            }
+
+            // Iniciamos la pista entrante en fadePlayer a volumen 0
+            fp.volume = 0f
+            fp.play()
+
+            val stepMs = 40L
+            val steps = (effectiveFadeMs / stepMs).coerceAtLeast(1)
+
+            // Curva Equal-Power (seno/coseno): la potencia acústica total permanece constante al 100%
+            for (i in 1..steps) {
+                kotlinx.coroutines.delay(stepMs)
+                if (!isCrossfading || !player.isPlaying) break
+                val progress = i.toFloat() / steps // 0.0 .. 1.0
+                val angle = progress * (Math.PI / 2.0)
+
+                // Track saliente (player): cos(0 -> pi/2) = 1.0 -> 0.0
+                val outVol = kotlin.math.cos(angle).toFloat().coerceIn(0f, 1f)
+                // Track entrante (fp): sin(0 -> pi/2) = 0.0 -> 1.0
+                val inVol = kotlin.math.sin(angle).toFloat().coerceIn(0f, 1f)
+
+                player.volume = outVol
+                fp.volume = inVol
+            }
+
+            if (!isCrossfading || !player.isPlaying) {
+                cancelCrossfade(player)
+                return@launch
+            }
+
+            // Handover suave: la pista entrante ya está sonando en fp a volumen 1.0
+            val handoffPositionMs = fp.currentPosition
+            android.util.Log.d("MusicService", "Crossfade: Handover a player en ${handoffPositionMs}ms")
+
+            isPerformingHandover = true
+            try {
+                // Avanzamos player al siguiente MediaItem silenciosamente en la misma posición
+                player.volume = 0f
+                player.seekTo(nextIndex, handoffPositionMs)
+                player.play()
+
+                // Esperamos que player esté listo antes de apagar fp (para que nunca haya silencio)
+                var waitReady = 0
+                while (waitReady < 25 && player.playbackState != androidx.media3.common.Player.STATE_READY) {
+                    kotlinx.coroutines.delay(50)
+                    waitReady++
+                }
+
+                // Volumen completo a player y liberación de fadePlayer
+                player.volume = 1f
+                fp.stop()
+                fp.clearMediaItems()
+                preloadedMediaId = null
+            } finally {
+                isPerformingHandover = false
+                isCrossfading = false
+            }
+            android.util.Log.i("MusicService", "Crossfade superpuesto completado exitosamente")
+        }
+    }
+
+    private fun cancelCrossfade(player: ExoPlayer) {
+        if (isCrossfading || preloadedMediaId != null) {
+            isCrossfading = false
+            preloadedMediaId = null
+            fadePlayer?.stop()
+            fadePlayer?.clearMediaItems()
+            player.volume = 1f
         }
     }
 
@@ -220,6 +457,10 @@ class MusicService : MediaSessionService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
     override fun onDestroy() {
+        crossfadeJob?.cancel()
+        serviceScope.cancel()
+        fadePlayer?.release()
+        fadePlayer = null
         mediaSession?.run {
             player.release()
             release()

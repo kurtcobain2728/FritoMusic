@@ -185,4 +185,35 @@ object NewPipeExtractor {
             emptyList()
         }
     }
+
+    /**
+     * Extrae la URL directa del stream de video (.mp4) para reproducción nativa con ExoPlayer.
+     * Prioriza streams de video compatibles (720p/480p/360p) sin restricciones de iframe web.
+     */
+    fun getVideoStreamUrl(videoId: String): String? {
+        init()
+        return try {
+            val streamInfo = StreamInfo.getInfo(
+                NewPipe.getService(0),
+                "https://www.youtube.com/watch?v=$videoId"
+            )
+            val muxedStreams = streamInfo.videoStreams
+                .filter { it.content.isNotBlank() }
+                .sortedByDescending { it.resolution ?: "" }
+
+            val directMuxed = muxedStreams.firstOrNull()?.content
+            if (!directMuxed.isNullOrBlank()) {
+                return directMuxed
+            }
+
+            val videoOnly = streamInfo.videoOnlyStreams
+                .filter { it.content.isNotBlank() }
+                .sortedByDescending { it.resolution ?: "" }
+
+            videoOnly.firstOrNull()?.content
+                ?: streamInfo.videoStreams.firstOrNull()?.content
+        } catch (e: Exception) {
+            null
+        }
+    }
 }
