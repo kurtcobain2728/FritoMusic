@@ -43,7 +43,8 @@ fun PlaylistsScreen(
     initialTab: Int = 0,
     onNavigateToOnlinePlaylist: (String) -> Unit,
     onBack: () -> Unit,
-    onPlaylistClick: (com.frito.music.data.models.Playlist) -> Unit
+    onPlaylistClick: (com.frito.music.data.models.Playlist) -> Unit,
+    onNavigateToLogin: () -> Unit = {}
 ) {
     val appColors = LocalAppColors.current
     val scope = rememberCoroutineScope()
@@ -145,7 +146,8 @@ fun PlaylistsScreen(
                     onDeletePlaylist = { id ->
                         playlistToDelete = id
                         playlistToDeleteIsOnline = true
-                    }
+                    },
+                    onNavigateToLogin = onNavigateToLogin
                 )
             }
         }
@@ -399,7 +401,8 @@ private fun PlaylistsOnlineContent(
     onlineLibraryViewModel: OnlineLibraryViewModel,
     onNavigateToOnlinePlaylist: (String) -> Unit,
     appColors: com.frito.music.ui.theme.AppColors,
-    onDeletePlaylist: (String) -> Unit
+    onDeletePlaylist: (String) -> Unit,
+    onNavigateToLogin: () -> Unit = {}
 ) {
     val playlists by onlineLibraryViewModel.onlinePlaylists.collectAsState()
     val isLoading by onlineLibraryViewModel.isLoadingPlaylists.collectAsState()
@@ -414,7 +417,36 @@ private fun PlaylistsOnlineContent(
     when {
         !com.frito.music.data.repository.YouTubeLoginManager.isLoggedIn() -> {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Inicia sesión para ver tus listas en la nube", color = appColors.textSecondary, fontSize = 16.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(32.dp))
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier.padding(32.dp)
+                ) {
+                    Text(
+                        "Inicia sesión para ver tus listas en la nube",
+                        color = appColors.textPrimary,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        "Conecta tu cuenta de YouTube para sincronizar y reproducir tus playlists.",
+                        color = appColors.textSecondary,
+                        fontSize = 13.sp,
+                        textAlign = TextAlign.Center
+                    )
+                    Button(
+                        onClick = onNavigateToLogin,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = appColors.accent,
+                            contentColor = com.frito.music.ui.theme.textColorForBackground(appColors.accent)
+                        ),
+                        shape = RoundedCornerShape(20.dp),
+                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 10.dp)
+                    ) {
+                        Text("Iniciar sesión en YouTube", fontWeight = FontWeight.SemiBold)
+                    }
+                }
             }
         }
         else -> {

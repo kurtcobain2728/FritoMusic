@@ -83,6 +83,40 @@ data class LibraryPage(
             val libraryTokens = PageHelper.extractLibraryTokensFromMenuItems(renderer.menu?.menuRenderer?.items)
 
             return when {
+                renderer.isPlaylist || renderer.navigationEndpoint?.browseEndpoint?.browseId?.startsWith("VL") == true || renderer.navigationEndpoint?.browseEndpoint?.browseId?.startsWith("PL") == true -> {
+                    val browseId = renderer.navigationEndpoint?.browseEndpoint?.browseId?.removePrefix("VL") ?: return null
+                    val title = renderer.flexColumns.firstOrNull()?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.firstOrNull()?.text ?: return null
+                    val subtitleRuns = renderer.flexColumns.getOrNull(1)?.musicResponsiveListItemFlexColumnRenderer?.text?.runs
+                    val author = subtitleRuns?.firstOrNull()?.let {
+                        Artist(name = it.text, id = it.navigationEndpoint?.browseEndpoint?.browseId)
+                    }
+                    val songCountText = subtitleRuns?.lastOrNull()?.text
+                    val thumbnailUrl = renderer.thumbnail?.getThumbnailUrl().orEmpty()
+                    val playEndpoint = renderer.overlay?.musicItemThumbnailOverlayRenderer?.content
+                        ?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchPlaylistEndpoint
+                    val shuffleEndpoint = renderer.menu?.menuRenderer?.items?.find {
+                        it.menuNavigationItemRenderer?.icon?.iconType == "MUSIC_SHUFFLE"
+                    }?.menuNavigationItemRenderer?.navigationEndpoint?.watchPlaylistEndpoint
+                    val radioEndpoint = renderer.menu?.menuRenderer?.items?.find {
+                        it.menuNavigationItemRenderer?.icon?.iconType == "MIX"
+                    }?.menuNavigationItemRenderer?.navigationEndpoint?.watchPlaylistEndpoint
+                    val isEditable = renderer.menu?.menuRenderer?.items?.find {
+                        it.menuNavigationItemRenderer?.icon?.iconType == "EDIT"
+                    } != null
+
+                    PlaylistItem(
+                        id = browseId,
+                        title = title,
+                        author = author,
+                        songCountText = songCountText,
+                        thumbnail = thumbnailUrl,
+                        playEndpoint = playEndpoint,
+                        shuffleEndpoint = shuffleEndpoint,
+                        radioEndpoint = radioEndpoint,
+                        isEditable = isEditable
+                    )
+                }
+
                 renderer.isSong -> {
                     val videoId = renderer.playlistItemData?.videoId ?: renderer.navigationEndpoint?.watchEndpoint?.videoId
                     ?: renderer.overlay?.musicItemThumbnailOverlayRenderer

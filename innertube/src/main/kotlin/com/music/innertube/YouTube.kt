@@ -7,6 +7,7 @@ import com.music.innertube.models.Artist
 import com.music.innertube.models.ArtistItem
 import com.music.innertube.models.BrowseEndpoint
 import com.music.innertube.models.GridRenderer
+import com.music.innertube.models.ItemSectionRenderer
 import com.music.innertube.models.MediaInfo
 import com.music.innertube.models.MusicResponsiveListItemRenderer
 import com.music.innertube.models.MusicTwoRowItemRenderer
@@ -785,6 +786,7 @@ object YouTube {
             ).body<BrowseResponse>()
 
             val tabs = response.contents?.singleColumnBrowseResultsRenderer?.tabs
+                ?: response.contents?.twoColumnBrowseResultsRenderer?.tabs?.filterNotNull()
             println("[UPLOAD_DEBUG] tabs count: ${tabs?.size ?: 0}")
 
             // Debug: log the structure for uploaded songs browseId
@@ -807,64 +809,34 @@ object YouTube {
                     ?: response.contents?.twoColumnBrowseResultsRenderer?.secondaryContents?.sectionListRenderer?.contents
             }
 
-            val contents = allContents?.find { it.gridRenderer != null || it.musicShelfRenderer != null }
-                ?: allContents?.firstOrNull()
+            val parsedItems = mutableListOf<YTItem>()
+            var continuationToken: String? = null
 
-            println("[UPLOAD_DEBUG] contents null? ${contents == null}")
-            println("[UPLOAD_DEBUG] gridRenderer null? ${contents?.gridRenderer == null}")
-            println("[UPLOAD_DEBUG] musicShelfRenderer null? ${contents?.musicShelfRenderer == null}")
-
-            when {
-                contents?.gridRenderer != null -> {
-                    val gridItems = contents.gridRenderer.items
-                    println("[UPLOAD_DEBUG] gridRenderer items count: ${gridItems.size}")
-                    val twoRowItems = gridItems.mapNotNull(GridRenderer.Item::musicTwoRowItemRenderer)
-                    println("[UPLOAD_DEBUG] musicTwoRowItemRenderer count: ${twoRowItems.size}")
-                    val parsedItems = twoRowItems.mapNotNull { LibraryPage.fromMusicTwoRowItemRenderer(it) }
-                    println("[UPLOAD_DEBUG] Successfully parsed items: ${parsedItems.size}")
-                    LibraryPage(
-                        items = parsedItems,
-                        continuation = contents.gridRenderer.continuations?.getContinuation()
-                    )
+            allContents?.forEach { content ->
+                content.gridRenderer?.let { grid ->
+                    val twoRowItems = grid.items.mapNotNull(GridRenderer.Item::musicTwoRowItemRenderer)
+                    parsedItems.addAll(twoRowItems.mapNotNull { LibraryPage.fromMusicTwoRowItemRenderer(it) })
+                    if (continuationToken == null) {
+                        continuationToken = grid.continuations?.getContinuation()
+                    }
                 }
-
-                else -> { // contents?.musicShelfRenderer != null
-                    val shelfContents = contents?.musicShelfRenderer?.contents
-                    println("[UPLOAD_DEBUG] musicShelfRenderer contents count: ${shelfContents?.size ?: 0}")
-                    if (shelfContents == null) {
-                        println("[UPLOAD_DEBUG] ERROR: musicShelfRenderer contents is null!")
-                        throw IllegalStateException("No content found for browseId=$browseId")
+                content.musicShelfRenderer?.let { shelf ->
+                    val listItemRenderers = shelf.contents?.mapNotNull(MusicShelfRenderer.Content::musicResponsiveListItemRenderer).orEmpty()
+                    parsedItems.addAll(listItemRenderers.mapNotNull { LibraryPage.fromMusicResponsiveListItemRenderer(it) })
+                    if (continuationToken == null) {
+                        continuationToken = shelf.continuations?.getContinuation()
                     }
-                    val listItemRenderers = shelfContents.mapNotNull(MusicShelfRenderer.Content::musicResponsiveListItemRenderer)
-                    println("[UPLOAD_DEBUG] musicResponsiveListItemRenderer count: ${listItemRenderers.size}")
-
-                    listItemRenderers.forEachIndexed { index, renderer ->
-                        println("[UPLOAD_DEBUG] Item $index: isSong=${renderer.isSong}, isArtist=${renderer.isArtist}, isAlbum=${renderer.isAlbum}, isPlaylist=${renderer.isPlaylist}")
-                        println("[UPLOAD_DEBUG] Item $index: playlistItemData=${renderer.playlistItemData}")
-                        println("[UPLOAD_DEBUG] Item $index: flexColumns count=${renderer.flexColumns.size}")
-                        renderer.flexColumns.forEachIndexed { colIdx, col ->
-                            println("[UPLOAD_DEBUG] Item $index flexColumn $colIdx: ${col.musicResponsiveListItemFlexColumnRenderer.text?.runs?.map { it.text }}")
-                        }
-                        println("[UPLOAD_DEBUG] Item $index: thumbnail=${renderer.thumbnail?.musicThumbnailRenderer?.thumbnail}")
-                    }
-
-                    val parsedItems = listItemRenderers.mapNotNull { renderer ->
-                        val result = LibraryPage.fromMusicResponsiveListItemRenderer(renderer)
-                        if (result == null) {
-                            println("[UPLOAD_DEBUG] Failed to parse renderer: videoId=${renderer.playlistItemData?.videoId}")
-                        }
-                        result
-                    }
-                    println("[UPLOAD_DEBUG] Successfully parsed items: ${parsedItems.size}")
-                    parsedItems.filterIsInstance<SongItem>().forEach { song ->
-                        println("[UPLOAD_DEBUG] Parsed song: id=${song.id}, title=${song.title}, artists=${song.artists.map { it.name }}")
-                    }
-                    LibraryPage(
-                        items = parsedItems,
-                        continuation = contents.musicShelfRenderer.continuations?.getContinuation()
-                    )
+                }
+                content.itemSectionRenderer?.let { itemSection ->
+                    val listItemRenderers = itemSection.contents?.mapNotNull { it.musicResponsiveListItemRenderer }.orEmpty()
+                    parsedItems.addAll(listItemRenderers.mapNotNull { LibraryPage.fromMusicResponsiveListItemRenderer(it) })
                 }
             }
+
+            LibraryPage(
+                items = parsedItems,
+                continuation = continuationToken
+            )
         }.onFailure { e ->
             println("[UPLOAD_DEBUG] library() EXCEPTION for browseId=$browseId: ${e::class.simpleName}: ${e.message}")
             e.printStackTrace()

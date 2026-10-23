@@ -50,7 +50,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun StreamPlaylistsScreen(
     streamViewModel: StreamViewModel,
-    onPlaylistClick: (String) -> Unit
+    onPlaylistClick: (String) -> Unit,
+    onLoginClick: () -> Unit = {}
 ) {
     val appColors = LocalAppColors.current
     val haptics = rememberAppHaptics()
@@ -62,6 +63,7 @@ fun StreamPlaylistsScreen(
 
     val userPlaylists by streamViewModel.userPlaylists.collectAsState()
     val isLoadingPlaylists by streamViewModel.isLoadingPlaylists.collectAsState()
+    val isLoggedIn by com.frito.music.data.repository.YouTubeLoginManager.isLoggedIn.collectAsState()
 
     val featuredPlaylists by streamViewModel.featuredPlaylists.collectAsState()
     val isLoadingFeatured by streamViewModel.isLoadingFeatured.collectAsState()
@@ -251,6 +253,62 @@ fun StreamPlaylistsScreen(
                             )
                         }
                     }
+                    !isLoggedIn -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(72.dp)
+                                        .clip(CircleShape)
+                                        .background(if (appColors.isDark) Color(0x22FFFFFF) else Color(0x12000000)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        Icons.Rounded.QueueMusic,
+                                        contentDescription = null,
+                                        tint = Glassmorphism.emeraldAccent,
+                                        modifier = Modifier.size(36.dp)
+                                    )
+                                }
+                                Text(
+                                    text = "Inicia sesión en YouTube",
+                                    color = appColors.textPrimary,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center
+                                )
+                                Text(
+                                    text = "Conecta tu cuenta para ver tus listas de YouTube Music, sincronizar listas migradas y administrarlas.",
+                                    color = appColors.textSecondary,
+                                    fontSize = 13.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Button(
+                                    onClick = {
+                                        haptics.light()
+                                        onLoginClick()
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Glassmorphism.emeraldAccent,
+                                        contentColor = Color.White
+                                    ),
+                                    shape = RoundedCornerShape(20.dp),
+                                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 10.dp)
+                                ) {
+                                    Text("Iniciar sesión", fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+                        }
+                    }
                     userPlaylists.isEmpty() -> {
                         Box(
                             modifier = Modifier
@@ -288,6 +346,18 @@ fun StreamPlaylistsScreen(
                                     fontSize = 13.sp,
                                     textAlign = TextAlign.Center
                                 )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                OutlinedButton(
+                                    onClick = {
+                                        haptics.light()
+                                        streamViewModel.loadUserPlaylists()
+                                    },
+                                    shape = RoundedCornerShape(20.dp)
+                                ) {
+                                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Actualizar ahora")
+                                }
                             }
                         }
                     }

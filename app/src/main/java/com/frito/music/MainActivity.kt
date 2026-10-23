@@ -528,6 +528,9 @@ class MainActivity : ComponentActivity() {
                                             onPlaylistClick = { playlist ->
                                                 selectedPlaylist = playlist
                                                 currentSubScreen = "playlist_detail"
+                                            },
+                                            onNavigateToLogin = {
+                                                showYouTubeLogin = true
                                             }
                                         )
                                         "playlist_detail" -> {
@@ -598,6 +601,9 @@ class MainActivity : ComponentActivity() {
                                                 streamViewModel = streamViewModel,
                                                 onPlaylistClick = { playlistId ->
                                                     pushStreamScreen(StreamNavEntry(screen = "stream_playlist_detail", playlistId = playlistId))
+                                                },
+                                                onLoginClick = {
+                                                    showYouTubeLogin = true
                                                 }
                                             )
                                         }

@@ -435,7 +435,13 @@ object YouTubeRepository {
      *  - subtítulo dice "Playlist autogenerada" / "Auto-generated playlist"
      */
     private fun isLikedSongsEntry(item: PlaylistItem): Boolean {
-        val byId = item.id.startsWith("RDCLAK5uy") || item.id == "FEmusic_liked_songs"
+        val cleanId = item.id.removePrefix("VL")
+        // Las playlists creadas o migradas por el usuario empiezan siempre por "PL".
+        // NUNCA son la lista de Me Gusta autogenerada del sistema.
+        if (cleanId.startsWith("PL")) {
+            return false
+        }
+        val byId = item.id.startsWith("RDCLAK5uy") || item.id == "FEmusic_liked_songs" || item.id == "LM" || item.id == "LL"
         val byTitle = item.title.contains("gustó", ignoreCase = true) ||
             item.title.contains("liked", ignoreCase = true) ||
             item.title.contains("likes", ignoreCase = true)
@@ -481,6 +487,11 @@ object YouTubeRepository {
         val remote = page.items
             .filterIsInstance<PlaylistItem>()
             .filterNot { isLikedSongsEntry(it) }
+        remote.forEach { pl ->
+            if (pl.id.removePrefix("VL").startsWith("PL")) {
+                com.frito.music.data.repository.MigratedPlaylistsManager.save(pl)
+            }
+        }
         val localMigrated = com.frito.music.data.repository.MigratedPlaylistsManager.getAll()
         (localMigrated + remote).distinctBy { it.id }
     }
@@ -735,6 +746,11 @@ object YouTubeRepository {
         val remote = result.items
             .filterIsInstance<PlaylistItem>()
             .filterNot { isLikedSongsEntry(it) }
+        remote.forEach { pl ->
+            if (pl.id.removePrefix("VL").startsWith("PL")) {
+                com.frito.music.data.repository.MigratedPlaylistsManager.save(pl)
+            }
+        }
         val localMigrated = com.frito.music.data.repository.MigratedPlaylistsManager.getAll()
         (localMigrated + remote).distinctBy { it.id }
     }
