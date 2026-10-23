@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="search"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_search"
+        android:shortcutShortLabel="@string/shortcut_search">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.frito.music"
+            android:targetClass="com.frito.music.MainActivity">
+            <extra android:name="shortcut" android:value="search" />
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="favorites"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_favorites"
+        android:shortcutShortLabel="@string/shortcut_favorites">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.frito.music"
+            android:targetClass="com.frito.music.MainActivity">
+            <extra android:name="shortcut" android:value="favorites" />
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="library"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_library"
+        android:shortcutShortLabel="@string/shortcut_library">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.frito.music"
+            android:targetClass="com.frito.music.MainActivity">
+            <extra android:name="shortcut" android:value="library" />
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="shuffle"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_shuffle"
+        android:shortcutShortLabel="@string/shortcut_shuffle">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.frito.music"
+            android:targetClass="com.frito.music.MainActivity">
+            <extra android:name="shortcut" android:value="shuffle" />
+        </intent>
+    </shortcut>
+</shortcuts>

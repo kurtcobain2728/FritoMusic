@@ -268,7 +268,7 @@ fun HomeScreen(
                                 if (isSelectionMode) {
                                     homeViewModel.toggleFolder(folder.path)
                                 } else {
-                                    selectedItemForModal = SelectedHomeItem.Folder(folder, folderCounts[folder.path] ?: 0)
+                                    homeViewModel.enterSelectionMode(folderPath = folder.path)
                                 }
                             },
                             appColors = appColors
@@ -296,7 +296,7 @@ fun HomeScreen(
                                 if (isSelectionMode) {
                                     homeViewModel.toggleAudio(audio.path)
                                 } else {
-                                    selectedItemForModal = SelectedHomeItem.Audio(audio)
+                                    homeViewModel.enterSelectionMode(audioPath = audio.path)
                                 }
                             }
                         )

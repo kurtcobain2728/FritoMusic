@@ -103,6 +103,34 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         exitSelectionMode()
     }
 
+    /**
+     * Retorna la lista de todas las canciones seleccionadas directamente
+     * y las canciones contenidas dentro de las carpetas seleccionadas.
+     */
+    fun getSelectedAudioFiles(): List<AudioFile> {
+        val selectedPaths = _selectedAudioPaths.value
+        val selectedFolders = _selectedFolderPaths.value
+        val all = _allAudios.value
+
+        val result = mutableListOf<AudioFile>()
+        val seenPaths = HashSet<String>()
+
+        // 1. Pistas seleccionadas explícitamente
+        all.filter { selectedPaths.contains(it.path) }.forEach {
+            if (seenPaths.add(it.path)) result.add(it)
+        }
+
+        // 2. Pistas dentro de carpetas seleccionadas
+        if (selectedFolders.isNotEmpty()) {
+            all.filter { audio ->
+                selectedFolders.any { folderPath -> audio.path.startsWith(folderPath) }
+            }.forEach {
+                if (seenPaths.add(it.path)) result.add(it)
+            }
+        }
+        return result
+    }
+
     private var scanJob: kotlinx.coroutines.Job? = null
 
     init {

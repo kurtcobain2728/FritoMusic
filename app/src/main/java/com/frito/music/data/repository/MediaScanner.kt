@@ -139,17 +139,21 @@ class MediaScanner(private val context: Context) {
                     }
 
                     val customTitle = CustomNamesManager.getCustomAudioTitle(path)
+                    val customArtist = CustomNamesManager.getCustomAudioArtist(path)
+                    val customAlbum = CustomNamesManager.getCustomAudioAlbum(path)
                     val resolvedTitle = customTitle ?: finalTitle
+                    val resolvedArtist = customArtist ?: finalArtist
+                    val resolvedAlbum = customAlbum ?: finalAlbum
 
                     val audioFile = AudioFile(
                         id = cursor.getLong(idColumn),
                         title = resolvedTitle,
-                        artist = finalArtist,
+                        artist = resolvedArtist,
                         path = path,
                         durationMs = cursor.getLong(durationColumn),
                         sizeBytes = cursor.getLong(sizeColumn),
                         albumUri = resolvedAlbumUri,
-                        album = finalAlbum,
+                        album = resolvedAlbum,
                         dateAdded = cursor.getLong(dateAddedColumn)
                     )
 

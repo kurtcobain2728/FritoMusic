@@ -76,6 +76,17 @@ data class StreamNavEntry(
 
 class MainActivity : ComponentActivity() {
 
+    private var pendingShortcut: ((String) -> Unit)? = null
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val sc = intent.getStringExtra("shortcut")
+        if (!sc.isNullOrBlank()) {
+            pendingShortcut?.invoke(sc)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Edge-to-edge: dibuja bajo status/navigation bar. Los insets se manejan
         // con WindowInsets en Compose (ver padding de headers en pantallas).
@@ -91,6 +102,7 @@ class MainActivity : ComponentActivity() {
         com.frito.music.data.repository.StreamHistoryManager.init(this)
         com.frito.music.data.repository.HiddenItemsManager.init(this)
         com.frito.music.data.repository.CustomNamesManager.init(this)
+        com.frito.music.data.repository.RecapManager.init(this)
 
         setContent {
             var showOnboarding by remember { mutableStateOf(!hasCompletedOnboardingInitial) }
@@ -130,6 +142,38 @@ class MainActivity : ComponentActivity() {
                     var selectedStreamAlbumId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
                     var selectedStreamPlaylistId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
                     var isNavigatingBack by remember { mutableStateOf(false) }
+
+                    // Gestión de accesos rápidos desde el launcher (App Shortcuts)
+                    LaunchedEffect(Unit) {
+                        pendingShortcut = { sc ->
+                            when (sc) {
+                                "search" -> {
+                                    currentTab = "stream"
+                                    currentSubScreen = null
+                                }
+                                "favorites" -> {
+                                    currentTab = "mas"
+                                    currentSubScreen = "favoritos"
+                                }
+                                "library" -> {
+                                    currentTab = "inicio"
+                                    currentSubScreen = null
+                                }
+                                "shuffle" -> {
+                                    currentTab = "inicio"
+                                    currentSubScreen = null
+                                    val audios = homeViewModel.allAudios.value
+                                    if (audios.isNotEmpty()) {
+                                        playerViewModel.playAudios(audios.shuffled(), 0)
+                                    }
+                                }
+                            }
+                        }
+                        val initialSc = intent?.getStringExtra("shortcut")
+                        if (!initialSc.isNullOrBlank()) {
+                            pendingShortcut?.invoke(initialSc)
+                        }
+                    }
 
                     val streamNavStack = androidx.compose.runtime.saveable.rememberSaveable(
                         saver = androidx.compose.runtime.saveable.listSaver(
@@ -374,6 +418,13 @@ class MainActivity : ComponentActivity() {
                                         onCancel = {
                                             homeViewModel.exitSelectionMode()
                                         },
+                                        onPlaySelected = {
+                                            val audios = homeViewModel.getSelectedAudioFiles()
+                                            if (audios.isNotEmpty()) {
+                                                playerViewModel.playAudios(audios, 0)
+                                                homeViewModel.exitSelectionMode()
+                                            }
+                                        },
                                         onHideSelected = {
                                             homeViewModel.hideSelected()
                                         },
@@ -491,6 +542,7 @@ class MainActivity : ComponentActivity() {
                                         "donaciones" -> DonationsScreen(onBack = { currentSubScreen = null })
                                         "gestor_descargas" -> DownloadsManagerScreen(onBack = { currentSubScreen = null })
                                         "ocultos" -> HiddenItemsScreen(homeViewModel = homeViewModel, onBack = { currentSubScreen = null })
+                                        "recap" -> RecapScreen(onBack = { currentSubScreen = null })
                                         "playlist_migrate" -> PlaylistMigrateScreen(
                                             onlineLibraryViewModel = onlineLibraryViewModel,
                                             onNavigateToLogin = { showYouTubeLogin = true },
@@ -679,7 +731,8 @@ class MainActivity : ComponentActivity() {
                                                 onNavigateToAppearance = { isNavigatingBack = false; currentSubScreen = "apariencia" },
                                                 onNavigateToDonations = { isNavigatingBack = false; currentSubScreen = "donaciones" },
                                                 onNavigateToDownloadsManager = { isNavigatingBack = false; currentSubScreen = "gestor_descargas" },
-                                                onNavigateToHidden = { isNavigatingBack = false; currentSubScreen = "ocultos" }
+                                                onNavigateToHidden = { isNavigatingBack = false; currentSubScreen = "ocultos" },
+                                                onNavigateToRecap = { isNavigatingBack = false; currentSubScreen = "recap" }
                                             )
                                             else -> HomeScreen(homeViewModel = homeViewModel, playerViewModel = playerViewModel, isPlayerOpen = showPlayerScreen || currentAudio != null)
                                         }

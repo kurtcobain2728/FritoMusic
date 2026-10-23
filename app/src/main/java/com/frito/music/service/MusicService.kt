@@ -173,10 +173,48 @@ class MusicService : MediaSessionService() {
             override fun onAudioSessionIdChanged(audioSessionId: Int) {
                 eqManager.attachAudioSession(audioSessionId)
             }
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                updateWidget()
+            }
+            override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
+                updateWidget()
+            }
         })
         if (player.audioSessionId != C.AUDIO_SESSION_ID_UNSET) {
             eqManager.attachAudioSession(player.audioSessionId)
         }
+    }
+
+    private fun updateWidget() {
+        val player = mediaSession?.player ?: return
+        val currentItem = player.currentMediaItem
+        val title = currentItem?.mediaMetadata?.title?.toString()
+        val artist = currentItem?.mediaMetadata?.artist?.toString()
+        val artworkUri = currentItem?.mediaMetadata?.artworkUri?.toString()
+        com.frito.music.widget.FritoMusicWidgetProvider.notifyWidgetUpdate(
+            context = this,
+            title = title,
+            artist = artist,
+            isPlaying = player.isPlaying,
+            albumUri = artworkUri
+        )
+    }
+
+    override fun onStartCommand(intent: android.content.Intent?, flags: Int, startId: Int): Int {
+        when (intent?.action) {
+            com.frito.music.widget.FritoMusicWidgetProvider.KEY_PLAY_PAUSE -> {
+                mediaSession?.player?.let { p ->
+                    if (p.isPlaying) p.pause() else p.play()
+                }
+            }
+            com.frito.music.widget.FritoMusicWidgetProvider.KEY_NEXT -> {
+                mediaSession?.player?.seekToNextMediaItem()
+            }
+            com.frito.music.widget.FritoMusicWidgetProvider.KEY_PREV -> {
+                mediaSession?.player?.seekToPreviousMediaItem()
+            }
+        }
+        return super.onStartCommand(intent, flags, startId)
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession

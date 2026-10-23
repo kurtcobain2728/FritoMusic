@@ -14,11 +14,15 @@ import org.json.JSONObject
 object CustomNamesManager {
     private const val PREFS_NAME = "frito_custom_names"
     private const val KEY_AUDIO_TITLES = "custom_audio_titles"
+    private const val KEY_AUDIO_ARTISTS = "custom_audio_artists"
+    private const val KEY_AUDIO_ALBUMS = "custom_audio_albums"
     private const val KEY_FOLDER_NAMES = "custom_folder_names"
 
     private var prefs: SharedPreferences? = null
 
     private val audioTitlesMap = mutableMapOf<String, String>()
+    private val audioArtistsMap = mutableMapOf<String, String>()
+    private val audioAlbumsMap = mutableMapOf<String, String>()
     private val folderNamesMap = mutableMapOf<String, String>()
 
     private val _version = MutableStateFlow(0)
@@ -29,55 +33,45 @@ object CustomNamesManager {
         load()
     }
 
-    private fun load() {
-        val prefs = prefs ?: return
-        audioTitlesMap.clear()
-        folderNamesMap.clear()
-
-        val audioJsonStr = prefs.getString(KEY_AUDIO_TITLES, null)
-        if (!audioJsonStr.isNullOrBlank()) {
-            try {
-                val json = JSONObject(audioJsonStr)
+    private fun loadMap(prefs: SharedPreferences, key: String, targetMap: MutableMap<String, String>) {
+        targetMap.clear()
+        val jsonStr = prefs.getString(key, null)
+        if (!jsonStr.isNullOrBlank()) {
+            runCatching {
+                val json = JSONObject(jsonStr)
                 val keys = json.keys()
                 while (keys.hasNext()) {
-                    val key = keys.next()
-                    audioTitlesMap[key] = json.getString(key)
+                    val k = keys.next()
+                    targetMap[k] = json.getString(k)
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-
-        val folderJsonStr = prefs.getString(KEY_FOLDER_NAMES, null)
-        if (!folderJsonStr.isNullOrBlank()) {
-            try {
-                val json = JSONObject(folderJsonStr)
-                val keys = json.keys()
-                while (keys.hasNext()) {
-                    val key = keys.next()
-                    folderNamesMap[key] = json.getString(key)
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
             }
         }
     }
 
-    private fun save() {
-        val prefs = prefs ?: return
-        try {
-            val aObj = JSONObject()
-            audioTitlesMap.forEach { (k, v) -> aObj.put(k, v) }
-            val fObj = JSONObject()
-            folderNamesMap.forEach { (k, v) -> fObj.put(k, v) }
+    private fun load() {
+        val p = prefs ?: return
+        loadMap(p, KEY_AUDIO_TITLES, audioTitlesMap)
+        loadMap(p, KEY_AUDIO_ARTISTS, audioArtistsMap)
+        loadMap(p, KEY_AUDIO_ALBUMS, audioAlbumsMap)
+        loadMap(p, KEY_FOLDER_NAMES, folderNamesMap)
+    }
 
-            prefs.edit()
-                .putString(KEY_AUDIO_TITLES, aObj.toString())
-                .putString(KEY_FOLDER_NAMES, fObj.toString())
+    private fun save() {
+        val p = prefs ?: return
+        runCatching {
+            fun mapToJson(map: Map<String, String>): String {
+                val obj = JSONObject()
+                map.forEach { (k, v) -> obj.put(k, v) }
+                return obj.toString()
+            }
+
+            p.edit()
+                .putString(KEY_AUDIO_TITLES, mapToJson(audioTitlesMap))
+                .putString(KEY_AUDIO_ARTISTS, mapToJson(audioArtistsMap))
+                .putString(KEY_AUDIO_ALBUMS, mapToJson(audioAlbumsMap))
+                .putString(KEY_FOLDER_NAMES, mapToJson(folderNamesMap))
                 .apply()
             _version.value++
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
     }
 
@@ -87,9 +81,16 @@ object CustomNamesManager {
         save()
     }
 
-    fun getCustomAudioTitle(path: String): String? {
-        return audioTitlesMap[path]
+    fun setCustomAudioMetadata(path: String, title: String?, artist: String?, album: String?) {
+        if (!title.isNullOrBlank()) audioTitlesMap[path] = title.trim()
+        if (!artist.isNullOrBlank()) audioArtistsMap[path] = artist.trim()
+        if (!album.isNullOrBlank()) audioAlbumsMap[path] = album.trim()
+        save()
     }
+
+    fun getCustomAudioTitle(path: String): String? = audioTitlesMap[path]
+    fun getCustomAudioArtist(path: String): String? = audioArtistsMap[path]
+    fun getCustomAudioAlbum(path: String): String? = audioAlbumsMap[path]
 
     fun setCustomFolderName(oldPath: String, newPath: String, newName: String) {
         folderNamesMap.remove(oldPath)
@@ -97,7 +98,5 @@ object CustomNamesManager {
         save()
     }
 
-    fun getCustomFolderName(path: String): String? {
-        return folderNamesMap[path]
-    }
+    fun getCustomFolderName(path: String): String? = folderNamesMap[path]
 }

@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Frito Music</string>
+    <string name="shortcut_search">Buscar</string>
+    <string name="shortcut_favorites">Favoritos</string>
+    <string name="shortcut_library">Biblioteca</string>
+    <string name="shortcut_shuffle">Aleatorio</string>
+    <string name="widget_name">Reproductor Frito Music</string>
 </resources>

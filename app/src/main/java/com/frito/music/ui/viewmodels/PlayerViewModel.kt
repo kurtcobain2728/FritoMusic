@@ -87,6 +87,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val _repeatMode = MutableStateFlow(Player.REPEAT_MODE_OFF)
     val repeatMode = _repeatMode.asStateFlow()
 
+    private val _playbackSpeed = MutableStateFlow(1.0f)
+    val playbackSpeed: StateFlow<Float> = _playbackSpeed.asStateFlow()
+
+    private val _playbackPitch = MutableStateFlow(1.0f)
+    val playbackPitch: StateFlow<Float> = _playbackPitch.asStateFlow()
+
     private val audioFilesMap = mutableMapOf<String, AudioFile>()
 
     /**
@@ -155,6 +161,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             _repeatMode.value = controller.repeatMode
             _durationMs.value = controller.duration.coerceAtLeast(0L)
             _positionMs.value = controller.currentPosition.coerceAtLeast(0L)
+            _playbackSpeed.value = controller.playbackParameters.speed
+            _playbackPitch.value = controller.playbackParameters.pitch
 
             // 2. Recuperar la pista en reproducción actual
             val initialItem = controller.currentMediaItem
@@ -227,6 +235,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     )
                     audioFilesMap[id] = audio
                     _currentAudio.value = audio
+                    com.frito.music.data.repository.RecapManager.recordPlayback(
+                        title = audio.title,
+                        artist = audio.artist,
+                        album = audio.album,
+                        albumUri = audio.albumUri,
+                        durationMs = audio.durationMs
+                    )
                     if (!videoId.isNullOrBlank()) {
                         videoIdsByMediaId[id] = videoId
                         _currentVideoId.value = videoId
@@ -252,11 +267,57 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     _shuffleModeEnabled.value = shuffleModeEnabled
                 }
 
+                override fun onPlaybackParametersChanged(playbackParameters: androidx.media3.common.PlaybackParameters) {
+                    _playbackSpeed.value = playbackParameters.speed
+                    _playbackPitch.value = playbackParameters.pitch
+                }
+
                 override fun onRepeatModeChanged(repeatMode: Int) {
                     _repeatMode.value = repeatMode
                 }
             })
         }, ContextCompat.getMainExecutor(getApplication()))
+    }
+
+    fun setPlaybackParameters(speed: Float, pitch: Float) {
+        val s = speed.coerceIn(0.25f, 2.5f)
+        val p = pitch.coerceIn(0.25f, 2.0f)
+        _playbackSpeed.value = s
+        _playbackPitch.value = p
+        mediaController?.playbackParameters = androidx.media3.common.PlaybackParameters(s, p)
+    }
+
+    fun applySpeedPitchPreset(preset: String) {
+        when (preset.lowercase()) {
+            "slowed" -> setPlaybackParameters(0.97f, 0.85f)
+            "normal" -> setPlaybackParameters(1.00f, 1.00f)
+            "nightcore" -> setPlaybackParameters(1.05f, 1.30f)
+        }
+    }
+
+    fun updateCurrentAudioMetadata(newTitle: String, newArtist: String, newAlbum: String) {
+        val current = _currentAudio.value ?: return
+        val finalTitle = newTitle.trim().ifEmpty { current.title }
+        val finalArtist = newArtist.trim().ifEmpty { current.artist }
+        val finalAlbum = newAlbum.trim().ifEmpty { current.album }
+
+        val updated = current.copy(
+            title = finalTitle,
+            artist = finalArtist,
+            album = finalAlbum
+        )
+        _currentAudio.value = updated
+        val key = mediaController?.currentMediaItem?.mediaId
+        if (!key.isNullOrBlank()) {
+            audioFilesMap[key] = updated
+        }
+
+        com.frito.music.data.repository.CustomNamesManager.setCustomAudioMetadata(
+            path = current.path,
+            title = finalTitle,
+            artist = finalArtist,
+            album = finalAlbum
+        )
     }
 
     private fun startProgressUpdater() {

@@ -422,7 +422,8 @@ class OnlineMusicDownloadWorker(
                 trackName = trackName,
                 extension = finalExtension,
                 albumName = albumName.ifEmpty { null },
-                trackNumber = trackNumber
+                trackNumber = trackNumber,
+                context = applicationContext
             )
             tempFile.copyTo(destinationFile, overwrite = true)
             tempFile.delete()

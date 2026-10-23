@@ -122,10 +122,27 @@ object StorageUtils {
         }
     }
 
+    private const val PREFS_STORAGE = "frito_storage_settings"
+    private const val KEY_CUSTOM_DOWNLOAD_DIR = "custom_download_dir"
+
+    fun getCustomDownloadDirectory(context: Context): String? {
+        val prefs = context.getSharedPreferences(PREFS_STORAGE, Context.MODE_PRIVATE)
+        return prefs.getString(KEY_CUSTOM_DOWNLOAD_DIR, null)?.takeIf { it.isNotBlank() }
+    }
+
+    fun setCustomDownloadDirectory(context: Context, path: String?) {
+        val prefs = context.getSharedPreferences(PREFS_STORAGE, Context.MODE_PRIVATE)
+        if (path.isNullOrBlank()) {
+            prefs.edit().remove(KEY_CUSTOM_DOWNLOAD_DIR).apply()
+        } else {
+            prefs.edit().putString(KEY_CUSTOM_DOWNLOAD_DIR, path).apply()
+        }
+    }
+
     /**
      * Crea un archivo físico directamente en /storage/emulated/0/FritoMusic/{safeArtist}/{safeAlbum}/{safeTrack}.{ext}
-     * Si no existe la carpeta FritoMusic en la raíz, la crea.
-     * Si no existe la carpeta del Artista, la crea.
+     * o en el directorio personalizado elegido por el usuario (memoria interna o tarjeta SD).
+     * Si no existe la carpeta, la crea.
      * Si se especifica albumName, crea la subcarpeta del Álbum dentro del Artista.
      * Si se especifica trackNumber (> 0), formatea el nombre con ceros a la izquierda (ej: "01 - Nombre.m4a").
      */
@@ -134,7 +151,8 @@ object StorageUtils {
         trackName: String,
         extension: String = "mp3",
         albumName: String? = null,
-        trackNumber: Int? = null
+        trackNumber: Int? = null,
+        context: Context? = null
     ): File {
         val safeArtist = sanitizeFilename(artistName).ifEmpty { "Desconocido" }
         val safeTrack = sanitizeFilename(trackName).ifEmpty { "Pista Desconocida" }
@@ -146,18 +164,23 @@ object StorageUtils {
             "$safeTrack.$cleanExtension"
         }
 
-        @Suppress("DEPRECATION")
-        val rootDir = Environment.getExternalStorageDirectory()
-        val fritoMusicDir = File(rootDir, "FritoMusic")
-        val canUseRoot = runCatching {
-            (fritoMusicDir.exists() || fritoMusicDir.mkdirs()) && fritoMusicDir.canWrite()
-        }.getOrDefault(false)
-
-        val baseDir = if (canUseRoot) fritoMusicDir else {
-            // Fallback a Music/FritoMusic si el sistema no permite escribir directamente en la raíz
+        val customDir = context?.let { getCustomDownloadDirectory(it) }?.let { File(it) }
+        val baseDir = if (customDir != null && (customDir.exists() || customDir.mkdirs()) && customDir.canWrite()) {
+            customDir
+        } else {
             @Suppress("DEPRECATION")
-            val publicDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
-            File(publicDir, "FritoMusic").apply { if (!exists()) mkdirs() }
+            val rootDir = Environment.getExternalStorageDirectory()
+            val fritoMusicDir = File(rootDir, "FritoMusic")
+            val canUseRoot = runCatching {
+                (fritoMusicDir.exists() || fritoMusicDir.mkdirs()) && fritoMusicDir.canWrite()
+            }.getOrDefault(false)
+
+            if (canUseRoot) fritoMusicDir else {
+                // Fallback a Music/FritoMusic si el sistema no permite escribir directamente en la raíz
+                @Suppress("DEPRECATION")
+                val publicDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
+                File(publicDir, "FritoMusic").apply { if (!exists()) mkdirs() }
+            }
         }
 
         val artistDir = File(baseDir, safeArtist).apply { if (!exists()) mkdirs() }
