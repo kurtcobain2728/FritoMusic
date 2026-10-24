@@ -138,6 +138,20 @@ fun StreamArtistDetailScreen(
                 section.items.any { it is AlbumItem }
             }
 
+            // Find direct videos from artist sections
+            val directVideoSection = sections.find { section ->
+                val t = section.title.lowercase()
+                (t.contains("video") || t.contains("vídeo")) && section.items.any { it is SongItem }
+            }
+            val directVideos = directVideoSection?.items?.filterIsInstance<SongItem>().orEmpty()
+
+            var officialVideos by remember(artist.id, artist.title) { mutableStateOf<List<SongItem>>(directVideos) }
+            LaunchedEffect(artist.id, artist.title) {
+                if (officialVideos.isEmpty()) {
+                    officialVideos = streamViewModel.getArtistVideos(artist.title)
+                }
+            }
+
             // Find related artists sections ("Fans might also like" / "Artistas similares")
             val relatedArtistsSections = sections.filter { section ->
                 section.items.any { it is ArtistItem }
@@ -377,6 +391,39 @@ fun StreamArtistDetailScreen(
                             }
                             Spacer(modifier = Modifier.height(24.dp))
                         }
+                    }
+                }
+
+                // Videos oficiales (Vevo, videoclips oficiales, directos y presentaciones)
+                if (officialVideos.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Videos oficiales",
+                            color = appColors.textPrimary,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            items(officialVideos, key = { "artist_video_${it.id}" }) { videoSong ->
+                                StreamVideoCard(
+                                    title = videoSong.title,
+                                    subtitle = videoSong.artists.joinToString(", ") { it.name }.ifEmpty { artist.title },
+                                    imageUrl = videoSong.thumbnail,
+                                    onClick = {
+                                        streamViewModel.playArtistSong(
+                                            song = videoSong,
+                                            playerViewModel = playerViewModel,
+                                            queueSongs = officialVideos
+                                        )
+                                    }
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(24.dp))
                     }
                 }
 

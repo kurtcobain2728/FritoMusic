@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,6 +40,7 @@ import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.ui.theme.glowShadow
 import com.frito.music.ui.theme.rememberAppHaptics
 import com.frito.music.utils.resize
+import com.music.innertube.models.AlbumItem
 import com.music.innertube.models.ArtistItem
 import com.music.innertube.models.SongItem
 import kotlinx.coroutines.launch
@@ -71,7 +73,8 @@ fun BenchoCarousel(
     songs: List<SongItem>,
     onPlaySong: (SongItem, List<SongItem>) -> Unit,
     modifier: Modifier = Modifier,
-    title: String? = null
+    title: String? = null,
+    isVideo: Boolean = false
 ) {
     if (songs.isEmpty()) return
 
@@ -299,6 +302,36 @@ fun BenchoCarousel(
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
+
+                    // Insignia VIDEO para videoclips musicales oficiales
+                    if (isVideo) {
+                        Surface(
+                            color = Color(0xCC000000),
+                            shape = RoundedCornerShape(6.dp),
+                            modifier = Modifier
+                                .padding(8.dp)
+                                .align(Alignment.TopStart)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.PlayArrow,
+                                    contentDescription = null,
+                                    tint = Glassmorphism.emeraldAccent,
+                                    modifier = Modifier.size(10.dp)
+                                )
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text(
+                                    text = "VIDEO",
+                                    color = Color.White,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
 
                     // Overlay con botón Play sobre la tarjeta frontal
                     if (isFront) {
@@ -697,3 +730,382 @@ fun BenchoArtistCarousel(
         }
     }
 }
+
+/**
+ * Carrusel 3D orbital tipo tornamesa para "Álbumes y singles nuevos".
+ */
+@Composable
+fun BenchoAlbumCarousel(
+    albums: List<AlbumItem>,
+    onAlbumClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    title: String? = null
+) {
+    if (albums.isEmpty()) return
+
+    val appColors = LocalAppColors.current
+    val haptics = rememberAppHaptics()
+    val coroutineScope = rememberCoroutineScope()
+    val isDark = appColors.isDark
+
+    val turnAnim = remember { Animatable(0f) }
+    val maxTurn = (albums.size - 1).toFloat()
+    val cardAngles = remember { listOf(-3.8f, 2.4f, -1.8f, 3.2f, 1.2f) }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "albumBob")
+    val bobProgress by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = (2 * PI).toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(4800, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "albumBobProgress"
+    )
+
+    val currentIndex = turnAnim.value.toInt().coerceIn(0, albums.size - 1)
+    val currentAlbum = albums[currentIndex]
+
+    fun glideTo(target: Int) {
+        val clamped = target.coerceIn(0, albums.size - 1).toFloat()
+        coroutineScope.launch {
+            turnAnim.animateTo(
+                targetValue = clamped,
+                animationSpec = tween(440, easing = FastOutSlowInEasing)
+            )
+        }
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
+        // Cabecera con título y contador
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title ?: "Álbumes y singles nuevos",
+                color = appColors.textPrimary,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = "${currentIndex + 1} de ${albums.size}",
+                color = appColors.textSecondary.copy(alpha = 0.7f),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+
+        // Escenario del Carrusel 3D Orbital
+        val density = LocalDensity.current
+        val orbitPx = with(density) { 112.dp.toPx() }
+        val leanPx = with(density) { 26.dp.toPx() }
+        val backScale = 0.68f
+        val pullPx = with(density) { 150.dp.toPx() }
+
+        var isDragging by remember { mutableStateOf(false) }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(235.dp)
+                .pointerInput(albums.size) {
+                    var dragStartTurn = 0f
+                    var dragStartX = 0f
+                    var lastDragX = 0f
+                    var lastDragTime = 0L
+                    var velocity = 0f
+
+                    detectHorizontalDragGestures(
+                        onDragStart = { offset ->
+                            isDragging = true
+                            dragStartX = offset.x
+                            lastDragX = offset.x
+                            dragStartTurn = turnAnim.value
+                            lastDragTime = System.currentTimeMillis()
+                            velocity = 0f
+                        },
+                        onHorizontalDrag = { change, _ ->
+                            val now = System.currentTimeMillis()
+                            val dt = now - lastDragTime
+                            if (dt > 0) {
+                                val dx = change.position.x - lastDragX
+                                velocity = (dx / dt.toFloat()) * 1000f
+                                lastDragX = change.position.x
+                                lastDragTime = now
+                            }
+
+                            val totalDx = change.position.x - dragStartX
+                            val rawTurn = dragStartTurn - (totalDx / pullPx)
+                            val clampedTurn = when {
+                                rawTurn < 0f -> rawTurn * 0.28f
+                                rawTurn > maxTurn -> maxTurn + (rawTurn - maxTurn) * 0.28f
+                                else -> rawTurn
+                            }
+                            coroutineScope.launch {
+                                turnAnim.snapTo(clampedTurn)
+                            }
+                        },
+                        onDragEnd = {
+                            isDragging = false
+                            val carry = (-velocity / 750f).coerceIn(-2f, 2f)
+                            val target = (turnAnim.value + carry).toInt().coerceIn(0, albums.size - 1)
+                            haptics.tick()
+                            glideTo(target)
+                        },
+                        onDragCancel = {
+                            isDragging = false
+                            val target = turnAnim.value.toInt().coerceIn(0, albums.size - 1)
+                            glideTo(target)
+                        }
+                    )
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            val turn = turnAnim.value
+            val visibleCards = mutableListOf<RenderCard<AlbumItem>>()
+
+            for (i in albums.indices) {
+                val diff = i - turn
+                if (kotlin.math.abs(diff) > 2.3f) continue
+
+                val th = diff * ((2f * PI.toFloat()) / 5.0f)
+                val depth = ((cos(th) + 1.0f) / 2.0f).coerceIn(0f, 1f)
+
+                val x = sin(th) * orbitPx
+                val y = -(1.0f - depth) * leanPx
+                val s = backScale + (1.0f - backScale) * depth
+                val rotY = -sin(th) * 24.0f
+                val naturalAngle = cardAngles[i % cardAngles.size]
+                val bobY = if (isDragging) 0f else sin(bobProgress.toDouble() + i * 1.3).toFloat() * 10f
+                val bobAngle = if (isDragging) 0f else cos(bobProgress.toDouble() + i * 1.3).toFloat() * 1.2f
+
+                visibleCards.add(
+                    RenderCard(
+                        index = i,
+                        item = albums[i],
+                        x = x,
+                        y = y + bobY,
+                        scale = s,
+                        rotY = rotY,
+                        rotZ = naturalAngle + bobAngle,
+                        depth = depth
+                    )
+                )
+            }
+
+            visibleCards.sortBy { it.depth }
+
+            visibleCards.forEach { card ->
+                val isFront = kotlin.math.abs(card.index - turn) < 0.45f
+                val context = LocalContext.current
+
+                Box(
+                    modifier = Modifier
+                        .graphicsLayer {
+                            cameraDistance = 16f * density.density
+                            translationX = card.x
+                            translationY = card.y
+                            scaleX = card.scale
+                            scaleY = card.scale
+                            rotationY = card.rotY
+                            rotationZ = card.rotZ
+                        }
+                        .size(width = 150.dp, height = 195.dp)
+                        .glowShadow(
+                            color = Color.Black,
+                            alpha = if (isDark) 0.50f else 0.18f,
+                            blurRadius = if (isFront) 24.dp else 14.dp,
+                            offsetY = 8.dp,
+                            shape = RoundedCornerShape(20.dp)
+                        )
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(appColors.surface)
+                        .border(
+                            width = 1.2.dp,
+                            color = if (isFront) Glassmorphism.emeraldAccent.copy(alpha = 0.50f)
+                            else Color.White.copy(alpha = if (isDark) 0.12f else 0.20f),
+                            shape = RoundedCornerShape(20.dp)
+                        )
+                        .clickable {
+                            if (isFront) {
+                                haptics.medium()
+                                onAlbumClick(card.item.browseId)
+                            } else {
+                                haptics.light()
+                                glideTo(card.index)
+                            }
+                        }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = null,
+                        tint = appColors.textSecondary.copy(alpha = 0.35f),
+                        modifier = Modifier
+                            .size(64.dp)
+                            .align(Alignment.Center)
+                    )
+
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(card.item.thumbnail.resize(width = 280))
+                            .crossfade(200)
+                            .build(),
+                        contentDescription = card.item.title,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+
+                    // Overlay con botón de Ver/Explorar álbum sobre la tarjeta frontal
+                    if (isFront) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.22f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(46.dp)
+                                    .clip(CircleShape)
+                                    .background(Glassmorphism.emeraldAccent)
+                                    .glowShadow(
+                                        color = Glassmorphism.emeraldAccent,
+                                        alpha = 0.45f,
+                                        blurRadius = 14.dp,
+                                        shape = CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.PlayArrow,
+                                    contentDescription = "Ver álbum",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // Tarjeta de Información y Controles del Álbum Frontal
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(if (isDark) Color(0x991E1E22) else Color(0xE6F5F5F7))
+                .border(
+                    width = 1.dp,
+                    color = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f),
+                    shape = RoundedCornerShape(16.dp)
+                )
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = {
+                        if (currentIndex > 0) {
+                            haptics.light()
+                            glideTo(currentIndex - 1)
+                        }
+                    },
+                    enabled = currentIndex > 0,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowBackIos,
+                        contentDescription = "Anterior",
+                        tint = if (currentIndex > 0) appColors.textPrimary else appColors.textSecondary.copy(alpha = 0.3f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(6.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = currentAlbum.title,
+                        color = appColors.textPrimary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = currentAlbum.artists?.joinToString(", ") { it.name }?.ifBlank { null }
+                            ?: (currentAlbum.year?.toString() ?: "Álbum"),
+                        color = appColors.textSecondary,
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .glowShadow(
+                            color = Glassmorphism.emeraldAccent,
+                            alpha = 0.38f,
+                            blurRadius = 10.dp,
+                            offsetY = 3.dp,
+                            shape = CircleShape
+                        )
+                        .clip(CircleShape)
+                        .background(Glassmorphism.emeraldAccent)
+                        .clickable {
+                            haptics.medium()
+                            onAlbumClick(currentAlbum.browseId)
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.PlayArrow,
+                        contentDescription = "Ver álbum",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(6.dp))
+
+                IconButton(
+                    onClick = {
+                        if (currentIndex < albums.size - 1) {
+                            haptics.light()
+                            glideTo(currentIndex + 1)
+                        }
+                    },
+                    enabled = currentIndex < albums.size - 1,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowForwardIos,
+                        contentDescription = "Siguiente",
+                        tint = if (currentIndex < albums.size - 1) appColors.textPrimary else appColors.textSecondary.copy(alpha = 0.3f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+

@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -32,6 +33,7 @@ import com.frito.music.utils.resize
 import com.frito.music.data.repository.FavoriteArtistsManager
 import com.frito.music.ui.components.BenchoCarousel
 import com.frito.music.ui.components.BenchoArtistCarousel
+import com.frito.music.ui.components.BenchoAlbumCarousel
 import com.frito.music.ui.components.FritoPullRefresh
 import com.frito.music.ui.theme.LocalAppColors
 import com.frito.music.data.models.HomeShelf
@@ -100,6 +102,7 @@ fun StreamHomeScreen(
                 homeShelves.forEach { shelf ->
                     // EXCLUSIÓN INTELIGENTE: Filtrar artistas favoritos de las recomendaciones si hay alternativas
                     val isArtistShelf = shelf.id == "popular_artists" || shelf.title.contains("Artistas para ti", ignoreCase = true)
+                    val isVideoShelf = shelf.id == "new_music_videos" || shelf.title.contains("video", ignoreCase = true) || shelf.title.contains("vídeo", ignoreCase = true)
                     val displayItems = if (isArtistShelf) {
                         val filtered = shelf.items.filterNot { it is ArtistItem && favoriteArtistIds.contains(it.id) }
                         if (filtered.isNotEmpty()) filtered else shelf.items
@@ -110,8 +113,9 @@ fun StreamHomeScreen(
                     if (displayItems.isNotEmpty()) {
                         val shelfArtists = displayItems.filterIsInstance<ArtistItem>()
                         val shelfSongs = displayItems.filterIsInstance<SongItem>()
+                        val shelfAlbums = displayItems.filterIsInstance<AlbumItem>()
 
-                        // "Artistas para ti" con el carrusel 3D orbital tipo tornamesa
+                        // 1. "Artistas para ti" con el carrusel 3D orbital tipo tornamesa
                         if (isArtistShelf && shelfArtists.isNotEmpty()) {
                             item(key = "carousel_artists_${shelf.id}") {
                                 BenchoArtistCarousel(
@@ -121,13 +125,44 @@ fun StreamHomeScreen(
                                     title = shelf.title
                                 )
                             }
-                        } else if (!isArtistShelf && shelfSongs.isNotEmpty() && (shelf.title.contains("vuelve", ignoreCase = true) || shelf.title.contains("recomendad", ignoreCase = true) || displayItems.all { it is SongItem })) {
-                            // "Vuelve a escuchar" y secciones de canciones con el carrusel 3D orbital
+                        } else if (!isArtistShelf && !isVideoShelf && shelfSongs.isNotEmpty() &&
+                            (shelf.id == "recently_played" ||
+                             shelf.id == "recommendations" ||
+                             shelf.title.contains("vuelve", ignoreCase = true) ||
+                             shelf.title.contains("recomendac", ignoreCase = true))) {
+                            // 2. "Vuelve a escuchar" y "Recomendaciones para ti" con el carrusel 3D orbital
                             item(key = "carousel_songs_${shelf.id}") {
                                 BenchoCarousel(
                                     songs = shelfSongs,
                                     onPlaySong = onPlaySong,
                                     title = shelf.title
+                                )
+                            }
+                        } else if ((shelf.id == "new_releases_albums" ||
+                                    shelf.title.contains("álbumes y singles", ignoreCase = true) ||
+                                    shelf.title.contains("albumes y singles", ignoreCase = true) ||
+                                    shelf.title.contains("lanzamientos", ignoreCase = true)) &&
+                            shelfAlbums.isNotEmpty()) {
+                            // 3. "Álbumes y singles nuevos" con el carrusel 3D orbital
+                            item(key = "carousel_albums_${shelf.id}") {
+                                BenchoAlbumCarousel(
+                                    albums = shelfAlbums,
+                                    onAlbumClick = onAlbumClick,
+                                    title = shelf.title
+                                )
+                            }
+                        } else if ((isVideoShelf ||
+                                    shelf.id == "new_music_videos" ||
+                                    shelf.title.contains("vídeos musicales", ignoreCase = true) ||
+                                    shelf.title.contains("videos musicales", ignoreCase = true)) &&
+                            shelfSongs.isNotEmpty()) {
+                            // 4. "Vídeos musicales nuevos" con el carrusel 3D orbital e insignia VIDEO
+                            item(key = "carousel_videos_${shelf.id}") {
+                                BenchoCarousel(
+                                    songs = shelfSongs,
+                                    onPlaySong = onPlaySong,
+                                    title = shelf.title,
+                                    isVideo = true
                                 )
                             }
                         } else {
@@ -474,5 +509,91 @@ fun AlbumCard(album: AlbumItem, onClick: () -> Unit) {
                 overflow = TextOverflow.Ellipsis
             )
         }
+    }
+}
+
+@Composable
+fun StreamVideoCard(
+    title: String,
+    subtitle: String,
+    imageUrl: String?,
+    onClick: () -> Unit
+) {
+    val appColors = LocalAppColors.current
+
+    Column(
+        modifier = Modifier
+            .width(220.dp)
+            .clickable { onClick() }
+    ) {
+        Box(
+            modifier = Modifier
+                .width(220.dp)
+                .height(124.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color.DarkGray)
+        ) {
+            if (!imageUrl.isNullOrEmpty()) {
+                AsyncImage(
+                    model = imageUrl.resize(width = 480),
+                    contentDescription = title,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Icon(
+                    Icons.Default.MusicNote,
+                    contentDescription = null,
+                    tint = appColors.textSecondary,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .align(Alignment.Center)
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .padding(8.dp)
+                    .align(Alignment.BottomEnd)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(Color.Black.copy(alpha = 0.75f))
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Text(
+                        text = "VIDEO",
+                        color = Color.White,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = title,
+            color = appColors.textPrimary,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+        Text(
+            text = subtitle,
+            color = appColors.textSecondary,
+            fontSize = 12.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }

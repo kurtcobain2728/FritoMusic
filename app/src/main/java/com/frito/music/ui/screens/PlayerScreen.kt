@@ -154,6 +154,12 @@ fun PlayerScreen(
         if (isOnline && !currentVideoId.isNullOrBlank()) {
             val available = com.frito.music.data.network.yt.YouTubeRepository.hasVideoTrack(currentVideoId!!)
             isVideoAvailable = available
+            if (available) {
+                val isRealVideo = com.frito.music.data.network.yt.YouTubeRepository.isRealMusicVideo(currentVideoId!!)
+                if (isRealVideo) {
+                    isVideoMode = true
+                }
+            }
         }
     }
 

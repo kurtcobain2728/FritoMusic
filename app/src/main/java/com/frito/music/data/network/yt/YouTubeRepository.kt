@@ -36,6 +36,9 @@ import com.music.innertube.pages.ExplorePage
 import com.music.innertube.pages.HomePage
 import com.music.innertube.pages.PlaylistPage
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 
@@ -126,57 +129,62 @@ object YouTubeRepository {
         val host = runCatching { java.net.URL(url).host }.getOrNull().orEmpty()
         val isYouTubeHost = StreamClientUtils.isYouTubeMediaHost(host)
         val profile = StreamClientUtils.resolveRequestProfile(url)
-        val ranges = if (isYouTubeHost && profile.requiresPlaybackProbeRanges) {
-            listOf("bytes=0-0", "bytes=262144-262145", "bytes=1048576-1048577")
-        } else {
-            listOf("bytes=0-0")
-        }
-        ranges.all { range ->
-            try {
-                val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
-                conn.requestMethod = "GET"
-                conn.setRequestProperty("Range", range)
-                // Mismo criterio que el interceptor del reproductor: solo los
-                // hosts de YouTube reciben el perfil (UA/Origin/Referer). Las
-                // fuentes alternativas (JioSaavn/Qobuz) se validan tal cual se
-                // van a reproducir, sin headers de YouTube.
-                if (isYouTubeHost) {
-                    profile.headers.forEach { (key, value) -> conn.setRequestProperty(key, value) }
-                }
-                conn.connectTimeout = 8_000
-                conn.readTimeout = 8_000
-                val code = conn.responseCode
-                runCatching { conn.inputStream?.close() }
-                conn.disconnect()
-                android.util.Log.d(
-                    "YouTubeRepository",
-                    "  validación host=$host client=${if (isYouTubeHost) profile.requestedClientName else "n/a"} range=$range -> HTTP $code"
-                )
-                code in 200..399 || code == 416
-            } catch (e: Exception) {
-                android.util.Log.d("YouTubeRepository", "  validación excepción: ${e.javaClass.simpleName}: ${e.message}")
-                false
+        try {
+            val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+            conn.requestMethod = "GET"
+            conn.setRequestProperty("Range", "bytes=0-0")
+            if (isYouTubeHost) {
+                profile.headers.forEach { (key, value) -> conn.setRequestProperty(key, value) }
             }
+            conn.connectTimeout = 4_000
+            conn.readTimeout = 4_000
+            val code = conn.responseCode
+            runCatching { conn.inputStream?.close() }
+            conn.disconnect()
+            android.util.Log.d(
+                "YouTubeRepository",
+                "  validación rápida host=$host client=${if (isYouTubeHost) profile.requestedClientName else "n/a"} range=bytes=0-0 -> HTTP $code"
+            )
+            code in 200..399 || code == 416
+        } catch (e: Exception) {
+            android.util.Log.d("YouTubeRepository", "  validación excepción: ${e.javaClass.simpleName}: ${e.message}")
+            false
         }
     }
 
     // ─── Resolución de streams estilo FridaMusic ───
-    // Cliente preferido: IOS — en esta red responde casi siempre (los logs lo
-    // confirman), mientras que ANDROID_VR cae en bot-check (LOGIN_REQUIRED)
-    // y los ANDROID*/TVHTML5 no responden. El ganador además se recuerda
-    // entre sesiones (init/persistencia).
     private val PREFERRED_STREAM_CLIENT: YouTubeClient = IOS
 
-    // Pool de fallback ordenado por efectividad observada en esta red:
-    // la familia iOS encabeza; los clientes que fallan crónico (sin respuesta
-    // o bot-check) quedan al final. Se itera SECUENCIALMENTE con validación
-    // real de cada URL antes de entregarla al reproductor.
-    private val STREAM_FALLBACK_CLIENTS: List<YouTubeClient> = listOf(
-        IOS, IOS_MUSIC, IPADOS, VISIONOS,
-        MOBILE, ANDROID_MUSIC, ANDROID_VR_NO_AUTH, ANDROID_VR_1_61_48,
-        ANDROID_VR_1_43_32, ANDROID_CREATOR, ANDROID_TESTSUITE, ANDROID_UNPLUGGED,
-        TVHTML5, TVHTML5_SIMPLY_EMBEDDED_PLAYER, WEB, WEB_CREATOR, WEB_REMIX
-    )
+    private fun isIosClient(client: YouTubeClient): Boolean =
+        client == IOS || client == IOS_MUSIC || client == IPADOS || client == VISIONOS
+
+    /**
+     * Pool de clientes ordenado dinámicamente según el códec preferido del usuario.
+     * Si el usuario eligió OPUS, los clientes nativos WebM/Opus encabezan la lista
+     * evitando round-trips inútiles con clientes iOS (que solo admiten AAC).
+     */
+    private fun getClientsForCodec(preferredCodec: com.frito.music.data.preferences.AudioCodecPreference): List<YouTubeClient> {
+        return when (preferredCodec) {
+            com.frito.music.data.preferences.AudioCodecPreference.OPUS -> listOf(
+                ANDROID_TESTSUITE, ANDROID_MUSIC, MOBILE, ANDROID_VR_NO_AUTH,
+                ANDROID_VR_1_61_48, ANDROID_VR_1_43_32, ANDROID_CREATOR, ANDROID_UNPLUGGED,
+                WEB, WEB_REMIX, TVHTML5, TVHTML5_SIMPLY_EMBEDDED_PLAYER,
+                IOS, IOS_MUSIC, IPADOS, VISIONOS
+            )
+            com.frito.music.data.preferences.AudioCodecPreference.AAC -> listOf(
+                IOS, IOS_MUSIC, IPADOS, VISIONOS,
+                ANDROID_TESTSUITE, MOBILE, ANDROID_MUSIC, ANDROID_VR_NO_AUTH,
+                ANDROID_VR_1_61_48, ANDROID_VR_1_43_32, ANDROID_CREATOR, ANDROID_UNPLUGGED,
+                WEB, WEB_REMIX, TVHTML5, TVHTML5_SIMPLY_EMBEDDED_PLAYER
+            )
+            com.frito.music.data.preferences.AudioCodecPreference.AUTO -> listOf(
+                ANDROID_TESTSUITE, IOS, IOS_MUSIC, MOBILE, ANDROID_MUSIC,
+                IPADOS, VISIONOS, ANDROID_VR_NO_AUTH, ANDROID_VR_1_61_48,
+                ANDROID_VR_1_43_32, ANDROID_CREATOR, ANDROID_UNPLUGGED,
+                WEB, WEB_REMIX, TVHTML5, TVHTML5_SIMPLY_EMBEDDED_PLAYER
+            )
+        }
+    }
 
     /** Backoff por (videoId, cliente) tras un HTTP 403: 10 minutos. */
     private const val FAILED_CLIENT_BACKOFF_MS = 10 * 60 * 1000L
@@ -370,6 +378,7 @@ object YouTubeRepository {
     suspend fun search(query: String): Result<List<StreamableTrack>> = runCatching {
         val result = YouTube.search(query, YouTube.SearchFilter.FILTER_SONG)
         result.getOrThrow().items.filterIsInstance<SongItem>().map { song ->
+            registerVideoType(song.id, song.musicVideoType)
             StreamableTrack(
                 videoId = song.id,
                 title = song.title,
@@ -401,7 +410,9 @@ object YouTubeRepository {
     }
 
     suspend fun getAlbumDetails(browseId: String): Result<AlbumPage> = runCatching {
-        YouTube.album(browseId).getOrThrow()
+        val album = YouTube.album(browseId).getOrThrow()
+        album.songs.forEach { registerVideoType(it.id, it.musicVideoType) }
+        album
     }
 
     suspend fun getHome(): Result<HomePage> = runCatching {
@@ -412,6 +423,73 @@ object YouTubeRepository {
         YouTube.explore().getOrThrow()
     }
 
+    suspend fun getArtistVideos(artistName: String): Result<List<SongItem>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val result = YouTube.search("$artistName official music video", YouTube.SearchFilter.FILTER_VIDEO).getOrNull()
+            val songs = result?.items?.filterIsInstance<SongItem>().orEmpty()
+            songs.forEach { registerVideoType(it.id, "MUSIC_VIDEO_TYPE_OMV") }
+            songs.take(15)
+        }
+    }
+
+    /**
+     * Obtiene álbumes y singles de los artistas preferidos del usuario en base a su historial y favoritos.
+     */
+    suspend fun getPersonalizedAlbums(
+        artistNames: List<String>,
+        artistIds: Map<String, String> = emptyMap()
+    ): Result<List<AlbumItem>> = withContext(Dispatchers.IO) {
+        runCatching {
+            coroutineScope {
+                artistNames.take(5).map { artistName ->
+                    async {
+                        val artistId = artistIds[artistName.lowercase()]
+                        if (!artistId.isNullOrBlank()) {
+                            YouTube.artist(artistId).getOrNull()?.sections
+                                ?.filter { s ->
+                                    val t = s.title.lowercase()
+                                    t.contains("álbum") || t.contains("album") || t.contains("single") || t.contains("sencillo")
+                                }
+                                ?.flatMap { it.items }
+                                ?.filterIsInstance<AlbumItem>()
+                                ?.take(2)
+                                .orEmpty()
+                        } else {
+                            YouTube.search(artistName, YouTube.SearchFilter.FILTER_ALBUM).getOrNull()
+                                ?.items?.filterIsInstance<AlbumItem>()?.take(2).orEmpty()
+                        }
+                    }
+                }.awaitAll().flatten().distinctBy { it.browseId }
+            }
+        }
+    }
+
+    /**
+     * Obtiene videos musicales oficiales de los artistas preferidos del usuario.
+     */
+    suspend fun getPersonalizedVideos(artistNames: List<String>): Result<List<SongItem>> = withContext(Dispatchers.IO) {
+        runCatching {
+            coroutineScope {
+                artistNames.take(5).map { artistName ->
+                    async {
+                        getArtistVideos(artistName).getOrDefault(emptyList()).take(3)
+                    }
+                }.awaitAll().flatten().distinctBy { it.id }.also { videos ->
+                    videos.forEach { registerVideoType(it.id, "MUSIC_VIDEO_TYPE_OMV") }
+                }
+            }
+        }
+    }
+
+    suspend fun getNewMusicVideos(): Result<List<SongItem>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val result = YouTube.search("videos musicales nuevos oficiales", YouTube.SearchFilter.FILTER_VIDEO).getOrNull()
+            val songs = result?.items?.filterIsInstance<SongItem>().orEmpty()
+            songs.forEach { registerVideoType(it.id, "MUSIC_VIDEO_TYPE_OMV") }
+            songs.take(20)
+        }
+    }
+
     /**
      * Historial de reproducción de la cuenta (requiere sesión).
      * Devuelve las canciones escuchadas recientemente, aplanadas y sin duplicados.
@@ -419,9 +497,11 @@ object YouTubeRepository {
      */
     suspend fun getMusicHistory(): Result<List<SongItem>> = runCatching {
         val page = YouTube.musicHistory().getOrThrow()
-        page.sections.orEmpty()
+        val songs = page.sections.orEmpty()
             .flatMap { it.songs }
             .distinctBy { it.id }
+        songs.forEach { registerVideoType(it.id, it.musicVideoType) }
+        songs
     }
 
     /**
@@ -507,20 +587,22 @@ object YouTubeRepository {
      */
     private suspend fun resolveRemote(videoId: String): String? {
         val isLoggedIn = !YouTube.cookie.isNullOrBlank()
-        // Orden fijo del pool (efectividad observada): el split por
-        // loginSupported mandaba a IOS al final y costaba ~6s por resolución.
-        val ordered = STREAM_FALLBACK_CLIENTS
-        val available = buildList {
-            add(PREFERRED_STREAM_CLIENT)
-            addAll(ordered)
-            add(WEB_REMIX)
-        }.distinct().filterNot { isClientTemporarilyBlocked(videoId, it) }
+        val preferredCodec = appContext?.let { com.frito.music.data.preferences.StreamQualityPreferences.getCodecPreference(it) }
+            ?: com.frito.music.data.preferences.AudioCodecPreference.AUTO
+
+        val ordered = getClientsForCodec(preferredCodec)
+        val available = ordered.filterNot { isClientTemporarilyBlocked(videoId, it) }
 
         val remembered = lastSuccessfulClientKey
+        // Si el usuario configuró OPUS, no empezar con un cliente iOS que no soporta Opus
         val initialClient = available.firstOrNull { client ->
             (!client.loginRequired || isLoggedIn) &&
-                StreamClientUtils.buildClientKey(client) == remembered
-        } ?: available.firstOrNull { !it.loginRequired || isLoggedIn } ?: PREFERRED_STREAM_CLIENT
+                StreamClientUtils.buildClientKey(client) == remembered &&
+                (preferredCodec != com.frito.music.data.preferences.AudioCodecPreference.OPUS || !isIosClient(client))
+        } ?: available.firstOrNull { client ->
+            (!client.loginRequired || isLoggedIn) &&
+                (preferredCodec != com.frito.music.data.preferences.AudioCodecPreference.OPUS || !isIosClient(client))
+        } ?: available.firstOrNull { !it.loginRequired || isLoggedIn } ?: ordered.first()
 
         val streamClients = buildList {
             add(initialClient)
@@ -529,7 +611,7 @@ object YouTubeRepository {
 
         android.util.Log.i(
             "YouTubeRepository",
-            "resolveRemote videoId=$videoId loggedIn=$isLoggedIn clientes=${streamClients.size} recordado=$remembered"
+            "resolveRemote videoId=$videoId codec=$preferredCodec loggedIn=$isLoggedIn clientes=${streamClients.size} inicial=${initialClient.clientName} recordado=$remembered"
         )
 
         for (client in streamClients) {
@@ -559,6 +641,9 @@ object YouTubeRepository {
                 android.util.Log.d("YouTubeRepository", "  ${client.clientName}: sin streamingData")
                 continue
             }
+
+            // Registrar tipo de video para auto-priorización inteligente
+            response.videoDetails?.musicVideoType?.let { registerVideoType(videoId, it) }
 
             val expectedDurationMs = response.videoDetails?.lengthSeconds?.toLongOrNull()?.times(1000L)
             for (format in selectAudioFormatCandidates(response).take(6)) {
@@ -673,6 +758,44 @@ object YouTubeRepository {
     }
 
     private val videoStreamUrlCache = ConcurrentHashMap<String, CachedUrl>()
+    private val videoTypeCache = ConcurrentHashMap<String, String>()
+
+    fun registerVideoType(videoId: String, musicVideoType: String?) {
+        if (!musicVideoType.isNullOrBlank()) {
+            videoTypeCache[videoId] = musicVideoType
+        }
+    }
+
+    /**
+     * Determina si la pista corresponde a un video musical real (videoclip oficial OMV,
+     * contenido generado UGC/concierto/letra) o si es un video puramente estático (ATV / Topic Video)
+     * que solo muestra la portada del álbum inmóvil.
+     */
+    suspend fun isRealMusicVideo(videoId: String): Boolean = withContext(Dispatchers.IO) {
+        val cached = videoTypeCache[videoId]
+        if (cached != null) {
+            return@withContext cached != WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.MUSIC_VIDEO_TYPE_ATV
+        }
+
+        val response = runCatching {
+            YouTube.player(videoId = videoId, client = ANDROID_TESTSUITE).getOrNull()
+        }.getOrNull()
+
+        val type = response?.videoDetails?.musicVideoType
+        if (!type.isNullOrBlank()) {
+            videoTypeCache[videoId] = type
+            return@withContext type != WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.MUSIC_VIDEO_TYPE_ATV
+        }
+
+        val author = response?.videoDetails?.author.orEmpty()
+        val title = response?.videoDetails?.title.orEmpty()
+        if (author.endsWith("- Topic", ignoreCase = true) || title.contains("- Topic", ignoreCase = true)) {
+            videoTypeCache[videoId] = WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.MUSIC_VIDEO_TYPE_ATV
+            return@withContext false
+        }
+
+        true
+    }
 
     fun invalidateVideoStreamCache(videoId: String) {
         videoStreamUrlCache.remove(videoId)
@@ -732,6 +855,8 @@ object YouTubeRepository {
                 if (response == null || response.playabilityStatus.status != "OK") {
                     continue
                 }
+
+                response.videoDetails?.musicVideoType?.let { registerVideoType(videoId, it) }
 
                 val formats = response.streamingData?.adaptiveFormats.orEmpty() + response.streamingData?.formats.orEmpty()
                 val videoFormat = formats

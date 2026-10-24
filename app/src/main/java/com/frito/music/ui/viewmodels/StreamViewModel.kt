@@ -323,14 +323,17 @@ class StreamViewModel : ViewModel() {
         }
     }
 
-    private fun SongItem.toStreamableTrack() = StreamableTrack(
-        videoId = id,
-        title = title,
-        artist = artists.joinToString(", ") { it.name },
-        album = album?.name,
-        durationMs = duration?.times(1000L) ?: 0L,
-        thumbnailUrl = thumbnail
-    )
+    private fun SongItem.toStreamableTrack(): StreamableTrack {
+        YouTubeRepository.registerVideoType(id, musicVideoType)
+        return StreamableTrack(
+            videoId = id,
+            title = title,
+            artist = artists.joinToString(", ") { it.name },
+            album = album?.name,
+            durationMs = duration?.times(1000L) ?: 0L,
+            thumbnailUrl = thumbnail
+        )
+    }
 
     private fun StreamableTrack.toSongItem() = SongItem(
         id = videoId,
@@ -483,6 +486,12 @@ class StreamViewModel : ViewModel() {
         _selectedArtist.value = null
     }
 
+    suspend fun getArtistVideos(artistName: String): List<SongItem> {
+        return withContext(Dispatchers.IO) {
+            YouTubeRepository.getArtistVideos(artistName).getOrDefault(emptyList())
+        }
+    }
+
     fun loadAlbumDetails(browseId: String, forceRefresh: Boolean = false) {
         if (!forceRefresh) {
             val cached = albumPagesCache[browseId]
@@ -588,6 +597,48 @@ class StreamViewModel : ViewModel() {
                     recentSongIds = recentSongIds
                 )
                 _tasteProfile.value = profile
+
+                // Ponderar afinidad de artistas favoritos, historial reciente y likes
+                val artistScoreMap = mutableMapOf<String, Int>()
+                val artistIdMap = mutableMapOf<String, String>()
+
+                favoriteArtists.forEach { fav ->
+                    val name = fav.title.trim().lowercase()
+                    if (name.isNotBlank()) {
+                        artistScoreMap[name] = (artistScoreMap[name] ?: 0) + 6
+                        if (fav.id.isNotBlank()) artistIdMap[name] = fav.id
+                    }
+                }
+
+                val allRecentHistory = (historySongs + StreamHistoryManager.recentSongs.value).distinctBy { it.id }
+                allRecentHistory.forEach { song ->
+                    song.artists.forEach { a ->
+                        val name = a.name.trim().lowercase()
+                        if (name.isNotBlank() && !name.contains("various") && !name.contains("varios")) {
+                            artistScoreMap[name] = (artistScoreMap[name] ?: 0) + 2
+                            if (!a.id.isNullOrBlank() && !artistIdMap.containsKey(name)) {
+                                artistIdMap[name] = a.id!!
+                            }
+                        }
+                    }
+                }
+
+                likedSongs.forEach { song ->
+                    song.artists.forEach { a ->
+                        val name = a.name.trim().lowercase()
+                        if (name.isNotBlank() && !name.contains("various") && !name.contains("varios")) {
+                            artistScoreMap[name] = (artistScoreMap[name] ?: 0) + 3
+                            if (!a.id.isNullOrBlank() && !artistIdMap.containsKey(name)) {
+                                artistIdMap[name] = a.id!!
+                            }
+                        }
+                    }
+                }
+
+                val topPreferredArtists = artistScoreMap.entries
+                    .sortedByDescending { it.value }
+                    .map { it.key }
+                    .filter { it.isNotBlank() }
 
                 // ── B1. "Vuelve a escuchar" (historial reciente sin videos no musicales)
                 val recentlyPlayedShelf = if (historySongs.isNotEmpty()) {
@@ -701,6 +752,79 @@ class StreamViewModel : ViewModel() {
                     )
                 } else null
 
+                // ── B3. "Álbumes y singles nuevos" (Personalizado según gustos)
+                val homeNewReleases = home?.sections?.find {
+                    val t = it.title.lowercase()
+                    (t.contains("álbum") || t.contains("album") || t.contains("single") || t.contains("sencillo") || t.contains("lanzamiento") || t.contains("release") || t.contains("novedad")) &&
+                        it.items.any { item -> item is AlbumItem }
+                }?.items?.filterIsInstance<AlbumItem>().orEmpty()
+
+                val exploreNewReleases = explore?.newReleaseAlbums.orEmpty()
+                val generalNewReleases = (homeNewReleases + exploreNewReleases).distinctBy { it.browseId }
+
+                // Obtener álbumes nuevos de los artistas preferidos del usuario
+                val personalizedAlbums = if (topPreferredArtists.isNotEmpty()) {
+                    YouTubeRepository.getPersonalizedAlbums(topPreferredArtists, artistIdMap).getOrDefault(emptyList())
+                } else emptyList()
+
+                // Si hay álbumes en generalNewReleases que coincidan con algún artista preferido, priorizarlos
+                val matchingGeneralReleases = generalNewReleases.filter { album ->
+                    val albumArtists = album.artists.orEmpty().map { it.name.trim().lowercase() }
+                    albumArtists.any { topPreferredArtists.contains(it) }
+                }
+                val otherGeneralReleases = generalNewReleases.filterNot { album ->
+                    matchingGeneralReleases.any { it.browseId == album.browseId }
+                }
+
+                val allNewReleases = (personalizedAlbums + matchingGeneralReleases + otherGeneralReleases)
+                    .distinctBy { it.browseId }
+                    .take(20)
+
+                val newReleasesShelf = if (allNewReleases.isNotEmpty()) {
+                    HomeShelf(
+                        id = "new_releases_albums",
+                        title = "Álbumes y singles nuevos",
+                        items = allNewReleases
+                    )
+                } else null
+
+                // ── B4. "Vídeos musicales nuevos" (Personalizado según gustos)
+                val homeNewVideos = home?.sections?.find {
+                    val t = it.title.lowercase()
+                    (t.contains("video") || t.contains("vídeo")) && it.items.any { item -> item is SongItem }
+                }?.items?.filterIsInstance<SongItem>().orEmpty()
+
+                val personalizedVideos = if (topPreferredArtists.isNotEmpty()) {
+                    YouTubeRepository.getPersonalizedVideos(topPreferredArtists).getOrDefault(emptyList())
+                } else emptyList()
+
+                val matchingHomeVideos = homeNewVideos.filter { song ->
+                    val songArtists = song.artists.map { it.name.trim().lowercase() }
+                    songArtists.any { topPreferredArtists.contains(it) }
+                }
+                val otherHomeVideos = homeNewVideos.filterNot { song ->
+                    matchingHomeVideos.any { it.id == song.id }
+                }
+
+                val combinedVideos = (personalizedVideos + matchingHomeVideos + otherHomeVideos).distinctBy { it.id }
+
+                val finalNewVideos = if (combinedVideos.isNotEmpty()) {
+                    combinedVideos.forEach { YouTubeRepository.registerVideoType(it.id, "MUSIC_VIDEO_TYPE_OMV") }
+                    combinedVideos.take(20)
+                } else {
+                    withContext(Dispatchers.IO) {
+                        YouTubeRepository.getNewMusicVideos().getOrDefault(emptyList())
+                    }
+                }
+
+                val newVideosShelf = if (finalNewVideos.isNotEmpty()) {
+                    HomeShelf(
+                        id = "new_music_videos",
+                        title = "Vídeos musicales nuevos",
+                        items = finalNewVideos
+                    )
+                } else null
+
                 // ── Secciones adicionales del home de YouTube Music (con filtro estricto isRealMusicTrack)
                 val additionalShelves = home?.sections?.mapNotNull { section ->
                     val validItems = section.items.mapNotNull { item ->
@@ -720,7 +844,12 @@ class StreamViewModel : ViewModel() {
                         !lowerTitle.contains("recomendaciones") &&
                         !lowerTitle.contains("álbumes y sencillos") &&
                         !lowerTitle.contains("albumes y sencillos") &&
-                        !lowerTitle.contains("albums & singles")) {
+                        !lowerTitle.contains("álbumes y singles") &&
+                        !lowerTitle.contains("albumes y singles") &&
+                        !lowerTitle.contains("albums & singles") &&
+                        !lowerTitle.contains("vídeos musicales") &&
+                        !lowerTitle.contains("videos musicales") &&
+                        !lowerTitle.contains("music videos")) {
                         HomeShelf(
                             id = "yt_section_${section.title.hashCode()}",
                             title = section.title,
@@ -729,10 +858,18 @@ class StreamViewModel : ViewModel() {
                     } else null
                 }.orEmpty()
 
-                // Consolidar estantes
+                // Consolidar estantes según el orden estricto de YouTube Music:
+                // 1. Vuelve a escuchar
+                // 2. Recomendaciones para ti
+                // 3. Álbumes y singles nuevos
+                // 4. Vídeos musicales nuevos
+                // 5. Artistas para ti
+                // + Secciones curadas adicionales
                 val allShelves = listOfNotNull(
                     recentlyPlayedShelf,
                     recommendationsShelf,
+                    newReleasesShelf,
+                    newVideosShelf,
                     popularArtistsShelf
                 ) + additionalShelves
 

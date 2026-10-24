@@ -768,14 +768,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 android.util.Log.d("FritoFallback", "  YouTube(${if (viaNewPipe) "NewPipe" else "clientes"}) -> sin URL")
                 return null
             }
-            if (YouTubeRepository.isStreamUrlPlayable(url)) {
-                android.util.Log.i("FritoFallback", "  YouTube(${if (viaNewPipe) "NewPipe" else "clientes"}) -> OK")
-                return url
-            }
-            android.util.Log.d("FritoFallback", "  YouTube(${if (viaNewPipe) "NewPipe" else "clientes"}) -> URL no reproducible")
-            // URL muerta (403 típico de bot-detection): no reutilizarla nunca
-            YouTubeRepository.invalidateStreamUrl(videoId)
-            return null
+            android.util.Log.i("FritoFallback", "  YouTube(${if (viaNewPipe) "NewPipe" else "clientes"}) -> OK (validada)")
+            return url
         }
 
         suspend fun tryAlternatives(): String? {
