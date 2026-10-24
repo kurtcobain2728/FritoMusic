@@ -57,6 +57,7 @@ fun StreamArtistDetailScreen(
     playerViewModel: PlayerViewModel,
     onNavigateToAlbum: (String) -> Unit = {},
     onNavigateToArtist: (String) -> Unit = {},
+    onNavigateToArtistVideos: (String, String) -> Unit = { _, _ -> },
     onBack: () -> Unit
 ) {
     val appColors = LocalAppColors.current
@@ -397,13 +398,32 @@ fun StreamArtistDetailScreen(
                 // Videos oficiales (Vevo, videoclips oficiales, directos y presentaciones)
                 if (officialVideos.isNotEmpty()) {
                     item {
-                        Text(
-                            text = "Videos oficiales",
-                            color = appColors.textPrimary,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = "Videos oficiales",
+                                color = appColors.textPrimary,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = "Ver más",
+                                color = Color(0xFF1DB954),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable {
+                                        onNavigateToArtistVideos(artist.id, artist.title)
+                                    }
+                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
+                        }
                         LazyRow(
                             contentPadding = PaddingValues(horizontal = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(16.dp)

@@ -62,7 +62,9 @@ fun StreamScreen(
     onNavigateToPlaylistDetail: (String) -> Unit = {},
     onNavigateToFavoriteArtists: () -> Unit = {},
     onNavigateToFollowedArtists: () -> Unit = {},
-    onNavigateToAllArtists: () -> Unit = {}
+    onNavigateToAllArtists: () -> Unit = {},
+    onNavigateToAllAlbums: () -> Unit = {},
+    onNavigateToAllVideos: () -> Unit = {}
 ) {
     val appColors = LocalAppColors.current
 
@@ -77,6 +79,7 @@ fun StreamScreen(
     val isLoadingHome by streamViewModel.isLoadingHome.collectAsState()
     val recentlyPlayed by streamViewModel.recentlyPlayed.collectAsState()
     val homeShelves by streamViewModel.homeShelves.collectAsState()
+    val paginatedArtists by streamViewModel.paginatedArtists.collectAsState()
 
     val accountAvatar by YouTubeLoginManager.accountAvatar.collectAsState()
     val accountName by YouTubeLoginManager.accountName.collectAsState()
@@ -355,7 +358,10 @@ fun StreamScreen(
                             onNavigateToArtist(browseId)
                         },
                         onSeeAllArtists = onNavigateToAllArtists,
+                        onSeeAllAlbums = onNavigateToAllAlbums,
+                        onSeeAllVideos = onNavigateToAllVideos,
                         onRefresh = { streamViewModel.loadHomeContent(forceRefresh = true) },
+                        suggestedArtists = paginatedArtists,
                         modifier = Modifier.weight(1f)
                     )
                 }

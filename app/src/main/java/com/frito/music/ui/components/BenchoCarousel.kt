@@ -74,7 +74,8 @@ fun BenchoCarousel(
     onPlaySong: (SongItem, List<SongItem>) -> Unit,
     modifier: Modifier = Modifier,
     title: String? = null,
-    isVideo: Boolean = false
+    isVideo: Boolean = false,
+    onSeeAll: (() -> Unit)? = null
 ) {
     if (songs.isEmpty()) return
 
@@ -117,7 +118,7 @@ fun BenchoCarousel(
             .fillMaxWidth()
             .padding(vertical = 8.dp)
     ) {
-        // Cabecera con título y contador
+        // Cabecera con título, contador y botón "Ver más"
         if (title != null) {
             Row(
                 modifier = Modifier
@@ -138,6 +139,22 @@ fun BenchoCarousel(
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )
+                if (onSeeAll != null) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Ver más",
+                        color = Glassmorphism.emeraldAccent,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .clickable {
+                                haptics.light()
+                                onSeeAll()
+                            }
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                    )
+                }
             }
         }
 
@@ -739,7 +756,8 @@ fun BenchoAlbumCarousel(
     albums: List<AlbumItem>,
     onAlbumClick: (String) -> Unit,
     modifier: Modifier = Modifier,
-    title: String? = null
+    title: String? = null,
+    onSeeAll: (() -> Unit)? = null
 ) {
     if (albums.isEmpty()) return
 
@@ -781,7 +799,7 @@ fun BenchoAlbumCarousel(
             .fillMaxWidth()
             .padding(vertical = 8.dp)
     ) {
-        // Cabecera con título y contador
+        // Cabecera con título, contador y botón "Ver más"
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -801,6 +819,22 @@ fun BenchoAlbumCarousel(
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold
             )
+            if (onSeeAll != null) {
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Ver más",
+                    color = Glassmorphism.emeraldAccent,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable {
+                            haptics.light()
+                            onSeeAll()
+                        }
+                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                )
+            }
         }
 
         // Escenario del Carrusel 3D Orbital

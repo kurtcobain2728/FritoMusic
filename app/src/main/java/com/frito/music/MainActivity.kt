@@ -71,7 +71,8 @@ data class StreamNavEntry(
     val screen: String,
     val artistId: String? = null,
     val albumId: String? = null,
-    val playlistId: String? = null
+    val playlistId: String? = null,
+    val artistName: String? = null
 )
 
 class MainActivity : ComponentActivity() {
@@ -140,6 +141,7 @@ class MainActivity : ComponentActivity() {
                     var showPlayerScreen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
                     var selectedPlaylist by remember { mutableStateOf<Playlist?>(null) } // no parcelable: se pierde con rotación (aceptable)
                     var selectedStreamArtistId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
+                    var selectedStreamArtistName by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
                     var selectedStreamAlbumId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
                     var selectedStreamPlaylistId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
                     var playlistsInitialTab by androidx.compose.runtime.saveable.rememberSaveable { mutableIntStateOf(0) }
@@ -180,7 +182,7 @@ class MainActivity : ComponentActivity() {
                     val streamNavStack = androidx.compose.runtime.saveable.rememberSaveable(
                         saver = androidx.compose.runtime.saveable.listSaver(
                             save = { list ->
-                                list.map { "${it.screen}|${it.artistId.orEmpty()}|${it.albumId.orEmpty()}|${it.playlistId.orEmpty()}" }
+                                list.map { "${it.screen}|${it.artistId.orEmpty()}|${it.albumId.orEmpty()}|${it.playlistId.orEmpty()}|${it.artistName.orEmpty()}" }
                             },
                             restore = { savedList ->
                                 val list = mutableStateListOf<StreamNavEntry>()
@@ -191,7 +193,8 @@ class MainActivity : ComponentActivity() {
                                             screen = parts.getOrElse(0) { "" },
                                             artistId = parts.getOrNull(1)?.ifEmpty { null },
                                             albumId = parts.getOrNull(2)?.ifEmpty { null },
-                                            playlistId = parts.getOrNull(3)?.ifEmpty { null }
+                                            playlistId = parts.getOrNull(3)?.ifEmpty { null },
+                                            artistName = parts.getOrNull(4)?.ifEmpty { null }
                                         )
                                     )
                                 }
@@ -209,6 +212,7 @@ class MainActivity : ComponentActivity() {
                         if (entry.artistId != null) selectedStreamArtistId = entry.artistId
                         if (entry.albumId != null) selectedStreamAlbumId = entry.albumId
                         if (entry.playlistId != null) selectedStreamPlaylistId = entry.playlistId
+                        if (entry.artistName != null) selectedStreamArtistName = entry.artistName
                     }
 
                     val popStreamScreen: () -> Boolean = {
@@ -222,12 +226,14 @@ class MainActivity : ComponentActivity() {
                             selectedStreamArtistId = prev.artistId
                             selectedStreamAlbumId = prev.albumId
                             selectedStreamPlaylistId = prev.playlistId
+                            selectedStreamArtistName = prev.artistName
                             true
                         } else {
                             currentSubScreen = null
                             selectedStreamArtistId = null
                             selectedStreamAlbumId = null
                             selectedStreamPlaylistId = null
+                            selectedStreamArtistName = null
                             false
                         }
                     }
@@ -238,6 +244,7 @@ class MainActivity : ComponentActivity() {
                             selectedStreamArtistId = null
                             selectedStreamAlbumId = null
                             selectedStreamPlaylistId = null
+                            selectedStreamArtistName = null
                         }
                     }
 
@@ -578,6 +585,9 @@ class MainActivity : ComponentActivity() {
                                                     onNavigateToArtist = { relatedArtistId ->
                                                         pushStreamScreen(StreamNavEntry(screen = "stream_artist_detail", artistId = relatedArtistId))
                                                     },
+                                                    onNavigateToArtistVideos = { artistId, artistName ->
+                                                        pushStreamScreen(StreamNavEntry(screen = "stream_artist_videos", artistId = artistId, artistName = artistName))
+                                                    },
                                                     onBack = {
                                                         popStreamScreen()
                                                     }
@@ -660,6 +670,31 @@ class MainActivity : ComponentActivity() {
                                                 onBack = { popStreamScreen() }
                                             )
                                         }
+                                        "stream_all_albums" -> {
+                                            StreamAllAlbumsScreen(
+                                                streamViewModel = streamViewModel,
+                                                onAlbumClick = { albumId ->
+                                                    pushStreamScreen(StreamNavEntry(screen = "stream_album_detail", albumId = albumId))
+                                                },
+                                                onBack = { popStreamScreen() }
+                                            )
+                                        }
+                                        "stream_all_videos" -> {
+                                            StreamAllVideosScreen(
+                                                streamViewModel = streamViewModel,
+                                                playerViewModel = playerViewModel,
+                                                onBack = { popStreamScreen() }
+                                            )
+                                        }
+                                        "stream_artist_videos" -> {
+                                            StreamArtistVideosScreen(
+                                                artistId = selectedStreamArtistId.orEmpty(),
+                                                artistName = selectedStreamArtistName.orEmpty(),
+                                                streamViewModel = streamViewModel,
+                                                playerViewModel = playerViewModel,
+                                                onBack = { popStreamScreen() }
+                                            )
+                                        }
                                         else -> {
                                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                                 Text("Pantalla en construcción", color = appColors.textPrimary)
@@ -736,6 +771,12 @@ class MainActivity : ComponentActivity() {
                                                 },
                                                 onNavigateToAllArtists = {
                                                     pushStreamScreen(StreamNavEntry(screen = "stream_all_artists"))
+                                                },
+                                                onNavigateToAllAlbums = {
+                                                    pushStreamScreen(StreamNavEntry(screen = "stream_all_albums"))
+                                                },
+                                                onNavigateToAllVideos = {
+                                                    pushStreamScreen(StreamNavEntry(screen = "stream_all_videos"))
                                                 }
                                             )
                                             "mas" -> MoreScreen(

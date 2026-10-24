@@ -177,6 +177,28 @@ class StreamViewModel : ViewModel() {
     private val artistDiscoveryQueue = ArrayDeque<String>()
     private val seenArtistIds = mutableSetOf<String>()
 
+    // Álbumes paginados para "Ver más" (Álbumes y singles nuevos con scroll infinito)
+    private val _paginatedAlbums = MutableStateFlow<List<AlbumItem>>(emptyList())
+    val paginatedAlbums: StateFlow<List<AlbumItem>> = _paginatedAlbums.asStateFlow()
+    private val _isLoadingMoreAlbums = MutableStateFlow(false)
+    val isLoadingMoreAlbums: StateFlow<Boolean> = _isLoadingMoreAlbums.asStateFlow()
+    private var albumDiscoveryIndex = 0
+
+    // Videos paginados para "Ver más" (Vídeos musicales nuevos con scroll infinito)
+    private val _paginatedVideos = MutableStateFlow<List<SongItem>>(emptyList())
+    val paginatedVideos: StateFlow<List<SongItem>> = _paginatedVideos.asStateFlow()
+    private val _isLoadingMoreVideos = MutableStateFlow(false)
+    val isLoadingMoreVideos: StateFlow<Boolean> = _isLoadingMoreVideos.asStateFlow()
+    private var videoDiscoveryIndex = 0
+
+    // Videos oficiales del Artista para "Ver más" (Videografía con scroll infinito)
+    private val _artistFullVideos = MutableStateFlow<List<SongItem>>(emptyList())
+    val artistFullVideos: StateFlow<List<SongItem>> = _artistFullVideos.asStateFlow()
+    private val _isLoadingArtistVideos = MutableStateFlow(false)
+    val isLoadingArtistVideos: StateFlow<Boolean> = _isLoadingArtistVideos.asStateFlow()
+    private var currentArtistVideoBatch = 0
+    private var currentLoadedArtistName = ""
+
     private var searchJob: Job? = null
     private var prefetchJob: Job? = null
 
@@ -719,13 +741,18 @@ class StreamViewModel : ViewModel() {
                     }
                 } else emptyList()
 
-                // 2. Si relatedArtists tiene pocos elementos, buscar artistas por nombre (traen thumbnail oficial de canal)
+                // 2. Si relatedArtists tiene pocos elementos, buscar artistas relacionados usando los nombres de artistas favoritos/historial
                 val searchedArtists: List<ArtistItem> = if (relatedArtists.size < 12 && seedArtistNames.isNotEmpty()) {
                     coroutineScope {
-                        seedArtistNames.take(2).map { name ->
+                        seedArtistNames.take(4).map { name ->
                             async(Dispatchers.IO) {
                                 runCatching {
-                                    YouTubeRepository.searchArtists(name).getOrNull().orEmpty()
+                                    val resolvedId = artistIdMap[name.lowercase()] ?: findArtistIdByName(name)
+                                    if (!resolvedId.isNullOrBlank()) {
+                                        YouTubeRepository.getRelatedArtists(resolvedId).getOrNull().orEmpty()
+                                    } else {
+                                        YouTubeRepository.searchArtists("$name similar").getOrNull().orEmpty()
+                                    }
                                 }.getOrDefault(emptyList())
                             }
                         }.map { it.await() }.flatten()
@@ -738,17 +765,31 @@ class StreamViewModel : ViewModel() {
                     ?.filterIsInstance<ArtistItem>()
                     .orEmpty()
 
-                // 4. Consolidar ÚNICAMENTE artistas con thumbnail válido (NUNCA null o vacío)
-                val candidateArtists: List<ArtistItem> = (relatedArtists + searchedArtists + directHomeArtists)
+                // 4. Incorporar artistas de la lista paginada en background
+                val paginatedFallback: List<ArtistItem> = _paginatedArtists.value
+
+                // 5. Consolidar ÚNICAMENTE artistas con thumbnail válido (NUNCA null o vacío)
+                val candidateArtists: List<ArtistItem> = (relatedArtists + searchedArtists + directHomeArtists + paginatedFallback)
                     .filter { !it.thumbnail.isNullOrBlank() }
                     .filterNot { favoriteArtistIds.contains(it.id) || favoriteArtistNames.contains(it.title.trim().lowercase()) }
                     .distinctBy { it.id }
 
-                val popularArtistsShelf = if (candidateArtists.isNotEmpty()) {
+                val finalArtists = if (candidateArtists.isNotEmpty()) {
+                    candidateArtists.shuffled().take(20)
+                } else {
+                    withContext(Dispatchers.IO) {
+                        YouTubeRepository.searchArtists("artistas recomendados").getOrDefault(emptyList())
+                            .filter { !it.thumbnail.isNullOrBlank() }
+                            .filterNot { favoriteArtistIds.contains(it.id) }
+                            .take(15)
+                    }
+                }
+
+                val popularArtistsShelf = if (finalArtists.isNotEmpty()) {
                     HomeShelf(
                         id = "popular_artists",
                         title = "Artistas para ti",
-                        items = candidateArtists.shuffled().take(20)
+                        items = finalArtists
                     )
                 } else null
 
@@ -779,6 +820,8 @@ class StreamViewModel : ViewModel() {
                 val allNewReleases = (personalizedAlbums + matchingGeneralReleases + otherGeneralReleases)
                     .distinctBy { it.browseId }
                     .take(20)
+
+                _paginatedAlbums.value = allNewReleases
 
                 val newReleasesShelf = if (allNewReleases.isNotEmpty()) {
                     HomeShelf(
@@ -816,6 +859,8 @@ class StreamViewModel : ViewModel() {
                         YouTubeRepository.getNewMusicVideos().getOrDefault(emptyList())
                     }
                 }
+
+                _paginatedVideos.value = finalNewVideos
 
                 val newVideosShelf = if (finalNewVideos.isNotEmpty()) {
                     HomeShelf(
@@ -1021,6 +1066,96 @@ class StreamViewModel : ViewModel() {
      */
     fun refreshRecommendedArtists() {
         initPaginatedArtists(forceRefresh = true)
+    }
+
+    /**
+     * Carga más álbumes y singles para la pantalla de "Ver más".
+     */
+    fun loadMoreAlbums() {
+        if (_isLoadingMoreAlbums.value) return
+        viewModelScope.launch {
+            _isLoadingMoreAlbums.value = true
+            try {
+                val current = _paginatedAlbums.value
+                val preferred = FavoriteArtistsManager.favoriteArtists.value.map { it.title }
+                val targetArtist = preferred.getOrNull(albumDiscoveryIndex % (preferred.size.coerceAtLeast(1)))
+                albumDiscoveryIndex++
+
+                val query = if (!targetArtist.isNullOrBlank()) "$targetArtist new album" else "new release album"
+                val newItems: List<AlbumItem> = YouTubeRepository.searchAlbums(query).getOrDefault(emptyList())
+                val updated = (current + newItems).distinctBy { it.browseId }
+                _paginatedAlbums.value = updated
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                _isLoadingMoreAlbums.value = false
+            }
+        }
+    }
+
+    /**
+     * Carga más videoclips para la pantalla de "Ver más" de videos musicales.
+     */
+    fun loadMoreVideos() {
+        if (_isLoadingMoreVideos.value) return
+        viewModelScope.launch {
+            _isLoadingMoreVideos.value = true
+            try {
+                val current = _paginatedVideos.value
+                val preferred = FavoriteArtistsManager.favoriteArtists.value.map { it.title }
+                val targetArtist = preferred.getOrNull(videoDiscoveryIndex % (preferred.size.coerceAtLeast(1)))
+                videoDiscoveryIndex++
+
+                val query = if (!targetArtist.isNullOrBlank()) "$targetArtist official music video" else "estrenos videos musicales oficiales"
+                val newItems: List<SongItem> = YouTubeRepository.searchMusicVideos(query).getOrDefault(emptyList())
+                val updated = (current + newItems).distinctBy { it.id }
+                _paginatedVideos.value = updated
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                _isLoadingMoreVideos.value = false
+            }
+        }
+    }
+
+    /**
+     * Carga la videografía completa del artista en lotes continuos (scroll infinito).
+     */
+    fun loadArtistVideosPage(artistName: String, isInitial: Boolean = false) {
+        if (_isLoadingArtistVideos.value) return
+        if (isInitial || currentLoadedArtistName != artistName) {
+            currentLoadedArtistName = artistName
+            currentArtistVideoBatch = 0
+            _artistFullVideos.value = emptyList()
+        }
+
+        val queries = listOf(
+            "$artistName official music video",
+            "$artistName vevo",
+            "$artistName live performance",
+            "$artistName full concert",
+            "$artistName live session",
+            "$artistName acoustic live",
+            "$artistName official video"
+        )
+
+        if (currentArtistVideoBatch >= queries.size) return
+
+        viewModelScope.launch {
+            _isLoadingArtistVideos.value = true
+            try {
+                val query = queries[currentArtistVideoBatch]
+                currentArtistVideoBatch++
+
+                val newVideos: List<SongItem> = YouTubeRepository.searchMusicVideos(query).getOrDefault(emptyList())
+                val current = _artistFullVideos.value
+                _artistFullVideos.value = (current + newVideos).distinctBy { it.id }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                _isLoadingArtistVideos.value = false
+            }
+        }
     }
 
 

@@ -490,6 +490,16 @@ object YouTubeRepository {
         }
     }
 
+    suspend fun searchMusicVideos(query: String): Result<List<SongItem>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val result = YouTube.search(query, YouTube.SearchFilter.FILTER_VIDEO).getOrNull()
+            val songs = result?.items?.filterIsInstance<SongItem>().orEmpty()
+            songs.forEach { registerVideoType(it.id, "MUSIC_VIDEO_TYPE_OMV") }
+            songs
+        }
+    }
+
+
     /**
      * Historial de reproducción de la cuenta (requiere sesión).
      * Devuelve las canciones escuchadas recientemente, aplanadas y sin duplicados.

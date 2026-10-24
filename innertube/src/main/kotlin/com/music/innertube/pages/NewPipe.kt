@@ -197,21 +197,26 @@ object NewPipeExtractor {
                 NewPipe.getService(0),
                 "https://www.youtube.com/watch?v=$videoId"
             )
-            val muxedStreams = streamInfo.videoStreams
-                .filter { it.content.isNotBlank() }
-                .sortedByDescending { it.resolution ?: "" }
+            val allCandidates = (streamInfo.videoOnlyStreams + streamInfo.videoStreams)
+                .filter { !it.content.isNullOrBlank() }
 
-            val directMuxed = muxedStreams.firstOrNull()?.content
-            if (!directMuxed.isNullOrBlank()) {
-                return directMuxed
+            // 1. Priorizar stream 720p HD (balance ideal entre nitidez cristalina y carga instantánea)
+            val stream720p = allCandidates.firstOrNull { it.resolution?.contains("720") == true }
+            if (stream720p != null) {
+                return stream720p.content
             }
 
-            val videoOnly = streamInfo.videoOnlyStreams
-                .filter { it.content.isNotBlank() }
-                .sortedByDescending { it.resolution ?: "" }
+            // 2. Si no hay 720p exacto, buscar la resolución más cercana (1080p o 480p)
+            val closestStream = allCandidates.minByOrNull { s ->
+                val resNum = s.resolution?.filter { it.isDigit() }?.toIntOrNull() ?: 360
+                kotlin.math.abs(resNum - 720)
+            }
+            if (closestStream != null) {
+                return closestStream.content
+            }
 
-            videoOnly.firstOrNull()?.content
-                ?: streamInfo.videoStreams.firstOrNull()?.content
+            streamInfo.videoStreams.firstOrNull()?.content
+                ?: streamInfo.videoOnlyStreams.firstOrNull()?.content
         } catch (e: Exception) {
             null
         }

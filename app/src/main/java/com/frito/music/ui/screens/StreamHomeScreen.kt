@@ -54,8 +54,11 @@ fun StreamHomeScreen(
     onAlbumClick: (String) -> Unit,
     onArtistClick: (String) -> Unit,
     onSeeAllArtists: () -> Unit = {},
+    onSeeAllAlbums: () -> Unit = {},
+    onSeeAllVideos: () -> Unit = {},
     onRefresh: () -> Unit = {},
     recentlyPlayed: List<SongItem> = emptyList(),
+    suggestedArtists: List<ArtistItem> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     val appColors = LocalAppColors.current
@@ -148,7 +151,8 @@ fun StreamHomeScreen(
                                 BenchoAlbumCarousel(
                                     albums = shelfAlbums,
                                     onAlbumClick = onAlbumClick,
-                                    title = shelf.title
+                                    title = shelf.title,
+                                    onSeeAll = onSeeAllAlbums
                                 )
                             }
                         } else if ((isVideoShelf ||
@@ -162,7 +166,8 @@ fun StreamHomeScreen(
                                     songs = shelfSongs,
                                     onPlaySong = onPlaySong,
                                     title = shelf.title,
-                                    isVideo = true
+                                    isVideo = true,
+                                    onSeeAll = onSeeAllVideos
                                 )
                             }
                         } else {
@@ -227,6 +232,27 @@ fun StreamHomeScreen(
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+
+                // ── Garantía de "Artistas para ti": si no vino en las shelves dinámicas, se muestra aquí ──
+                val hasArtistShelf = homeShelves.any { shelf ->
+                    (shelf.id == "popular_artists" || shelf.title.contains("Artistas para ti", ignoreCase = true)) &&
+                    shelf.items.filterIsInstance<ArtistItem>().isNotEmpty()
+                }
+                if (!hasArtistShelf) {
+                    val fallbackList = if (suggestedArtists.isNotEmpty()) suggestedArtists else recommendedArtists
+                    val filteredFallback = fallbackList.filterNot { favoriteArtistIds.contains(it.id) }
+                    if (filteredFallback.isNotEmpty()) {
+                        item(key = "guaranteed_carousel_artists") {
+                            BenchoArtistCarousel(
+                                artists = filteredFallback.take(15),
+                                onArtistClick = onArtistClick,
+                                onSeeAllArtists = onSeeAllArtists,
+                                title = "Artistas para ti"
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
                         }
                     }
                 }
