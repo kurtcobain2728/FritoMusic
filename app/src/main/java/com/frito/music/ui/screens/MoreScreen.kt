@@ -11,6 +11,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
@@ -23,6 +26,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import com.frito.music.data.updater.AppUpdateManager
+import com.frito.music.data.updater.UpdateInfo
+import java.io.File
+import kotlinx.coroutines.launch
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -72,6 +79,40 @@ fun MoreScreen(
         mutableStateOf(com.frito.music.downloader.StorageUtils.getCustomDownloadDirectory(context) ?: "Predeterminado (/FritoMusic)")
     }
 
+    val coroutineScope = rememberCoroutineScope()
+    val appVersion = remember { AppUpdateManager.getAppVersion(context) }
+    var showUpdateDialog by remember { mutableStateOf(false) }
+    var isCheckingUpdate by remember { mutableStateOf(false) }
+    var updateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
+    var updateCheckError by remember { mutableStateOf<String?>(null) }
+
+    var isDownloadingApk by remember { mutableStateOf(false) }
+    var downloadProgress by remember { mutableStateOf(0f) }
+    var downloadedBytes by remember { mutableStateOf(0L) }
+    var totalBytes by remember { mutableStateOf(0L) }
+    var downloadedApkFile by remember { mutableStateOf<File?>(null) }
+    var downloadError by remember { mutableStateOf<String?>(null) }
+
+    fun triggerCheckUpdate() {
+        showUpdateDialog = true
+        isCheckingUpdate = true
+        updateCheckError = null
+        downloadError = null
+        downloadedApkFile = null
+        isDownloadingApk = false
+        coroutineScope.launch {
+            AppUpdateManager.checkUpdate(context)
+                .onSuccess { info ->
+                    updateInfo = info
+                    isCheckingUpdate = false
+                }
+                .onFailure { err ->
+                    updateCheckError = err.localizedMessage ?: "Error al conectar con GitHub"
+                    isCheckingUpdate = false
+                }
+        }
+    }
+
     val dirPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
     ) { uri: Uri? ->
@@ -115,7 +156,8 @@ fun MoreScreen(
         MenuItem("Ubicación de Descarga", currentDownloadDir, Icons.Default.Folder, Color(0xFFFF9800)) { showDownloadDirDialog = true },
         MenuItem("Reproductor Predeterminado", "Configurar en ajustes de Android", Icons.Default.CheckCircle, Color(0xFF2196F3)) { openDefaultApps() },
         MenuItem("Gestor de Descargas", "Ver estado e historial de descargas", Icons.Default.DownloadDone, Color(0xFF4CAF50)) { onNavigateToDownloadsManager() },
-        MenuItem("Donaciones", "Apoya el proyecto", Icons.Default.CardGiftcard, Color(0xFFFFC107)) { onNavigateToDonations() }
+        MenuItem("Donaciones", "Apoya el proyecto", Icons.Default.CardGiftcard, Color(0xFFFFC107)) { onNavigateToDonations() },
+        MenuItem("Actualizar app", "Versión v$appVersion • Buscar novedades", Icons.Default.SystemUpdate, Color(0xFF00E5FF)) { triggerCheckUpdate() }
     )
 
     if (showDownloadDirDialog) {
@@ -171,6 +213,338 @@ fun MoreScreen(
                     }
                 ) {
                     Text("Restablecer", color = appColors.textSecondary)
+                }
+            },
+            containerColor = appColors.surface,
+            shape = RoundedCornerShape(20.dp)
+        )
+    }
+
+    if (showUpdateDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                if (!isDownloadingApk) {
+                    showUpdateDialog = false
+                }
+            },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF00E5FF).copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.SystemUpdate,
+                            contentDescription = "Actualizar",
+                            tint = Color(0xFF00E5FF),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = "Actualizar App",
+                            color = appColors.textPrimary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        )
+                        Text(
+                            text = "Versión instalada: v$appVersion",
+                            color = appColors.textSecondary,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                ) {
+                    when {
+                        isCheckingUpdate -> {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 18.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(28.dp),
+                                    color = Color(0xFF00E5FF),
+                                    strokeWidth = 3.dp
+                                )
+                                Column {
+                                    Text(
+                                        text = "Comprobando actualizaciones...",
+                                        color = appColors.textPrimary,
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Text(
+                                        text = "Revisando repositorio en GitHub",
+                                        color = appColors.textSecondary,
+                                        fontSize = 12.sp
+                                    )
+                                }
+                            }
+                        }
+
+                        updateCheckError != null -> {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ErrorOutline,
+                                    contentDescription = null,
+                                    tint = Color(0xFFFF5252),
+                                    modifier = Modifier.size(36.dp)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "No se pudo verificar",
+                                    color = appColors.textPrimary,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 15.sp
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = updateCheckError ?: "",
+                                    color = appColors.textSecondary,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+
+                        updateInfo != null && updateInfo!!.isUpToDate && !updateInfo!!.isUpdateAvailable -> {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF00E676).copy(alpha = 0.15f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = Color(0xFF00E676),
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = "¡Estás al día!",
+                                    color = appColors.textPrimary,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Tienes la versión más reciente (v$appVersion) instalada.",
+                                    color = appColors.textSecondary,
+                                    fontSize = 13.sp
+                                )
+                            }
+                        }
+
+                        updateInfo != null && updateInfo!!.isUpdateAvailable -> {
+                            val info = updateInfo!!
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Nueva versión: v${info.latestVersion}",
+                                        color = Color(0xFF00E5FF),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp
+                                    )
+                                    if (info.apkSizeBytes > 0) {
+                                        Text(
+                                            text = AppUpdateManager.formatFileSize(info.apkSizeBytes),
+                                            color = appColors.textSecondary,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                }
+
+                                if (info.releaseTitle.isNotBlank() && info.releaseTitle != info.latestVersion) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = info.releaseTitle,
+                                        color = appColors.textPrimary,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 13.sp
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                // Notas de versión
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(max = 140.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(appColors.background.copy(alpha = 0.5f))
+                                        .padding(10.dp)
+                                        .verticalScroll(rememberScrollState())
+                                ) {
+                                    Text(
+                                        text = info.releaseNotes,
+                                        color = appColors.textSecondary,
+                                        fontSize = 12.sp,
+                                        lineHeight = 17.sp
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                if (isDownloadingApk) {
+                                    Column(modifier = Modifier.fillMaxWidth()) {
+                                        LinearProgressIndicator(
+                                            progress = { downloadProgress },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(8.dp)
+                                                .clip(RoundedCornerShape(4.dp)),
+                                            color = Color(0xFF00E5FF),
+                                            trackColor = appColors.background
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(
+                                                text = "Descargando ${(downloadProgress * 100).toInt()}%",
+                                                color = appColors.textPrimary,
+                                                fontSize = 12.sp
+                                            )
+                                            if (totalBytes > 0) {
+                                                Text(
+                                                    text = "${AppUpdateManager.formatFileSize(downloadedBytes)} / ${AppUpdateManager.formatFileSize(totalBytes)}",
+                                                    color = appColors.textSecondary,
+                                                    fontSize = 12.sp
+                                                )
+                                            }
+                                        }
+                                    }
+                                } else if (downloadedApkFile != null) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = null,
+                                            tint = Color(0xFF00E676),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Text(
+                                            text = "Descarga completa. Listo para instalar.",
+                                            color = Color(0xFF00E676),
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                } else if (downloadError != null) {
+                                    Text(
+                                        text = "Error al descargar: $downloadError",
+                                        color = Color(0xFFFF5252),
+                                        fontSize = 12.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                when {
+                    updateInfo != null && updateInfo!!.isUpdateAvailable && downloadedApkFile != null -> {
+                        Button(
+                            onClick = {
+                                AppUpdateManager.installApk(context, downloadedApkFile!!)
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676))
+                        ) {
+                            Text("Instalar Ahora", color = Color.Black, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    updateInfo != null && updateInfo!!.isUpdateAvailable && !isDownloadingApk -> {
+                        Button(
+                            onClick = {
+                                val info = updateInfo ?: return@Button
+                                val apkUrl = info.apkUrl ?: return@Button
+                                val fileName = info.apkName ?: "FritoMusic-v${info.latestVersion}.apk"
+
+                                isDownloadingApk = true
+                                downloadError = null
+                                downloadProgress = 0f
+                                downloadedBytes = 0L
+                                totalBytes = 0L
+
+                                coroutineScope.launch {
+                                    AppUpdateManager.downloadApk(context, apkUrl, fileName) { prog, read, tot ->
+                                        downloadProgress = prog
+                                        downloadedBytes = read
+                                        totalBytes = tot
+                                    }.onSuccess { file ->
+                                        downloadedApkFile = file
+                                        isDownloadingApk = false
+                                        AppUpdateManager.installApk(context, file)
+                                    }.onFailure { err ->
+                                        downloadError = err.localizedMessage ?: "Error desconocido"
+                                        isDownloadingApk = false
+                                    }
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E5FF))
+                        ) {
+                            Text("Descargar e Instalar", color = Color.Black, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    updateCheckError != null -> {
+                        Button(
+                            onClick = { triggerCheckUpdate() },
+                            colors = ButtonDefaults.buttonColors(containerColor = appColors.accent)
+                        ) {
+                            Text("Reintentar", color = Color.White)
+                        }
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        if (!isDownloadingApk) {
+                            showUpdateDialog = false
+                        }
+                    },
+                    enabled = !isDownloadingApk
+                ) {
+                    Text("Cerrar", color = appColors.textSecondary)
                 }
             },
             containerColor = appColors.surface,

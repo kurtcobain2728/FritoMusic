@@ -194,6 +194,13 @@ class MusicService : MediaSessionService() {
                     }
                 }
             }
+            override fun onRepeatModeChanged(repeatMode: Int) {
+                if (repeatMode == androidx.media3.common.Player.REPEAT_MODE_ONE) {
+                    crossfadeJob?.cancel()
+                    cancelCrossfade(player)
+                    player.volume = 1f
+                }
+            }
             override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
                 updateWidget()
             }
@@ -253,6 +260,17 @@ class MusicService : MediaSessionService() {
             while (isActive) {
                 kotlinx.coroutines.delay(200)
                 if (!player.isPlaying || isCrossfading || isPerformingHandover) continue
+
+                // Si el usuario tiene activo "Repetir una pista" (REPEAT_MODE_ONE),
+                // NO se debe hacer crossfade con otra canción: ExoPlayer debe repetir
+                // esta misma pista en bucle continuo de forma nativa.
+                if (player.repeatMode == androidx.media3.common.Player.REPEAT_MODE_ONE) {
+                    if (player.volume < 1f) player.volume = 1f
+                    if (isCrossfading || preloadedMediaId != null) {
+                        cancelCrossfade(player)
+                    }
+                    continue
+                }
 
                 val isEnabled = com.frito.music.data.preferences.CrossfadePreferences.isEnabled(this@MusicService)
                 if (!isEnabled) {

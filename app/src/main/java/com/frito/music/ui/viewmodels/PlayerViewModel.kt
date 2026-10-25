@@ -2,6 +2,7 @@ package com.frito.music.ui.viewmodels
 
 import android.app.Application
 import android.content.ComponentName
+import android.content.Context
 import android.net.Uri
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
@@ -171,7 +172,17 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             // 1. Sincronizar estado base si MusicService ya está activo en segundo plano
             _isPlaying.value = controller.isPlaying
             _shuffleModeEnabled.value = controller.shuffleModeEnabled
-            _repeatMode.value = controller.repeatMode
+
+            val savedRepeat = getApplication<Application>()
+                .getSharedPreferences("frito_player_prefs", Context.MODE_PRIVATE)
+                .getInt("saved_repeat_mode", Player.REPEAT_MODE_OFF)
+            if (savedRepeat != Player.REPEAT_MODE_OFF && controller.repeatMode == Player.REPEAT_MODE_OFF) {
+                controller.repeatMode = savedRepeat
+                _repeatMode.value = savedRepeat
+            } else {
+                _repeatMode.value = controller.repeatMode
+            }
+
             _durationMs.value = controller.duration.coerceAtLeast(0L)
             _positionMs.value = controller.currentPosition.coerceAtLeast(0L)
             _playbackSpeed.value = controller.playbackParameters.speed
@@ -323,6 +334,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
                 override fun onRepeatModeChanged(repeatMode: Int) {
                     _repeatMode.value = repeatMode
+                    getApplication<Application>()
+                        .getSharedPreferences("frito_player_prefs", Context.MODE_PRIVATE)
+                        .edit()
+                        .putInt("saved_repeat_mode", repeatMode)
+                        .apply()
                 }
             })
         }, ContextCompat.getMainExecutor(getApplication()))
@@ -1154,6 +1170,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 else -> Player.REPEAT_MODE_OFF
             }
             it.repeatMode = nextMode
+            _repeatMode.value = nextMode
+            getApplication<Application>()
+                .getSharedPreferences("frito_player_prefs", Context.MODE_PRIVATE)
+                .edit()
+                .putInt("saved_repeat_mode", nextMode)
+                .apply()
         }
     }
 
