@@ -13,3 +13,11 @@ build/
 .externalNativeBuild
 .cxx
 local.properties
+/fritomusic landing/
+fritomusic landing/
+fritomusic landing
+node_modules/
+node_modules
+.kotlin/
+.superpowers/
+docs/
